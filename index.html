@@ -919,9 +919,7 @@ function buildTicketText(o){
 function printTicket(o){
   try{
     const text = buildTicketText(o);
-    const encoded = btoa(unescape(encodeURIComponent(text)));
-    // Try Android intent method first, fallback to rawbt:
-    const intentUrl = "intent://rawbt/api/print?base64=" + encodeURIComponent(encoded) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     window.location.href = intentUrl;
   } catch(e){
     console.error("Print error:", e);
