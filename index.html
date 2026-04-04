@@ -680,10 +680,11 @@ function renderKitchen(){
           </div>`;
         }).join("")}
       </div>
-      <div style="padding:0 14px 12px;display:flex;gap:8px">
+      <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">
         ${order.status==="paid"?`<button onclick="updOrder('${order.id}','preparing')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#7C3AED;color:#fff;border-radius:9px">Start Cooking</button>`:""}
         ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
+        <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 14px;font-size:13px;font-weight:600;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
       </div>
       <div style="padding:8px 14px;background:#FEF2F2;border-top:1px solid #FECACA;display:flex;align-items:center;gap:8px">
         <span style="font-size:14px">🧾</span>
