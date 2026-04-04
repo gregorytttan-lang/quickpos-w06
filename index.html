@@ -1155,83 +1155,39 @@ function sendArchiveWhatsApp(monthKey){
 // ── RAWBT USB PRINTER ────────────────────────────────────────────────────────
 function buildTicketText(o){
   const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
-  const ESC = '\x1B';
-  const GS  = '\x1D';
-  const LF  = '\n';
-
-  // Text size commands
-  const NORMAL     = ESC+'!'+ String.fromCharCode(0x00);   // normal
-  const BOLD_ON    = ESC+'E'+ String.fromCharCode(1);
-  const BOLD_OFF   = ESC+'E'+ String.fromCharCode(0);
-  const DOUBLE_H   = ESC+'!'+ String.fromCharCode(0x10);   // double height
-  const DOUBLE_HW  = ESC+'!'+ String.fromCharCode(0x30);   // double height + width
-  const ALIGN_C    = ESC+'a'+ String.fromCharCode(1);      // center
-  const ALIGN_L    = ESC+'a'+ String.fromCharCode(0);      // left
-  const LINE       = "--------------------------------\n";
-
-  const dining     = o.dining==="takeaway"
+  const line  = "================================\n";
+  const line2 = "--------------------------------\n";
+  const dining = o.dining==="takeaway"
     ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
     : "** DINE IN **";
   const dt = new Date(o.createdAt).toLocaleString("en-SG");
 
   let t = "";
-
-  // Header
-  t += ALIGN_C + NORMAL + BOLD_ON;
-  t += "WESTERN FOOD #06\n";
-  t += "Flavours Foodcourt\n";
-  t += BOLD_OFF + LINE;
-
-  // Queue number — big
-  t += ALIGN_C + DOUBLE_HW + BOLD_ON;
-  t += fmtQ(o.queueNo) + LF;
-  t += NORMAL + BOLD_OFF;
-
-  // Date & dining
-  t += ALIGN_L + NORMAL;
-  t += dt + LF;
-
-  // Dining type — bold and big
-  t += ALIGN_C + DOUBLE_H + BOLD_ON;
-  t += dining + LF;
-  t += NORMAL + BOLD_OFF + ALIGN_L;
-  t += LINE;
-
-  // Items
+  t += line;
+  t += "     WESTERN FOOD #06\n";
+  t += "     Flavours Foodcourt\n";
+  t += line;
+  t += "     QUEUE: " + fmtQ(o.queueNo) + "\n";
+  t += line;
+  t += dt + "\n";
+  t += dining + "\n";
+  t += line2;
   o.items.forEach(i=>{
     const ad = addons(i);
-    // Item name — double height bold
-    t += DOUBLE_H + BOLD_ON;
-    t += i.name + LF;
-    t += NORMAL + BOLD_OFF;
-    // Qty and dining side by side
-    t += BOLD_ON + "  Qty: " + i.qty;
-    if(o.dining==="takeaway") t += "   [TAKEAWAY]";
-    t += LF + BOLD_OFF;
-    // Add-ons
-    if(ad.length) t += "  + " + ad.join(", ") + LF;
+    t += i.name + "\n";
+    t += "  Qty: " + i.qty;
+    if(o.dining==="takeaway") t += "  [TAKEAWAY]";
+    t += "\n";
+    if(ad.length) t += "  + " + ad.join(", ") + "\n";
+    t += line2;
   });
-
-  t += LINE;
-
-  // Total
-  t += ALIGN_C + DOUBLE_H + BOLD_ON;
-  t += "TOTAL: " + fmtS(o.total) + LF;
-  t += NORMAL + BOLD_OFF + ALIGN_L;
-  t += LINE;
-
-  // Receipt reminder
-  t += ALIGN_C + BOLD_ON;
-  t += "** CHECK RECEIPT **\n";
-  t += BOLD_OFF;
-  t += "Customer must show NETS/\n";
-  t += "PayNow receipt to collect\n";
-  t += LINE;
+  t += "TOTAL: " + fmtS(o.total) + "\n";
+  t += line;
+  t += "     ** CHECK RECEIPT **\n";
+  t += "  Show NETS/PayNow receipt\n";
+  t += "  to collect your food\n";
+  t += line;
   t += "\n\n\n";
-
-  // Auto cut
-  t += GS + 'V' + String.fromCharCode(66) + String.fromCharCode(0);
-
   return t;
 }
 
