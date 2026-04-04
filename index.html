@@ -1027,7 +1027,7 @@ function printPayout(p){
   t += GS+'V'+String.fromCharCode(66)+String.fromCharCode(0);
 
   const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(t) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
-  window.location.href = intentUrl;
+  rawbtPrint(t);
 }
 
 // ── MONTHLY ARCHIVE ──────────────────────────────────────────────────────────
@@ -1235,23 +1235,27 @@ function buildTicketText(o){
   return t;
 }
 
-function printTicket(o){
+function rawbtPrint(text){
   try{
-    const text = buildTicketText(o);
     const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
-    window.location.href = intentUrl;
-  } catch(e){
-    console.error("Print error:", e);
-  }
+    const a = document.createElement("a");
+    a.href = intentUrl;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ try{ document.body.removeChild(a); }catch(e){} }, 1000);
+  } catch(e){ console.error("Print error:", e); }
+}
+
+function printTicket(o){
+  rawbtPrint(buildTicketText(o));
 }
 
 function connectPrinter(){
   const btn = document.getElementById("bt-btn");
   const sta = document.getElementById("bt-status");
-  // Send a test print via RawBT
   const test = "  WESTERN FOOD #06\n  Flavours Foodcourt\n--------------------------------\n  ** PRINTER TEST OK **\n--------------------------------\n\n\n";
-  const win = window.open("rawbt:" + encodeURIComponent(test), "_blank");
-  if(win){ setTimeout(()=>{ try{ win.close(); }catch(e){} }, 2000); }
+  rawbtPrint(test);
   btn.textContent = "✅ Test Sent to RawBT";
   btn.style.background = "#16A34A";
   sta.textContent = "Check if printer printed the test. If yes, printing is ready!";
