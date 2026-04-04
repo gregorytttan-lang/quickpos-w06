@@ -423,7 +423,15 @@ function removeFromCart(cartKey){
   renderMenu();
 }
 
-function isMain(id){ return id.startsWith("m")||id.startsWith("f"); }
+function isMain(id){
+  // Find which category this item belongs to
+  for(const cat of menu){
+    if(cat.id==="c1"||cat.id==="c2"){ // Chicken Mains or Fish Mains
+      if(cat.items.find(i=>i.id===id)) return true;
+    }
+  }
+  return false;
+}
 
 function takeawayCharge(){
   if(diningOption!=="takeaway") return 0;
