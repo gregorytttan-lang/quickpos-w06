@@ -1193,7 +1193,12 @@ function buildTicketText(o){
 
 function rawbtPrint(text){
   try{
-    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+    // Add cut command at end (GS V 66 0)
+    const cutCmd = "\x1D\x56\x42\x00";
+    const fullText = text + cutCmd;
+    // Encode to base64 for RawBT binary mode
+    const b64 = btoa(unescape(encodeURIComponent(fullText)));
+    const intentUrl = "intent://rawbt/api/print?base64=true&text=" + encodeURIComponent(b64) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     const a = document.createElement("a");
     a.href = intentUrl;
     a.style.display = "none";
