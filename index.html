@@ -920,12 +920,15 @@ function printTicket(o){
   try{
     const text = buildTicketText(o);
     const encoded = encodeURIComponent(text);
-    const a = document.createElement("a");
-    a.href = "rawbt:" + encoded;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>document.body.removeChild(a), 1000);
+    // Use iframe to trigger RawBT without navigating away
+    let iframe = document.getElementById("rawbt-iframe");
+    if(!iframe){
+      iframe = document.createElement("iframe");
+      iframe.id = "rawbt-iframe";
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+    }
+    iframe.src = "rawbt:" + encoded;
   } catch(e){ console.error("Print error:", e); }
 }
 
@@ -934,12 +937,14 @@ function connectPrinter(){
   const sta = document.getElementById("bt-status");
   // Send a test print via RawBT
   const test = "  WESTERN FOOD #06\n  Flavours Foodcourt\n--------------------------------\n  ** PRINTER TEST OK **\n--------------------------------\n\n\n";
-  const a = document.createElement("a");
-  a.href = "rawbt:" + encodeURIComponent(test);
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>document.body.removeChild(a), 1000);
+  let iframe = document.getElementById("rawbt-iframe");
+  if(!iframe){
+    iframe = document.createElement("iframe");
+    iframe.id = "rawbt-iframe";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+  iframe.src = "rawbt:" + encodeURIComponent(test);
   btn.textContent = "✅ Test Sent to RawBT";
   btn.style.background = "#16A34A";
   sta.textContent = "Check if printer printed the test. If yes, printing is ready!";
