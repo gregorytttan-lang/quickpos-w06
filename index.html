@@ -764,16 +764,36 @@ function updatePrice(cid,iid,p){
 function resetMenu(){ menu=DEFAULT_MENU; saveMenu(); renderAdminMenu(); }
 
 function renderReports(){
-  const todayRev = orders.filter(o=>new Date(o.createdAt).toDateString()===today()).reduce((s,o)=>s+o.total,0);
+  const todayStr = today();
+  const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
+  const todayRev = todayOrders.reduce((s,o)=>s+o.total,0);
   const allRev   = orders.reduce((s,o)=>s+o.total,0);
-  const itemMap  = {};
-  orders.forEach(o=>o.items.forEach(i=>{
-    if(!itemMap[i.name]) itemMap[i.name]={qty:0,rev:0};
-    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=i.price*i.qty;
+
+  // Build daily breakdown
+  const dailyMap = {};
+  orders.forEach(o=>{
+    const d = new Date(o.createdAt).toDateString();
+    if(!dailyMap[d]) dailyMap[d]={rev:0,count:0,items:{}};
+    dailyMap[d].rev+=o.total;
+    dailyMap[d].count++;
+    o.items.forEach(i=>{
+      if(!dailyMap[d].items[i.name]) dailyMap[d].items[i.name]=0;
+      dailyMap[d].items[i.name]+=i.qty;
+    });
+  });
+  const days = Object.entries(dailyMap).sort((a,b)=>new Date(b[0])-new Date(a[0]));
+
+  // Today's top items
+  const todayItemMap = {};
+  todayOrders.forEach(o=>o.items.forEach(i=>{
+    if(!todayItemMap[i.name]) todayItemMap[i.name]={qty:0,rev:0};
+    todayItemMap[i.name].qty+=i.qty;
+    todayItemMap[i.name].rev+=i.price*i.qty;
   }));
-  const top = Object.entries(itemMap).sort((a,b)=>b[1].rev-a[1].rev).slice(0,6);
-  const maxRev = top[0]?.[1].rev||1;
+  const todayTop = Object.entries(todayItemMap).sort((a,b)=>b[1].qty-a[1].qty);
+
   document.getElementById("admin-reports").innerHTML = `
+    <!-- Summary cards -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
       ${[{l:"All-time Revenue",v:fmtS(allRev),c:"#C4572A"},{l:"Total Orders",v:orders.length,c:"#2563EB"},{l:"Today's Revenue",v:fmtS(todayRev),c:"#16A34A"}].map(s=>`
         <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:14px">
@@ -781,21 +801,55 @@ function renderReports(){
           <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:${s.c}">${s.v}</div>
         </div>`).join("")}
     </div>
+
+    <!-- Today's Report + WhatsApp -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:14px">🏆 Top Selling Items</div>
-      ${!top.length?"<div style='color:#78716C;font-size:13px'>No sales yet.</div>":top.map(([name,d],i)=>`
-        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-top:${i>0?"1px solid #E5E0D8":"none"}">
-          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#D4CFC8;min-width:24px">#${i+1}</div>
-          <div style="flex:1">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="font-size:13px;font-weight:600">${name}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">📅 Today's Sales</div>
+        <button onclick="sendWhatsApp()" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <span>💬</span> Send to WhatsApp
+        </button>
+      </div>
+      ${todayOrders.length===0?"<div style='color:#78716C;font-size:13px'>No orders today yet.</div>":`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:11px;color:#78716C;margin-bottom:4px">Orders Today</div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#16A34A">${todayOrders.length}</div>
+          </div>
+          <div style="background:#FDF0EA;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:11px;color:#78716C;margin-bottom:4px">Revenue Today</div>
+            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#C4572A">${fmtS(todayRev)}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:#78716C;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top Items Today</div>
+        ${todayTop.slice(0,5).map(([name,d],i)=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:${i>0?"1px solid #E5E0D8":"none"}">
+            <span style="font-size:13px;color:#1C1917">${name}</span>
+            <div style="display:flex;gap:12px;align-items:center">
+              <span style="font-size:12px;color:#78716C">${d.qty} sold</span>
               <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:13px">${fmtS(d.rev)}</span>
             </div>
-            <div style="background:#F5F3F0;border-radius:4px;height:4px"><div style="background:#C4572A;border-radius:4px;height:4px;width:${(d.rev/maxRev)*100}%"></div></div>
-            <div style="font-size:11px;color:#78716C;margin-top:3px">${d.qty} sold</div>
+          </div>`).join("")}
+      `}
+    </div>
+
+    <!-- Daily History -->
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;margin-bottom:14px">📆 Daily Sales History</div>
+      ${!days.length?"<div style='color:#78716C;font-size:13px'>No sales data yet.</div>":days.map(([date,d],i)=>`
+        <div style="padding:10px 0;border-top:${i>0?"1px solid #E5E0D8":"none"}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px;font-weight:600;color:#1C1917">${date===todayStr?"Today — "+date:date}</span>
+            <div style="display:flex;gap:12px;align-items:center">
+              <span style="font-size:12px;color:#78716C">${d.count} orders</span>
+              <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:14px">${fmtS(d.rev)}</span>
+            </div>
           </div>
+          <div style="font-size:11px;color:#78716C">${Object.entries(d.items).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`${n} ×${q}`).join(" · ")}</div>
         </div>`).join("")}
     </div>
+
+    <!-- Orders list -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">📋 Orders</div>
@@ -821,7 +875,6 @@ function renderReports(){
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">🏪 Supplier Payouts</div>
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:#C4572A" id="payout-total-display"></div>
       </div>
-      <!-- Add payout form -->
       <div style="background:#F5F3F0;border-radius:12px;padding:16px;margin-bottom:16px">
         <div style="font-size:12px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Add Payout</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -835,11 +888,51 @@ function renderReports(){
         <input id="pay-notes" placeholder="Notes (optional)" style="width:100%;padding:10px 12px;border:1px solid #E5E0D8;border-radius:8px;font-size:13px;background:#fff;outline:none;margin-bottom:10px">
         <button onclick="addPayout()" style="width:100%;padding:12px;background:#C4572A;color:#fff;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none">+ Add Payout</button>
       </div>
-      <!-- Payout list -->
       <div id="payout-list"></div>
+    </div>
+
+    <!-- Monthly Archive -->
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">🗄️ Monthly Archives</div>
+        <button onclick="archiveMonth()" style="background:#C4572A;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer">Archive This Month</button>
+      </div>
+      <div style="font-size:12px;color:#78716C;margin-bottom:14px">Tap "Archive This Month" at end of each month to save a permanent record before clearing orders.</div>
+      <div id="monthly-archives"><div style="color:#78716C;font-size:13px">Loading archives...</div></div>
     </div>
   `;
   renderPayouts();
+  renderMonthlyArchives();
+}
+
+function sendWhatsApp(){
+  const todayStr = today();
+  const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
+  const todayRev = todayOrders.reduce((s,o)=>s+o.total,0);
+  const itemMap = {};
+  todayOrders.forEach(o=>o.items.forEach(i=>{
+    if(!itemMap[i.name]) itemMap[i.name]=0;
+    itemMap[i.name]+=i.qty;
+  }));
+  const topItems = Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const dineIn   = todayOrders.filter(o=>o.dining==="dinein").length;
+  const takeAway = todayOrders.filter(o=>o.dining==="takeaway").length;
+
+  let msg = "🍽️ *WESTERN FOOD #06*\n";
+  msg += "📍 Flavours Foodcourt\n";
+  msg += "📅 *Daily Sales Report — " + new Date().toLocaleDateString("en-SG") + "*\n";
+  msg += "─────────────────────\n";
+  msg += "📦 Total Orders: *" + todayOrders.length + "*\n";
+  msg += "💰 Total Revenue: *" + fmtS(todayRev) + "*\n";
+  msg += "🍽️ Dine In: " + dineIn + "  🥡 Take Away: " + takeAway + "\n";
+  msg += "─────────────────────\n";
+  msg += "🏆 *Top Selling Items:*\n";
+  topItems.forEach(([name,qty],i)=>{ msg += (i+1)+". "+name+" × "+qty+"\n"; });
+  msg += "─────────────────────\n";
+  msg += "✅ End of Day Report";
+
+  const url = "https://wa.me/6590628726?text=" + encodeURIComponent(msg);
+  window.open(url, "_blank");
 }
 
 function addPayout(){
@@ -892,11 +985,171 @@ function renderPayouts(){
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#C4572A">${fmtS(p.amount)}</span>
+          <button onclick="printPayout(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🖨️</button>
           <button onclick="deletePayout('${p.id}')" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Del</button>
         </div>
       </div>
     </div>
   `).join("");
+}
+
+function printPayout(p){
+  const ESC='\x1B', GS='\x1D';
+  const NORMAL  = ESC+'!'+String.fromCharCode(0x00);
+  const BOLD_ON = ESC+'E'+String.fromCharCode(1);
+  const BOLD_OFF= ESC+'E'+String.fromCharCode(0);
+  const DOUBLE_H= ESC+'!'+String.fromCharCode(0x10);
+  const ALIGN_C = ESC+'a'+String.fromCharCode(1);
+  const ALIGN_L = ESC+'a'+String.fromCharCode(0);
+  const LINE    = "--------------------------------\n";
+  const ref     = "PAY-" + p.date.replace(/-/g,"") + "-" + p.id.slice(-4);
+
+  let t = "";
+  t += ALIGN_C + BOLD_ON + "WESTERN FOOD #06\n";
+  t += "Flavours Foodcourt\n" + BOLD_OFF;
+  t += LINE;
+  t += ALIGN_C + DOUBLE_H + BOLD_ON + "PAYMENT VOUCHER\n" + NORMAL + BOLD_OFF;
+  t += LINE;
+  t += ALIGN_L;
+  t += "Ref: " + ref + "\n";
+  t += "Date: " + p.date + "\n";
+  t += LINE;
+  t += BOLD_ON + "Supplier:\n" + BOLD_OFF + p.supplier + "\n\n";
+  t += BOLD_ON + "Item / Description:\n" + BOLD_OFF + p.item + "\n\n";
+  if(p.notes) t += BOLD_ON + "Notes:\n" + BOLD_OFF + p.notes + "\n\n";
+  t += LINE;
+  t += ALIGN_C + DOUBLE_H + BOLD_ON + "AMOUNT: " + fmtS(p.amount) + "\n" + NORMAL + BOLD_OFF;
+  t += LINE;
+  t += ALIGN_L + "Authorised by: ________________\n\n";
+  t += "Signature: ________________\n";
+  t += LINE;
+  t += "\n\n\n";
+  t += GS+'V'+String.fromCharCode(66)+String.fromCharCode(0);
+
+  const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(t) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+  window.location.href = intentUrl;
+}
+
+// ── MONTHLY ARCHIVE ──────────────────────────────────────────────────────────
+function archiveMonth(){
+  const now = new Date();
+  const monthKey = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+  const monthName = now.toLocaleString("en-SG",{month:"long",year:"numeric"});
+
+  if(!orders.length){ alert("No orders to archive."); return; }
+
+  const monthOrders = orders.filter(o=>{
+    const d = new Date(o.createdAt);
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  });
+
+  if(!monthOrders.length){ alert("No orders this month to archive."); return; }
+
+  const rev = monthOrders.reduce((s,o)=>s+o.total,0);
+  const dineIn = monthOrders.filter(o=>o.dining==="dinein").length;
+  const takeAway = monthOrders.filter(o=>o.dining==="takeaway").length;
+
+  const itemMap = {};
+  monthOrders.forEach(o=>o.items.forEach(i=>{
+    if(!itemMap[i.name]) itemMap[i.name]={qty:0,rev:0};
+    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=i.price*i.qty;
+  }));
+
+  const dailyMap = {};
+  monthOrders.forEach(o=>{
+    const d = new Date(o.createdAt).toDateString();
+    if(!dailyMap[d]) dailyMap[d]={rev:0,count:0};
+    dailyMap[d].rev+=o.total; dailyMap[d].count++;
+  });
+
+  const payouts = ls("payouts_w06",[]).filter(p=>{
+    return p.date && p.date.startsWith(monthKey);
+  });
+  const payoutTotal = payouts.reduce((s,p)=>s+p.amount,0);
+
+  const archive = {
+    monthKey, monthName,
+    totalOrders: monthOrders.length,
+    totalRevenue: rev,
+    dineIn, takeAway,
+    topItems: Object.entries(itemMap).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10),
+    dailyBreakdown: dailyMap,
+    payouts, payoutTotal,
+    archivedAt: Date.now()
+  };
+
+  db.ref("archives/" + monthKey).set(archive).then(()=>{
+    alert("✅ " + monthName + " archived successfully!");
+    renderMonthlyArchives();
+  });
+}
+
+function renderMonthlyArchives(){
+  db.ref("archives").once("value", snap=>{
+    const data = snap.val();
+    const el = document.getElementById("monthly-archives");
+    if(!el) return;
+    if(!data){ el.innerHTML="<div style='color:#78716C;font-size:13px'>No archives yet.</div>"; return; }
+    const archives = Object.values(data).sort((a,b)=>b.archivedAt-a.archivedAt);
+    el.innerHTML = archives.map(a=>`
+      <div style="padding:14px 0;border-top:1px solid #E5E0D8">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#1C1917">${a.monthName}</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="viewArchive('${a.monthKey}')" style="background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">View</button>
+            <button onclick="sendArchiveWhatsApp('${a.monthKey}')" style="background:#25D366;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">💬</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:12px;color:#78716C">
+          <span>📦 ${a.totalOrders} orders</span>
+          <span>💰 ${fmtS(a.totalRevenue)}</span>
+          <span>🍽️ ${a.dineIn} dine in</span>
+          <span>🥡 ${a.takeAway} takeaway</span>
+          ${a.payoutTotal?`<span>💸 ${fmtS(a.payoutTotal)} paid out</span>`:""}
+        </div>
+      </div>
+    `).join("");
+  });
+}
+
+function viewArchive(monthKey){
+  db.ref("archives/"+monthKey).once("value", snap=>{
+    const a = snap.val();
+    if(!a) return;
+    let msg = "📊 " + a.monthName + "\n\n";
+    msg += "Orders: " + a.totalOrders + "\n";
+    msg += "Revenue: " + fmtS(a.totalRevenue) + "\n";
+    msg += "Dine In: " + a.dineIn + " | Take Away: " + a.takeAway + "\n\n";
+    msg += "Top Items:\n";
+    a.topItems.forEach(([n,d],i)=>{ msg += (i+1)+". "+n+" ×"+d.qty+" = "+fmtS(d.rev)+"\n"; });
+    if(a.payoutTotal){ msg += "\nPayouts: " + fmtS(a.payoutTotal); }
+    alert(msg);
+  });
+}
+
+function sendArchiveWhatsApp(monthKey){
+  db.ref("archives/"+monthKey).once("value", snap=>{
+    const a = snap.val();
+    if(!a) return;
+    let msg = "📊 *WESTERN FOOD #06 — Monthly Report*\n";
+    msg += "📅 *" + a.monthName + "*\n";
+    msg += "─────────────────────\n";
+    msg += "📦 Total Orders: *" + a.totalOrders + "*\n";
+    msg += "💰 Total Revenue: *" + fmtS(a.totalRevenue) + "*\n";
+    msg += "🍽️ Dine In: " + a.dineIn + "  🥡 Take Away: " + a.takeAway + "\n";
+    if(a.payoutTotal) msg += "💸 Total Paid Out: *" + fmtS(a.payoutTotal) + "*\n";
+    msg += "💵 Net: *" + fmtS(a.totalRevenue - (a.payoutTotal||0)) + "*\n";
+    msg += "─────────────────────\n";
+    msg += "🏆 *Top Items:*\n";
+    a.topItems.slice(0,5).forEach(([n,d],i)=>{ msg += (i+1)+". "+n+" ×"+d.qty+"\n"; });
+    if(a.payouts && a.payouts.length){
+      msg += "─────────────────────\n";
+      msg += "💸 *Payouts:*\n";
+      a.payouts.forEach(p=>{ msg += "• "+p.supplier+" — "+p.item+": "+fmtS(p.amount)+"\n"; });
+    }
+    msg += "─────────────────────\n✅ End of Monthly Report";
+    window.open("https://wa.me/6590628726?text="+encodeURIComponent(msg),"_blank");
+  });
 }
 
 // ── RAWBT USB PRINTER ────────────────────────────────────────────────────────
