@@ -705,13 +705,13 @@ function renderKitchen(){
     return `<div style="background:#fff;border:2px solid ${st.color};border-radius:14px;overflow:hidden">
       <div style="background:${st.bg};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${st.color};line-height:1">${fmtQ(order.queueNo)}</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${st.color};line-height:1">${fmtQ(order.queueNo)}</div>
+            ${order.paymentMethod==="cash"?`<div style="background:#EFF6FF;color:#1E40AF;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:700">💵 CASH</div>`:""}
+          </div>
           <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
           <div style="margin-top:6px;display:inline-block;background:${order.dining==="takeaway"?"#FEF9C3":"#F0FDF4"};color:${order.dining==="takeaway"?"#854D0E":"#166534"};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">
             ${order.dining==="takeaway"?"🥡 Take Away":"🍽️ Dine In"}
-          </div>
-          <div style="margin-top:4px;display:inline-block;background:${order.paymentMethod==="cash"?"#EFF6FF":"#F0FDF4"};color:${order.paymentMethod==="cash"?"#1E40AF":"#166534"};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">
-            ${order.paymentMethod==="cash"?"💵 CASH — Collect at counter":"✅ PAYNOW"}
           </div>
         </div>
         <div style="text-align:right">
