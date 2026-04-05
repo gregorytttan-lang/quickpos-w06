@@ -58,6 +58,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="display:flex;align-items:center;gap:8px">
       <div id="kitchen-tags" style="display:flex;gap:8px"></div>
       <button id="speech-btn" onclick="toggleSpeech()" style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔊 Voice ON</button>
+      <button onclick="testVoice()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🎙️ Test Voice</button>
     </div>
   </div>
   <div id="kitchen-orders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px"></div>
@@ -1289,6 +1290,22 @@ let isFirstLoad = true;
 
 let speechEnabled = true;
 
+function testVoice(){
+  if(!window.speechSynthesis) { alert("Text to speech not supported on this device."); return; }
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v=>
+    (v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
+    v.lang === "en-SG" || v.lang === "en-IN"
+  ) || voices.find(v=> v.lang.startsWith("en"));
+  const utter = new SpeechSynthesisUtterance("New order! Queue number one. Dine In. Chicken Cutlet, quantity one.");
+  utter.rate = 0.9;
+  utter.pitch = 0.8;
+  utter.volume = 1;
+  if(preferred){ utter.voice = preferred; }
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
 function toggleSpeech(){
   speechEnabled = !speechEnabled;
   const btn = document.getElementById("speech-btn");
@@ -1315,10 +1332,26 @@ function speakOrder(o){
     const ad = addons(i);
     if(ad.length) msg += "With " + ad.join(", ") + ". ";
   });
+  if(o.remarks) msg += "Remarks: " + o.remarks + ".";
+
   const utter = new SpeechSynthesisUtterance(msg);
   utter.rate = 0.9;
-  utter.pitch = 1;
+  utter.pitch = 0.8;  // lower pitch = more male sounding
   utter.volume = 1;
+
+  // Try to find a male or Asian English voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v=>
+    (v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
+    v.name.toLowerCase().includes("english") && v.name.toLowerCase().includes("male") ||
+    v.name.includes("en-SG") ||
+    v.name.includes("en-IN") ||
+    v.lang === "en-SG" ||
+    v.lang === "en-IN"
+  ) || voices.find(v=> v.lang.startsWith("en") && v.name.toLowerCase().includes("male"))
+    || voices.find(v=> v.lang.startsWith("en"));
+
+  if(preferred) utter.voice = preferred;
   window.speechSynthesis.speak(utter);
 }
 
