@@ -55,7 +55,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <div id="view-kitchen" class="hidden" style="padding:16px">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div class="serif" style="font-size:20px;font-weight:700">Kitchen Display</div>
-    <div id="kitchen-tags" style="display:flex;gap:8px"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="kitchen-tags" style="display:flex;gap:8px"></div>
+      <button id="speech-btn" onclick="toggleSpeech()" style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔊 Voice ON</button>
+    </div>
   </div>
   <div id="kitchen-orders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px"></div>
 </div>
@@ -105,6 +108,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     </div>
     <div id="cart-items"></div>
     <div style="margin-top:16px;padding:16px;background:#F5F3F0;border-radius:12px;border:1px solid #E5E0D8">
+      <div style="font-size:12px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Special Remarks (Optional)</div>
+      <textarea id="order-remarks" placeholder="e.g. No sauce, less spicy, no onions..." style="width:100%;padding:10px 12px;border:1px solid #E5E0D8;border-radius:8px;font-size:13px;background:#fff;outline:none;resize:none;height:70px;font-family:'DM Sans',sans-serif;color:#1C1917"></textarea>
+    </div>
+    <div style="margin-top:16px;padding:16px;background:#F5F3F0;border-radius:12px;border:1px solid #E5E0D8">
       <div style="font-size:12px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Dining Option</div>
       <div style="font-size:12px;color:#DC2626;font-weight:500;margin-bottom:12px">* Please select one to continue</div>
       <div style="display:flex;gap:10px">
@@ -138,6 +145,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
       <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:2px solid #E5E0D8">
         <span class="serif" style="font-size:18px;font-weight:700">Total</span>
         <span class="serif" id="pay-total" style="font-size:22px;font-weight:700;color:#C4572A"></span>
+      </div>
+      <div id="pay-remarks-wrap" class="hidden" style="margin-top:10px;padding:10px;background:#FEF9C3;border-radius:8px;border:1px solid #FDE68A">
+        <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:2px">⚠️ Special Remarks</div>
+        <div id="pay-remarks-text" style="font-size:13px;color:#78350F"></div>
       </div>
     </div>
     <!-- Payment QR Section -->
@@ -177,7 +188,8 @@ input{font-family:'DM Sans',sans-serif;outline:none}
       <span style="font-size:22px;flex-shrink:0">🧾</span>
       <div style="font-size:13px;color:#991B1B;font-weight:500;line-height:1.5">Keep your receipt — you must show it when collecting your food</div>
     </div>
-    <button onclick="confirmPayment()" style="background:#16A34A;color:#fff;border-radius:14px;padding:18px;font-size:17px;font-weight:600;width:100%;margin-bottom:12px">✅ I Have Paid — Get Queue Number</button>
+    <button onclick="confirmPayment('paynow')" style="background:#16A34A;color:#fff;border-radius:14px;padding:18px;font-size:17px;font-weight:600;width:100%;margin-bottom:12px">✅ I Have Paid — Get Queue Number</button>
+    <button onclick="confirmPayment('cash')" style="background:#2563EB;color:#fff;border-radius:14px;padding:18px;font-size:17px;font-weight:600;width:100%;margin-bottom:12px">💵 Pay by Cash at Counter</button>
     <button onclick="closePayment()" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:10px;padding:10px;font-size:13px;width:100%">← Back to Menu</button>
   </div>
 </div>
@@ -189,6 +201,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div class="serif" id="queue-number" style="font-size:110px;font-weight:700;color:#C4572A;line-height:1;margin-bottom:16px"></div>
   <div style="width:50px;height:2px;background:#E5E0D8;margin:0 auto 20px"></div>
   <div class="serif" style="font-size:15px;font-weight:600;color:#1C1917;margin-bottom:20px">Western Food #06 — Flavours Foodcourt</div>
+  <div id="cash-notice" class="hidden" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:20px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
+    <span style="font-size:22px;flex-shrink:0">💵</span>
+    <div style="font-size:13px;color:#1E40AF;font-weight:600;line-height:1.5">Please proceed to the counter to pay cash. Show this queue number to the staff.</div>
+  </div>
   <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin-bottom:20px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
     <span style="font-size:22px;flex-shrink:0">🧾</span>
     <div style="font-size:13px;color:#991B1B;font-weight:600;line-height:1.5">Please keep your NETS / PayNow receipt. You must show it to collect your food.</div>
@@ -569,7 +585,8 @@ function renderCartModal(){
 function proceedToPayment(){
   if(!cart.length) return;
   if(!diningOption){ alert("Please select Dine In or Take Away first."); return; }
-  pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), createdAt:Date.now()};
+  const remarks = document.getElementById("order-remarks").value.trim();
+  pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), remarks, createdAt:Date.now()};
   closeCart();
   // Render pay modal items
   const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
@@ -592,6 +609,15 @@ function proceedToPayment(){
       </div>
     </div>`:"")
   document.getElementById("pay-total").textContent = fmtS(pendingOrder.total);
+  // Show remarks if any
+  const remarksWrap = document.getElementById("pay-remarks-wrap");
+  const remarksText = document.getElementById("pay-remarks-text");
+  if(pendingOrder.remarks){
+    remarksWrap.classList.remove("hidden");
+    remarksText.textContent = pendingOrder.remarks;
+  } else {
+    remarksWrap.classList.add("hidden");
+  }
   const amtEls = document.querySelectorAll("#pay-amount-big"); amtEls.forEach(el=>el.textContent=fmtS(pendingOrder.total));
   // NETS QR is embedded as static image
   const m = document.getElementById("pay-modal");
@@ -604,16 +630,23 @@ function closePayment(){
   pendingOrder = null;
 }
 
-async function confirmPayment(){
+async function confirmPayment(paymentMethod='paynow'){
   if(!pendingOrder) return;
   const queueNo = await nextQ();
-  const o = {...pendingOrder, queueNo, status:"paid", paidAt:Date.now()};
+  const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now()};
   orders.push(o); saveOrderToFB(o);
   printTicket(o);
   cart = []; pendingOrder = null;
   closePayment();
   // Show queue number
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
+  // Show cash notice if paying by cash
+  const cashNotice = document.getElementById("cash-notice");
+  if(paymentMethod==="cash"){
+    cashNotice.classList.remove("hidden");
+  } else {
+    cashNotice.classList.add("hidden");
+  }
   const m = document.getElementById("queue-modal");
   m.classList.remove("hidden"); m.style.display="flex";
   renderMenu();
@@ -677,6 +710,9 @@ function renderKitchen(){
           <div style="margin-top:6px;display:inline-block;background:${order.dining==="takeaway"?"#FEF9C3":"#F0FDF4"};color:${order.dining==="takeaway"?"#854D0E":"#166534"};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">
             ${order.dining==="takeaway"?"🥡 Take Away":"🍽️ Dine In"}
           </div>
+          <div style="margin-top:4px;display:inline-block;background:${order.paymentMethod==="cash"?"#EFF6FF":"#F0FDF4"};color:${order.paymentMethod==="cash"?"#1E40AF":"#166534"};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">
+            ${order.paymentMethod==="cash"?"💵 CASH — Collect at counter":"✅ PAYNOW"}
+          </div>
         </div>
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:700;color:${ageCol}">${age}m ago</div>
@@ -684,6 +720,7 @@ function renderKitchen(){
         </div>
       </div>
       <div style="padding:12px 16px">
+        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
         ${order.items.map((item,i)=>{
           const ad = addons(item);
           return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:${i<order.items.length-1?"1px solid #E5E0D8":"none"}">
@@ -1160,6 +1197,7 @@ function buildTicketText(o){
   const dining = o.dining==="takeaway"
     ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
     : "** DINE IN **";
+  const payment = o.paymentMethod==="cash" ? "** CASH — COLLECT AT COUNTER **" : "** PAYNOW **";
   const dt = new Date(o.createdAt).toLocaleString("en-SG");
 
   let t = "";
@@ -1171,6 +1209,8 @@ function buildTicketText(o){
   t += line;
   t += dt + "\n";
   t += dining + "\n";
+  t += payment + "\n";
+  if(o.remarks) t += "!! REMARKS: " + o.remarks + " !!\n";
   t += line2;
   o.items.forEach(i=>{
     const ad = addons(i);
@@ -1183,9 +1223,14 @@ function buildTicketText(o){
   });
   t += "TOTAL: " + fmtS(o.total) + "\n";
   t += line;
-  t += "     ** CHECK RECEIPT **\n";
-  t += "  Show NETS/PayNow receipt\n";
-  t += "  to collect your food\n";
+  t += "     ** CHECK PAYMENT **\n";
+  if(o.paymentMethod==="cash"){
+    t += "  ** CASH PAYMENT **\n";
+    t += "  Collect cash at counter\n";
+  } else {
+    t += "  Show NETS/PayNow receipt\n";
+    t += "  to collect your food\n";
+  }
   t += line;
   t += "\n\n\n";
   return t;
@@ -1193,7 +1238,7 @@ function buildTicketText(o){
 
 function rawbtPrint(text){
   try{
-    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "&cut=true" + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     const a = document.createElement("a");
     a.href = intentUrl;
     a.style.display = "none";
@@ -1238,13 +1283,70 @@ function updOrderFB(id, status){
 }
 
 // Listen for real-time order changes
+// Track known orders to detect new ones
+let knownOrderIds = new Set();
+let isFirstLoad = true;
+
+let speechEnabled = true;
+
+function toggleSpeech(){
+  speechEnabled = !speechEnabled;
+  const btn = document.getElementById("speech-btn");
+  if(speechEnabled){
+    btn.textContent = "🔊 Voice ON";
+    btn.style.background = "#F0FDF4";
+    btn.style.color = "#16A34A";
+    btn.style.border = "1px solid #86EFAC";
+  } else {
+    btn.textContent = "🔇 Voice OFF";
+    btn.style.background = "#F5F3F0";
+    btn.style.color = "#78716C";
+    btn.style.border = "1px solid #E5E0D8";
+  }
+}
+
+function speakOrder(o){
+  if(!window.speechSynthesis || !speechEnabled) return;
+  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+  const dining = o.dining==="takeaway" ? "Take Away" : "Dine In";
+  let msg = "New order! Queue number " + o.queueNo + ". " + dining + ". ";
+  o.items.forEach(i=>{
+    msg += i.name + ", quantity " + i.qty + ". ";
+    const ad = addons(i);
+    if(ad.length) msg += "With " + ad.join(", ") + ". ";
+  });
+  const utter = new SpeechSynthesisUtterance(msg);
+  utter.rate = 0.9;
+  utter.pitch = 1;
+  utter.volume = 1;
+  window.speechSynthesis.speak(utter);
+}
+
 ordersRef.on("value", snap=>{
   const data = snap.val();
   orders = data ? Object.values(data) : [];
+
+  // Detect new orders
+  if(!isFirstLoad){
+    orders.forEach(o=>{
+      if(!knownOrderIds.has(o.id)){
+        // New order detected — speak and auto-print if on kitchen view
+        const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
+        if(kitchenVisible){
+          speakOrder(o);
+          printTicket(o);
+        }
+      }
+    });
+  }
+
+  // Update known order IDs
+  orders.forEach(o=>knownOrderIds.add(o.id));
+  isFirstLoad = false;
+
   renderMenu();
   renderKitchen();
   updateKitchenBadge();
-  // Always re-render reports so data is fresh when user opens it
   renderReports();
 });
 
