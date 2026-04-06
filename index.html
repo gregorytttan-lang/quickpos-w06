@@ -657,7 +657,7 @@ async function confirmPayment(paymentMethod='paynow'){
   const queueNo = await nextQ();
   const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now()};
   orders.push(o); saveOrderToFB(o);
-  printTicket(o);
+  // Printing handled automatically on kitchen tablet via Firebase listener
   cart = []; pendingOrder = null;
   closePayment();
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
@@ -1335,6 +1335,7 @@ function rawbtPrint(text){
     const a = document.createElement("a");
     a.href = intentUrl;
     a.style.display = "none";
+    a.target = "_blank"; // open in new tab so page stays
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{ try{ document.body.removeChild(a); }catch(e){} }, 1000);
@@ -1342,7 +1343,11 @@ function rawbtPrint(text){
 }
 
 function printTicket(o){
-  rawbtPrint(buildTicketText(o));
+  // Only print if RawBT is available (kitchen tablet)
+  // Don't print from customer phone as it exits the page
+  if(document.getElementById("view-kitchen") && !document.getElementById("view-kitchen").classList.contains("hidden")){
+    rawbtPrint(buildTicketText(o));
+  }
 }
 
 function connectPrinter(){
@@ -1459,7 +1464,7 @@ ordersRef.on("value", snap=>{
         const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
         if(kitchenVisible){
           speakOrder(o);
-          printTicket(o);
+          rawbtPrint(buildTicketText(o));
         }
       }
     });
