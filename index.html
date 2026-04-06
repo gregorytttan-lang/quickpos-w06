@@ -237,11 +237,26 @@ function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 function nextQ(){
   return new Promise((resolve)=>{
     const qRef = db.ref("queue/" + today());
+    // Set timeout in case Firebase hangs
+    const timeout = setTimeout(()=>{
+      // Fallback to localStorage if Firebase times out
+      const k="pos_q_w06_fallback", t=today();
+      let s=ls(k,{});
+      if(s.date!==t){lss(k,{date:t,n:1});resolve(1);}
+      else{ const n=(s.n||0)+1; lss(k,{date:t,n}); resolve(n); }
+    }, 5000);
+
     qRef.transaction(current=>{
       return (current||0) + 1;
     }, (err, committed, snap)=>{
+      clearTimeout(timeout);
       if(committed) resolve(snap.val());
-      else resolve(Math.floor(Math.random()*900)+1);
+      else{
+        const k="pos_q_w06_fallback", t=today();
+        let s=ls(k,{});
+        if(s.date!==t){lss(k,{date:t,n:1});resolve(1);}
+        else{ const n=(s.n||0)+1; lss(k,{date:t,n}); resolve(n); }
+      }
     });
   });
 }
@@ -633,21 +648,22 @@ function closePayment(){
 
 async function confirmPayment(paymentMethod='paynow'){
   if(!pendingOrder) return;
+  // Show loading state
+  const btn1 = document.querySelector("button[onclick=\"confirmPayment('paynow')\"]");
+  const btn2 = document.querySelector("button[onclick=\"confirmPayment('cash')\"]");
+  if(btn1){ btn1.textContent="⏳ Processing..."; btn1.disabled=true; }
+  if(btn2){ btn2.textContent="⏳ Processing..."; btn2.disabled=true; }
+
   const queueNo = await nextQ();
   const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now()};
   orders.push(o); saveOrderToFB(o);
   printTicket(o);
   cart = []; pendingOrder = null;
   closePayment();
-  // Show queue number
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
-  // Show cash notice if paying by cash
   const cashNotice = document.getElementById("cash-notice");
-  if(paymentMethod==="cash"){
-    cashNotice.classList.remove("hidden");
-  } else {
-    cashNotice.classList.add("hidden");
-  }
+  if(paymentMethod==="cash"){ cashNotice.classList.remove("hidden"); }
+  else { cashNotice.classList.add("hidden"); }
   const m = document.getElementById("queue-modal");
   m.classList.remove("hidden"); m.style.display="flex";
   renderMenu();
