@@ -58,7 +58,6 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="display:flex;align-items:center;gap:8px">
       <div id="kitchen-tags" style="display:flex;gap:8px"></div>
       <button id="speech-btn" onclick="toggleSpeech()" style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔊 Voice ON</button>
-      <button onclick="testVoice()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🎙️ Test Voice</button>
     </div>
   </div>
   <div id="kitchen-orders" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px"></div>
@@ -729,17 +728,19 @@ function renderKitchen(){
     const st = STATUS[order.status]||STATUS.paid;
     const age = Math.floor((Date.now()-order.createdAt)/60000);
     const ageCol = age<5?"#16A34A":age<10?"#CA8A04":"#DC2626";
-    return `<div style="background:#fff;border:2px solid ${st.color};border-radius:14px;overflow:hidden">
-      <div style="background:${st.bg};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+    const isTakeAway = order.dining==="takeaway";
+    return `<div style="background:#fff;border:2px solid ${isTakeAway?"#D97706":st.color};border-radius:14px;overflow:hidden">
+      <div style="background:${isTakeAway?"#FEF3C7":st.bg};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${st.color};line-height:1">${fmtQ(order.queueNo)}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${isTakeAway?"#B45309":st.color};line-height:1">${fmtQ(order.queueNo)}</div>
             ${order.paymentMethod==="cash"?`<div style="background:#EFF6FF;color:#1E40AF;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:700">💵 CASH</div>`:""}
           </div>
           <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
-          <div style="margin-top:6px;display:inline-block;background:${order.dining==="takeaway"?"#FEF9C3":"#F0FDF4"};color:${order.dining==="takeaway"?"#854D0E":"#166534"};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">
-            ${order.dining==="takeaway"?"🥡 Take Away":"🍽️ Dine In"}
-          </div>
+          ${isTakeAway
+            ? `<div style="margin-top:6px;display:inline-block;background:#D97706;color:#fff;border-radius:10px;padding:6px 16px;font-size:16px;font-weight:800;letter-spacing:0.05em">🥡 TAKE AWAY</div>`
+            : `<div style="margin-top:6px;display:inline-block;background:#F0FDF4;color:#166534;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🍽️ Dine In</div>`
+          }
         </div>
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:700;color:${ageCol}">${age}m ago</div>
@@ -747,22 +748,21 @@ function renderKitchen(){
         </div>
       </div>
       <div style="padding:12px 16px">
-        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
+        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
         ${order.items.map((item,i)=>{
           const ad = addons(item);
-          return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:${i<order.items.length-1?"1px solid #E5E0D8":"none"}">
-            <div>
-              <span style="font-size:14px;font-weight:500;color:#1C1917">${item.name}</span>
-              ${ad.length?`<div style="font-size:11px;color:#7C3AED;margin-top:2px">${ad.map(c=>c.name||c).join(", ")}</div>`:""}
+          return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:${i<order.items.length-1?"1px solid #E5E0D8":"none"}">
+            <div style="flex:1">
+              <div style="font-size:20px;font-weight:700;color:#1C1917;line-height:1.2">${item.name}</div>
+              ${ad.length?`<div style="font-size:13px;color:#7C3AED;margin-top:4px;font-weight:500">${ad.map(c=>c.name||c).join(", ")}</div>`:""}
             </div>
-            <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:15px">×${item.qty}</span>
+            <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:22px;margin-left:12px">×${item.qty}</span>
           </div>`;
         }).join("")}
       </div>
       <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">
-        ${order.status==="paid"?`<button onclick="updOrder('${order.id}','preparing')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#7C3AED;color:#fff;border-radius:9px">Start Cooking</button>`:""}
-        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
-        ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:13px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
+        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
+        ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 14px;font-size:13px;font-weight:600;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
       </div>
       <div style="padding:8px 14px;background:#FEF2F2;border-top:1px solid #FECACA;display:flex;align-items:center;gap:8px">
