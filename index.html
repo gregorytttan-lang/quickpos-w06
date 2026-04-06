@@ -236,26 +236,29 @@ function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 
 function nextQ(){
   return new Promise((resolve)=>{
-    const qRef = db.ref("queue/" + today());
-    // Set timeout in case Firebase hangs
+    const t = today();
+    const qRef = db.ref("queue/" + t);
+    // Use Firebase transaction with short timeout
+    let resolved = false;
     const timeout = setTimeout(()=>{
-      // Fallback to localStorage if Firebase times out
-      const k="pos_q_w06_fallback", t=today();
-      let s=ls(k,{});
-      if(s.date!==t){lss(k,{date:t,n:1});resolve(1);}
-      else{ const n=(s.n||0)+1; lss(k,{date:t,n}); resolve(n); }
-    }, 5000);
-
+      if(!resolved){
+        resolved = true;
+        // Emergency fallback - use timestamp based number
+        const n = Math.floor((Date.now() % 86400000) / 60000) + 1; // minute of day 1-1440
+        resolve(n);
+      }
+    }, 3000);
     qRef.transaction(current=>{
       return (current||0) + 1;
     }, (err, committed, snap)=>{
-      clearTimeout(timeout);
-      if(committed) resolve(snap.val());
-      else{
-        const k="pos_q_w06_fallback", t=today();
-        let s=ls(k,{});
-        if(s.date!==t){lss(k,{date:t,n:1});resolve(1);}
-        else{ const n=(s.n||0)+1; lss(k,{date:t,n}); resolve(n); }
+      if(!resolved){
+        resolved = true;
+        clearTimeout(timeout);
+        if(committed && snap) resolve(snap.val());
+        else{
+          const n = Math.floor((Date.now() % 86400000) / 60000) + 1;
+          resolve(n);
+        }
       }
     });
   });
@@ -673,6 +676,13 @@ async function confirmPayment(paymentMethod='paynow'){
 function closeQueue(){
   const m = document.getElementById("queue-modal");
   m.classList.add("hidden"); m.style.display="none";
+  // Full reset for next customer
+  cart = [];
+  pendingOrder = null;
+  diningOption = null;
+  curCat = 0;
+  renderMenu();
+  updateCartFab();
 }
 
 // ── KITCHEN ──────────────────────────────────────────────────────────────────
