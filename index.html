@@ -804,15 +804,21 @@ function resetMenu(){ menu=DEFAULT_MENU; saveMenu(); renderAdminMenu(); }
 function renderReports(){
   const todayStr = today();
   const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
-  const todayRev = todayOrders.reduce((s,o)=>s+o.total,0);
-  const allRev   = orders.reduce((s,o)=>s+o.total,0);
+  const todayRev      = todayOrders.reduce((s,o)=>s+o.total,0);
+  const todayPaynow   = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
+  const todayCash     = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
+  const allRev        = orders.reduce((s,o)=>s+o.total,0);
+  const allPaynow     = orders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
+  const allCash       = orders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
 
   // Build daily breakdown
   const dailyMap = {};
   orders.forEach(o=>{
     const d = new Date(o.createdAt).toDateString();
-    if(!dailyMap[d]) dailyMap[d]={rev:0,count:0,items:{}};
+    if(!dailyMap[d]) dailyMap[d]={rev:0,cash:0,paynow:0,count:0,items:{}};
     dailyMap[d].rev+=o.total;
+    if(o.paymentMethod==="cash") dailyMap[d].cash+=o.total;
+    else dailyMap[d].paynow+=o.total;
     dailyMap[d].count++;
     o.items.forEach(i=>{
       if(!dailyMap[d].items[i.name]) dailyMap[d].items[i.name]=0;
@@ -840,23 +846,40 @@ function renderReports(){
         </div>`).join("")}
     </div>
 
+    <!-- PayNow / Cash split all time -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:14px">
+        <div style="font-size:10px;color:#166534;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">✅ PayNow (All-time)</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#16A34A">${fmtS(allPaynow)}</div>
+      </div>
+      <div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:12px;padding:14px">
+        <div style="font-size:10px;color:#1E40AF;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">💵 Cash (All-time)</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#2563EB">${fmtS(allCash)}</div>
+      </div>
+    </div>
+
     <!-- Today's Report + WhatsApp -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">📅 Today's Sales</div>
-        <button onclick="sendWhatsApp()" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-          <span>💬</span> Send to WhatsApp
-        </button>
+        <div style="display:flex;gap:8px">
+          <button onclick="sendWhatsApp()" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">💬 WhatsApp</button>
+          <button onclick="saveDailyToSheets()" style="background:#0F9D58;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">📊 Save to Sheets</button>
+        </div>
       </div>
       ${todayOrders.length===0?"<div style='color:#78716C;font-size:13px'>No orders today yet.</div>":`
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
           <div style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:11px;color:#78716C;margin-bottom:4px">Orders Today</div>
-            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#16A34A">${todayOrders.length}</div>
+            <div style="font-size:10px;color:#78716C;margin-bottom:4px">Orders Today</div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#16A34A">${todayOrders.length}</div>
           </div>
-          <div style="background:#FDF0EA;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:11px;color:#78716C;margin-bottom:4px">Revenue Today</div>
-            <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#C4572A">${fmtS(todayRev)}</div>
+          <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#166534;margin-bottom:4px">✅ PayNow</div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#16A34A">${fmtS(todayPaynow)}</div>
+          </div>
+          <div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#1E40AF;margin-bottom:4px">💵 Cash</div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#2563EB">${fmtS(todayCash)}</div>
           </div>
         </div>
         <div style="font-size:12px;font-weight:600;color:#78716C;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top Items Today</div>
@@ -878,12 +901,13 @@ function renderReports(){
         <div style="padding:10px 0;border-top:${i>0?"1px solid #E5E0D8":"none"}">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <span style="font-size:13px;font-weight:600;color:#1C1917">${date===todayStr?"Today — "+date:date}</span>
-            <div style="display:flex;gap:12px;align-items:center">
-              <span style="font-size:12px;color:#78716C">${d.count} orders</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:11px;background:#F0FDF4;color:#166534;border-radius:6px;padding:2px 8px;font-weight:600">✅ ${fmtS(d.paynow||0)}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1E40AF;border-radius:6px;padding:2px 8px;font-weight:600">💵 ${fmtS(d.cash||0)}</span>
               <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:14px">${fmtS(d.rev)}</span>
             </div>
           </div>
-          <div style="font-size:11px;color:#78716C">${Object.entries(d.items).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`${n} ×${q}`).join(" · ")}</div>
+          <div style="font-size:11px;color:#78716C">${d.count} orders · ${Object.entries(d.items).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`${n} ×${q}`).join(" · ")}</div>
         </div>`).join("")}
     </div>
 
@@ -943,6 +967,53 @@ function renderReports(){
   renderMonthlyArchives();
 }
 
+// ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────────────────────
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzW6dRSNUDb2fKOSOWahzQ43zn0yKg1aO0ib5Dy_8AC09FFgoCEXspQAdlvmqIv1HHzbQ/exec";
+
+function saveDailyToSheets(){
+  const todayStr = today();
+  const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
+  if(!todayOrders.length){ alert("No orders today to save."); return; }
+
+  const todayRev    = todayOrders.reduce((s,o)=>s+o.total,0);
+  const todayPaynow = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
+  const todayCash   = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
+  const dineIn      = todayOrders.filter(o=>o.dining==="dinein").length;
+  const takeAway    = todayOrders.filter(o=>o.dining==="takeaway").length;
+
+  const itemMap = {};
+  todayOrders.forEach(o=>o.items.forEach(i=>{
+    if(!itemMap[i.name]) itemMap[i.name]=0;
+    itemMap[i.name]+=i.qty;
+  }));
+  const topItems = Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,q])=>n+" x"+q);
+
+  const data = {
+    type:"daily",
+    date: new Date().toLocaleDateString("en-SG"),
+    totalRevenue: todayRev,
+    paynow: todayPaynow,
+    cash: todayCash,
+    orders: todayOrders.length,
+    dineIn, takeAway,
+    top1:topItems[0]||"", top2:topItems[1]||"", top3:topItems[2]||"",
+    top4:topItems[3]||"", top5:topItems[4]||""
+  };
+
+  fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
+    .then(r=>r.json())
+    .then(r=>{ if(r.status==="ok") alert("✅ Daily report saved to Google Sheets!"); else alert("❌ Error: "+r.message); })
+    .catch(()=>alert("❌ Failed to connect to Google Sheets. Check your internet connection."));
+}
+
+function savePayoutToSheets(p){
+  const data = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
+  fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
+    .then(r=>r.json())
+    .then(r=>{ if(r.status==="ok") alert("✅ Payout saved to Google Sheets!"); else alert("❌ Error: "+r.message); })
+    .catch(()=>alert("❌ Failed to connect to Google Sheets."));
+}
+
 function sendWhatsApp(){
   const todayStr = today();
   const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
@@ -953,6 +1024,8 @@ function sendWhatsApp(){
     itemMap[i.name]+=i.qty;
   }));
   const topItems = Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const todayPaynow  = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
+  const todayCashAmt = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
   const dineIn   = todayOrders.filter(o=>o.dining==="dinein").length;
   const takeAway = todayOrders.filter(o=>o.dining==="takeaway").length;
 
@@ -962,6 +1035,8 @@ function sendWhatsApp(){
   msg += "─────────────────────\n";
   msg += "📦 Total Orders: *" + todayOrders.length + "*\n";
   msg += "💰 Total Revenue: *" + fmtS(todayRev) + "*\n";
+  msg += "✅ PayNow: *" + fmtS(todayPaynow) + "*\n";
+  msg += "💵 Cash: *" + fmtS(todayCashAmt) + "*\n";
   msg += "🍽️ Dine In: " + dineIn + "  🥡 Take Away: " + takeAway + "\n";
   msg += "─────────────────────\n";
   msg += "🏆 *Top Selling Items:*\n";
@@ -1024,6 +1099,7 @@ function renderPayouts(){
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:#C4572A">${fmtS(p.amount)}</span>
           <button onclick="printPayout(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">🖨️</button>
+          <button onclick="savePayoutToSheets(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="background:#E8F5E9;color:#0F9D58;border:1px solid #A5D6A7;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">📊</button>
           <button onclick="deletePayout('${p.id}')" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Del</button>
         </div>
       </div>
