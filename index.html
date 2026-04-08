@@ -1296,68 +1296,33 @@ function sendArchiveWhatsApp(monthKey){
   });
 }
 
-// ── WEB BLUETOOTH PRINTING (Epson TM-m30III) ─────────────────────────────────
-let btDevice = null;
-let btChar   = null;
+// ── EPSON WiFi PRINTING (TM-m30III) ─────────────────────────────────────────
+const PRINTER_IP = "172.16.10.1";
+const PRINTER_PORT = 9100;
+let printerConnected = false;
 
 function updatePrinterStatus(connected){
   const box = document.getElementById("bt-status-box");
   const btn = document.getElementById("bt-btn");
+  printerConnected = connected;
   if(!box||!btn) return;
   if(connected){
     box.style.background="#F0FDF4"; box.style.border="1px solid #86EFAC"; box.style.color="#166534";
-    box.textContent="🟢 Printer connected — prints automatically on every new order.";
+    box.textContent="🟢 Printer connected via WiFi — prints automatically on every new order.";
     btn.textContent="✅ Printer Connected";
     btn.style.background="#16A34A";
   } else {
     box.style.background="#FEF2F2"; box.style.border="1px solid #FECACA"; box.style.color="#991B1B";
-    box.textContent="🔴 Printer not connected. Tap Connect Printer below.";
-    btn.textContent="🖨️ Connect Printer";
+    box.textContent="🔴 Printer not connected. Tap Connect & Test below.";
+    btn.textContent="🖨️ Connect & Test";
     btn.style.background="#C4572A";
   }
 }
 
 async function connectPrinter(){
-  try{
-    const sta = document.getElementById("bt-status");
-    if(sta) sta.textContent = "Searching for printer...";
-    btDevice = await navigator.bluetooth.requestDevice({
-      filters:[
-        {namePrefix:"TM-m30"},
-        {namePrefix:"Epson"},
-        {namePrefix:"TR"}
-      ],
-      optionalServices:["000018f0-0000-1000-8000-00805f9b34fb"]
-    });
-    btDevice.addEventListener("gattserverdisconnected", ()=>{
-      btChar = null;
-      updatePrinterStatus(false);
-    });
-    const server  = await btDevice.gatt.connect();
-    const service = await server.getPrimaryService("000018f0-0000-1000-8000-00805f9b34fb");
-    btChar = await service.getCharacteristic("00002af1-0000-1000-8000-00805f9b34fb");
-    updatePrinterStatus(true);
-    if(sta) sta.textContent = "Connected to " + btDevice.name;
-  } catch(e){
-    console.error("BT connect error:", e);
-    const sta = document.getElementById("bt-status");
-    if(sta) sta.textContent = "Connection failed: " + e.message;
-    updatePrinterStatus(false);
-  }
-}
-
-async function sendToPrinter(data){
-  if(!btChar){ console.warn("Printer not connected"); return; }
-  try{
-    // Send in chunks of 512 bytes
-    const chunkSize = 512;
-    for(let i=0; i<data.length; i+=chunkSize){
-      await btChar.writeValue(data.slice(i, i+chunkSize));
-    }
-  } catch(e){
-    console.error("Print send error:", e);
-    updatePrinterStatus(false);
-  }
+  const sta = document.getElementById("bt-status");
+  if(sta) sta.textContent = "Testing connection to printer...";
+  await testPrint();
 }
 
 function buildEscPos(o){
@@ -1365,58 +1330,29 @@ function buildEscPos(o){
   const enc = new TextEncoder();
   const ESC=0x1B, GS=0x1D, LF=0x0A;
   let bytes = [];
-
   const b = (...args) => bytes.push(...args);
   const t = s => bytes.push(...enc.encode(s));
   const nl = () => b(LF);
 
-  // Init
-  b(ESC,0x40); // initialize
-  b(ESC,0x61,0x01); // center align
-
-  // Bold + double height stall name
+  b(ESC,0x40);
+  b(ESC,0x61,0x01);
   b(ESC,0x45,1); b(ESC,0x21,0x10);
   t("WESTERN FOOD #06"); nl();
   b(ESC,0x21,0x00); b(ESC,0x45,0);
   t("Flavours Foodcourt"); nl();
-
-  // Divider
   t("================================"); nl();
-
-  // Queue number — extra large
-  b(ESC,0x61,0x01);
   b(ESC,0x21,0x30); b(ESC,0x45,1);
   t(fmtQ(o.queueNo)); nl();
   b(ESC,0x21,0x00); b(ESC,0x45,0);
-
   t("================================"); nl();
-
-  // Date & dining
   b(ESC,0x61,0x00);
   t(new Date(o.createdAt).toLocaleString("en-SG")); nl();
-
-  // Dining — bold double height
   b(ESC,0x61,0x01); b(ESC,0x21,0x10); b(ESC,0x45,1);
-  const dining = o.dining==="takeaway"
-    ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
-    : "** DINE IN **";
-  t(dining); nl();
+  t(o.dining==="takeaway"?"** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **":"** DINE IN **"); nl();
   b(ESC,0x21,0x00); b(ESC,0x45,0);
-
-  // Payment
-  b(ESC,0x61,0x01);
   t(o.paymentMethod==="cash"?"** CASH — PAY AT COUNTER **":"** PAYNOW **"); nl();
-
-  // Remarks
-  if(o.remarks){
-    b(ESC,0x61,0x00); b(ESC,0x45,1);
-    t("!! "+o.remarks+" !!"); nl();
-    b(ESC,0x45,0);
-  }
-
+  if(o.remarks){ b(ESC,0x45,1); t("!! "+o.remarks+" !!"); nl(); b(ESC,0x45,0); }
   t("--------------------------------"); nl();
-
-  // Items
   b(ESC,0x61,0x00);
   o.items.forEach(i=>{
     const ad = addons(i);
@@ -1427,54 +1363,81 @@ function buildEscPos(o){
     if(ad.length){ t("  + "+ad.join(", ")); nl(); }
     t("--------------------------------"); nl();
   });
-
-  // Total
   b(ESC,0x61,0x01); b(ESC,0x21,0x10); b(ESC,0x45,1);
   t("TOTAL: "+fmtS(o.total)); nl();
   b(ESC,0x21,0x00); b(ESC,0x45,0);
-
   t("================================"); nl();
   b(ESC,0x61,0x01);
   t("** CHECK RECEIPT **"); nl();
-  t(o.paymentMethod==="cash"?"Pay cash at counter when collecting":"Show PayNow receipt to collect"); nl();
+  t(o.paymentMethod==="cash"?"Pay cash at counter":"Show PayNow receipt to collect"); nl();
   t("================================"); nl();
-
-  // Feed and cut
   b(LF,LF,LF);
-  b(GS,0x56,0x42,0x00); // full cut
-
+  b(GS,0x56,0x42,0x00);
   return new Uint8Array(bytes);
 }
 
+async function sendToPrinter(data){
+  try{
+    // Use Epson ePOS-Print XML over HTTP
+    const xmlBuilder = [];
+    xmlBuilder.push('<?xml version="1.0" encoding="utf-8"?>');
+    xmlBuilder.push('<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">');
+    xmlBuilder.push('<text smooth="true"/>');
+    
+    // Convert ESC/POS bytes to base64 for raw mode
+    const b64 = btoa(String.fromCharCode(...data));
+    xmlBuilder.push('<raw>'+b64+'</raw>');
+    xmlBuilder.push('</epos-print>');
+    
+    const xml = xmlBuilder.join('');
+    const url = 'http://'+PRINTER_IP+'/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000';
+    
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '""'},
+      body: xml
+    });
+    
+    if(resp.ok){
+      updatePrinterStatus(true);
+      return true;
+    } else {
+      console.error("Printer error:", resp.status);
+      updatePrinterStatus(false);
+      return false;
+    }
+  } catch(e){
+    console.error("Print send error:", e);
+    updatePrinterStatus(false);
+    return false;
+  }
+}
+
 async function printTicket(o){
-  if(!btChar){ console.warn("Printer not connected — skipping print"); return; }
   await sendToPrinter(buildEscPos(o));
 }
 
 async function testPrint(){
-  if(!btChar){ alert("Please connect the printer first!"); return; }
+  const sta = document.getElementById("bt-status");
   const enc = new TextEncoder();
   const ESC=0x1B, GS=0x1D, LF=0x0A;
   const bytes = [
-    ESC,0x40,
-    ESC,0x61,0x01,
-    ESC,0x45,1,ESC,0x21,0x10,
-    ...enc.encode("WESTERN FOOD #06"),LF,
-    ESC,0x21,0x00,ESC,0x45,0,
-    ...enc.encode("Flavours Foodcourt"),LF,
-    ...enc.encode("--------------------------------"),LF,
-    ESC,0x21,0x10,ESC,0x45,1,
-    ...enc.encode("** PRINTER TEST OK **"),LF,
-    ESC,0x21,0x00,ESC,0x45,0,
-    ...enc.encode("--------------------------------"),LF,
+    ESC,0x40, ESC,0x61,0x01,
+    ESC,0x45,1, ESC,0x21,0x10,
+    ...enc.encode("WESTERN FOOD #06"), LF,
+    ESC,0x21,0x00, ESC,0x45,0,
+    ...enc.encode("Flavours Foodcourt"), LF,
+    ...enc.encode("--------------------------------"), LF,
+    ESC,0x21,0x10, ESC,0x45,1,
+    ...enc.encode("** PRINTER TEST OK **"), LF,
+    ESC,0x21,0x00, ESC,0x45,0,
+    ...enc.encode("--------------------------------"), LF,
     LF,LF,LF,
     GS,0x56,0x42,0x00
   ];
-  await sendToPrinter(new Uint8Array(bytes));
-  const sta = document.getElementById("bt-status");
-  if(sta) sta.textContent = "Test print sent!";
+  const ok = await sendToPrinter(new Uint8Array(bytes));
+  if(sta) sta.textContent = ok ? "✅ Test print sent!" : "❌ Print failed — check WiFi connection";
 }
-
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
 // ── FIREBASE REALTIME SYNC ────────────────────────────────────────────────────
