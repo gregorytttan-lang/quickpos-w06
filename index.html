@@ -75,13 +75,15 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="admin-reports" class="hidden"></div>
   <div id="admin-printer" class="hidden">
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:12px">
-      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — Bluetooth Printer</div>
-      <div style="font-size:12px;color:#78716C;margin-bottom:16px">Connect once per session. Prints automatically on every new order.</div>
-      <div id="bt-status-box" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#991B1B;line-height:1.6">
-        🔴 Printer not connected. Tap Connect Printer below.
+      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — WiFi Printer</div>
+      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via WiFi Direct — scan printer QR code first to connect tablet to printer WiFi.</div>
+      <div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:#1E40AF;line-height:1.6">
+        📶 Printer IP: <strong>172.16.10.1</strong> — Make sure tablet is connected to printer WiFi before printing.
       </div>
-      <button id="bt-btn" onclick="connectPrinter()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">🖨️ Connect Printer</button>
-      <button onclick="testPrint()" style="background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;width:100%">🧪 Test Print</button>
+      <div id="bt-status-box" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#991B1B;line-height:1.6">
+        🔴 Printer not tested. Tap Connect & Test below.
+      </div>
+      <button id="bt-btn" onclick="connectPrinter()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">🖨️ Connect & Test Print</button>
       <div id="bt-status" style="font-size:12px;color:#78716C;margin-top:8px;text-align:center"></div>
     </div>
   </div>
