@@ -768,7 +768,7 @@ function renderKitchen(){
       <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">
         ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
-        <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 14px;font-size:13px;font-weight:600;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
+        <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
       </div>
       <div style="padding:8px 14px;background:#FEF2F2;border-top:1px solid #FECACA;display:flex;align-items:center;gap:8px">
         <span style="font-size:14px">🧾</span>
@@ -1308,7 +1308,10 @@ function updatePrinterStatus(connected){
 
 function rawbtPrint(text){
   try{
-    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+    // Add ESC/POS cut command at end
+    const cutCmd = "\x1D\x56\x41\x00";
+    const fullText = text + cutCmd;
+    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(fullText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     const a = document.createElement("a");
     a.href = intentUrl;
     a.style.display = "none";
@@ -1465,6 +1468,23 @@ function toggleSpeech(){
   }
 }
 
+function flashNewOrder(){
+  // Flash orange overlay to alert staff
+  const flash = document.createElement("div");
+  flash.style.cssText = "position:fixed;inset:0;background:rgba(196,87,42,0.3);z-index:9999;pointer-events:none;transition:opacity 0.5s";
+  document.body.appendChild(flash);
+  setTimeout(()=>{ flash.style.opacity="0"; }, 300);
+  setTimeout(()=>{ try{ document.body.removeChild(flash); }catch(e){} }, 800);
+  // Flash twice
+  setTimeout(()=>{
+    const flash2 = document.createElement("div");
+    flash2.style.cssText = "position:fixed;inset:0;background:rgba(196,87,42,0.3);z-index:9999;pointer-events:none;transition:opacity 0.5s";
+    document.body.appendChild(flash2);
+    setTimeout(()=>{ flash2.style.opacity="0"; }, 300);
+    setTimeout(()=>{ try{ document.body.removeChild(flash2); }catch(e){} }, 800);
+  }, 500);
+}
+
 function speakOrder(o){
   if(!window.speechSynthesis || !speechEnabled) return;
   const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
@@ -1509,7 +1529,8 @@ ordersRef.on("value", snap=>{
         const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
         if(kitchenVisible){
           speakOrder(o);
-          printTicket(o);
+          // Flash the screen to alert staff of new order
+          flashNewOrder();
         }
       }
     });
