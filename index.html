@@ -1329,38 +1329,36 @@ function buildTicketText(o){
   const dining = o.dining==="takeaway"
     ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
     : "** DINE IN **";
-  const payment = o.paymentMethod==="cash" ? "** CASH — COLLECT AT COUNTER **" : "** PAYNOW **";
+  const payment = o.paymentMethod==="cash" ? "** CASH — AT COUNTER **" : "** PAYNOW **";
   const dt = new Date(o.createdAt).toLocaleString("en-SG");
   let t = "";
   t += line;
-  t += "     WESTERN FOOD #06\n";
-  t += "     Flavours Foodcourt\n";
+  t += "  WESTERN FOOD #06\n";
+  t += "  Flavours Foodcourt\n";
   t += line;
-  t += "     QUEUE: " + fmtQ(o.queueNo) + "\n";
+  t += "  QUEUE: " + fmtQ(o.queueNo) + "\n";
   t += line;
   t += dt + "\n";
   t += dining + "\n";
   t += payment + "\n";
-  if(o.remarks) t += "!! REMARKS: " + o.remarks + " !!\n";
+  if(o.remarks) t += "!! " + o.remarks + " !!\n";
   t += line2;
   o.items.forEach(i=>{
     const ad = addons(i);
     t += i.name + "\n";
     t += "  Qty: " + i.qty;
-    if(o.dining==="takeaway") t += "  [TAKEAWAY]";
+    if(o.dining==="takeaway") t += " [TAKEAWAY]";
     t += "\n";
-    if(ad.length) t += "  + " + ad.join(", ") + "\n";
+    if(ad.length) t += "  +" + ad.join(", ") + "\n";
     t += line2;
   });
   t += "TOTAL: " + fmtS(o.total) + "\n";
   t += line;
-  t += "     ** CHECK PAYMENT **\n";
+  t += "  ** CHECK PAYMENT **\n";
   if(o.paymentMethod==="cash"){
     t += "  Pay cash at counter\n";
-    t += "  when collecting food\n";
   } else {
     t += "  Show PayNow receipt\n";
-    t += "  to collect your food\n";
   }
   t += line;
   t += "\n\n\n";
