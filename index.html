@@ -1324,44 +1324,86 @@ function rawbtPrint(text){
 
 function buildTicketText(o){
   const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
-  const line  = "================================\n";
-  const line2 = "--------------------------------\n";
-  const dining = o.dining==="takeaway"
-    ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
-    : "** DINE IN **";
-  const payment = o.paymentMethod==="cash" ? "** CASH — AT COUNTER **" : "** PAYNOW **";
-  const dt = new Date(o.createdAt).toLocaleString("en-SG");
+  const ESC = '\x1B';
+  const GS  = '\x1D';
+  const LF  = '\n';
+
+  // Text size commands
+  const NORMAL    = ESC + '!' + '\x00';         // normal
+  const BOLD_ON   = ESC + 'E' + '\x01';         // bold on
+  const BOLD_OFF  = ESC + 'E' + '\x00';         // bold off
+  const DOUBLE_H  = ESC + '!' + '\x10';         // double height
+  const DOUBLE_HW = ESC + '!' + '\x30';         // double height + width (biggest)
+  const ALIGN_C   = ESC + 'a' + '\x01';         // center
+  const ALIGN_L   = ESC + 'a' + '\x00';         // left
+  const CUT       = GS  + 'V' + '\x42' + '\x00'; // full cut
+
+  const dining   = o.dining==="takeaway" ? "TAKE AWAY" : "DINE IN";
+  const dt       = new Date(o.createdAt).toLocaleString("en-SG");
+  const payLabel = o.paymentMethod==="cash" ? "CASH" : "PAYNOW";
+
   let t = "";
-  t += line;
-  t += "  WESTERN FOOD #06\n";
-  t += "  Flavours Foodcourt\n";
-  t += line;
-  t += "  QUEUE: " + fmtQ(o.queueNo) + "\n";
-  t += line;
-  t += dt + "\n";
-  t += dining + "\n";
-  t += payment + "\n";
-  if(o.remarks) t += "!! " + o.remarks + " !!\n";
-  t += line2;
+
+  // Header
+  t += ALIGN_C + BOLD_ON + NORMAL;
+  t += "WESTERN FOOD #06" + LF;
+  t += "Flavours Foodcourt" + LF;
+  t += BOLD_OFF;
+  t += "------------------------------------------------" + LF;
+
+  // PayNow / Cash — biggest text
+  t += ALIGN_C + DOUBLE_HW + BOLD_ON;
+  t += payLabel + LF;
+  t += NORMAL + BOLD_OFF;
+  t += "------------------------------------------------" + LF;
+
+  // Queue number — double height bold
+  t += ALIGN_L + DOUBLE_H + BOLD_ON;
+  t += "Queue: " + fmtQ(o.queueNo);
+  t += NORMAL + BOLD_OFF;
+
+  // Dining type on same line — normal
+  t += "  " + dining + LF;
+  t += "------------------------------------------------" + LF;
+
+  // Remarks
+  if(o.remarks){
+    t += ALIGN_L + BOLD_ON + "!! " + o.remarks + " !!" + BOLD_OFF + LF;
+    t += "------------------------------------------------" + LF;
+  }
+
+  // Items — double height
   o.items.forEach(i=>{
     const ad = addons(i);
-    t += i.name + "\n";
-    t += "  Qty: " + i.qty;
+    t += LF;
+    t += ALIGN_L + DOUBLE_H + BOLD_ON;
+    t += i.name + LF;
+    t += NORMAL + BOLD_OFF;
+    t += DOUBLE_H + BOLD_ON;
+    t += "Qty: " + i.qty;
     if(o.dining==="takeaway") t += " [TAKEAWAY]";
-    t += "\n";
-    if(ad.length) t += "  +" + ad.join(", ") + "\n";
-    t += line2;
+    t += LF;
+    t += NORMAL + BOLD_OFF;
+    if(ad.length){ t += "  + " + ad.join(", ") + LF; }
+    t += "------------------------------------------------" + LF;
   });
-  t += "TOTAL: " + fmtS(o.total) + "\n";
-  t += line;
-  t += "  ** CHECK PAYMENT **\n";
-  if(o.paymentMethod==="cash"){
-    t += "  Pay cash at counter\n";
-  } else {
-    t += "  Show PayNow receipt\n";
-  }
-  t += line;
-  t += "\n\n\n";
+
+  // Total — double height
+  t += LF;
+  t += ALIGN_L + DOUBLE_H + BOLD_ON;
+  t += "TOTAL: " + fmtS(o.total) + LF;
+  t += NORMAL + BOLD_OFF;
+  t += "------------------------------------------------" + LF;
+
+  // Date at bottom
+  t += ALIGN_L + NORMAL;
+  t += dt + LF;
+  t += "================================================" + LF;
+
+  // Feed and cut
+  t += LF + LF + LF;
+  t += CUT;
+
   return t;
 }
 function printTicket(o){
