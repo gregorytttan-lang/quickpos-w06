@@ -76,9 +76,9 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="admin-printer" class="hidden">
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:12px">
       <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — USB-C Printer</div>
-      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via USB-C + RawBT app. Make sure RawBT is open and Epson is connected via USB-C cable.</div>
+      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via RawBT app + USB-C cable. Make sure RawBT is open and Epson is connected.</div>
       <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.6">
-        ✅ Keep RawBT running in background. Every new order prints automatically.
+        ✅ Keep RawBT running in background. Tap 🖨️ on each order to print.
       </div>
       <div id="bt-status-box" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#991B1B;line-height:1.6">
         🔴 Tap Connect & Test to verify printer is working.
@@ -1306,7 +1306,78 @@ function updatePrinterStatus(connected){
   }
 }
 
+function thermerPrint(o){
+  try{
+    // Build JSON print data for Thermer Browser Print API
+    const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+    const dining = o.dining==="takeaway" ? "TAKE AWAY" : "DINE IN";
+    const payLabel = o.paymentMethod==="cash" ? "CASH" : "PAYNOW";
+    const dt = new Date(o.createdAt).toLocaleString("en-SG");
+
+    const items = [];
+
+    // Header
+    items.push({type:0, content:"WESTERN FOOD #06", bold:1, align:1, format:0});
+    items.push({type:0, content:"Flavours Foodcourt", bold:0, align:1, format:0});
+    items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+
+    // PayNow / Cash — biggest
+    items.push({type:0, content:payLabel, bold:1, align:1, format:2});
+    items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+
+    // Queue number — biggest
+    items.push({type:0, content:fmtQ(o.queueNo), bold:1, align:1, format:2});
+
+    // Dining
+    items.push({type:0, content:dining, bold:1, align:1, format:1});
+    items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+
+    // Remarks
+    if(o.remarks){
+      items.push({type:0, content:"!! "+o.remarks+" !!", bold:1, align:0, format:0});
+      items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+    }
+
+    // Items
+    o.items.forEach(i=>{
+      const ad = addons(i);
+      items.push({type:0, content:" ", bold:0, align:0, format:0});
+      items.push({type:0, content:i.name, bold:1, align:0, format:1});
+      items.push({type:0, content:"Qty: "+i.qty+(o.dining==="takeaway"?" [TAKEAWAY]":""), bold:1, align:0, format:1});
+      if(ad.length) items.push({type:0, content:"+ "+ad.join(", "), bold:0, align:0, format:0});
+      items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+    });
+
+    // Total
+    items.push({type:0, content:" ", bold:0, align:0, format:0});
+    items.push({type:0, content:"TOTAL: "+fmtS(o.total), bold:1, align:1, format:2});
+    items.push({type:0, content:"================================", bold:0, align:0, format:0});
+
+    // Date at bottom
+    items.push({type:0, content:dt, bold:0, align:0, format:0});
+    items.push({type:0, content:"================================", bold:0, align:0, format:0});
+    items.push({type:0, content:" ", bold:0, align:0, format:0});
+    items.push({type:0, content:" ", bold:0, align:0, format:0});
+    items.push({type:0, content:" ", bold:0, align:0, format:0});
+
+    // Encode JSON as base64 and use data URL
+    const json = JSON.stringify(items);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    const dataUrl = "https://thermerapp.com/api/print?data=" + encodeURIComponent(b64);
+
+    // Trigger Thermer
+    const a = document.createElement("a");
+    a.href = "my.bluetoothprint.scheme://" + dataUrl;
+    a.style.display = "none";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ try{ document.body.removeChild(a); }catch(e){} }, 1000);
+  } catch(e){ console.error("Print error:", e); }
+}
+
 function rawbtPrint(text){
+  // Fallback to RawBT if Thermer not available
   try{
     const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     const a = document.createElement("a");
