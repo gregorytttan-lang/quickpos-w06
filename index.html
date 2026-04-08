@@ -75,13 +75,13 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="admin-reports" class="hidden"></div>
   <div id="admin-printer" class="hidden">
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:12px">
-      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — WiFi Printer</div>
-      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via WiFi Direct — scan printer QR code first to connect tablet to printer WiFi.</div>
-      <div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:#1E40AF;line-height:1.6">
-        📶 Printer IP: <strong>10.93.235.152</strong> — Make sure tablet is on the same WiFi as the printer.
+      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — USB-C Printer</div>
+      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via USB-C + RawBT app. Make sure RawBT is open and Epson is connected via USB-C cable.</div>
+      <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.6">
+        ✅ Keep RawBT running in background. Every new order prints automatically.
       </div>
       <div id="bt-status-box" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:#991B1B;line-height:1.6">
-        🔴 Printer not tested. Tap Connect & Test below.
+        🔴 Tap Connect & Test to verify printer is working.
       </div>
       <button id="bt-btn" onclick="connectPrinter()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">🖨️ Connect & Test Print</button>
       <div id="bt-status" style="font-size:12px;color:#78716C;margin-top:8px;text-align:center"></div>
@@ -1138,42 +1138,29 @@ function renderPayouts(){
   `).join("");
 }
 
-async function printPayout(p){
-  if(!btChar){ alert("Please connect the printer first from Admin → Printer tab!"); return; }
-  const enc = new TextEncoder();
-  const ESC=0x1B, GS=0x1D, LF=0x0A;
+function printPayout(p){
   const ref = "PAY-" + p.date.replace(/-/g,"") + "-" + p.id.slice(-4);
-  let bytes = [ESC,0x40, ESC,0x61,0x01];
-  const t = s => bytes.push(...enc.encode(s));
-  const nl = () => bytes.push(LF);
-  const b = (...args) => bytes.push(...args);
-
-  b(ESC,0x45,1); t("WESTERN FOOD #06"); nl();
-  b(ESC,0x45,0); t("Flavours Foodcourt"); nl();
-  t("--------------------------------"); nl();
-  b(ESC,0x21,0x10,ESC,0x45,1); t("PAYMENT VOUCHER"); nl();
-  b(ESC,0x21,0x00,ESC,0x45,0);
-  t("--------------------------------"); nl();
-  b(ESC,0x61,0x00);
-  t("Ref: "+ref); nl();
-  t("Date: "+p.date); nl();
-  t("--------------------------------"); nl();
-  b(ESC,0x45,1); t("Supplier:"); nl(); b(ESC,0x45,0);
-  t(p.supplier); nl(); nl();
-  b(ESC,0x45,1); t("Item:"); nl(); b(ESC,0x45,0);
-  t(p.item); nl(); nl();
-  if(p.notes){ b(ESC,0x45,1); t("Notes:"); nl(); b(ESC,0x45,0); t(p.notes); nl(); nl(); }
-  t("--------------------------------"); nl();
-  b(ESC,0x61,0x01,ESC,0x21,0x10,ESC,0x45,1);
-  t("AMOUNT: "+fmtS(p.amount)); nl();
-  b(ESC,0x21,0x00,ESC,0x45,0,ESC,0x61,0x00);
-  t("--------------------------------"); nl();
-  t("Authorised by: ________________"); nl(); nl();
-  t("Signature:     ________________"); nl();
-  t("--------------------------------"); nl();
-  b(LF,LF,LF,GS,0x56,0x42,0x00);
-
-  await sendToPrinter(new Uint8Array(bytes));
+  const line = "--------------------------------\n";
+  let t = "";
+  t += "================================\n";
+  t += "     WESTERN FOOD #06\n";
+  t += "     Flavours Foodcourt\n";
+  t += "================================\n";
+  t += "     PAYMENT VOUCHER\n";
+  t += "================================\n";
+  t += "Ref: " + ref + "\n";
+  t += "Date: " + p.date + "\n";
+  t += line;
+  t += "Supplier: " + p.supplier + "\n";
+  t += "Item: " + p.item + "\n";
+  if(p.notes) t += "Notes: " + p.notes + "\n";
+  t += line;
+  t += "AMOUNT: " + fmtS(p.amount) + "\n";
+  t += line;
+  t += "Authorised by: ________________\n\n";
+  t += "Signature:     ________________\n";
+  t += "================================\n\n\n";
+  rawbtPrint(t);
 }
 
 // ── MONTHLY ARCHIVE ──────────────────────────────────────────────────────────
@@ -1298,9 +1285,7 @@ function sendArchiveWhatsApp(monthKey){
   });
 }
 
-// ── EPSON WiFi PRINTING (TM-m30III) ─────────────────────────────────────────
-const PRINTER_IP = "10.93.235.152";
-const PRINTER_PORT = 9100;
+// ── RAWBT USB PRINTING (Epson TM-m30III via USB-C) ──────────────────────────
 let printerConnected = false;
 
 function updatePrinterStatus(connected){
@@ -1310,135 +1295,116 @@ function updatePrinterStatus(connected){
   if(!box||!btn) return;
   if(connected){
     box.style.background="#F0FDF4"; box.style.border="1px solid #86EFAC"; box.style.color="#166534";
-    box.textContent="🟢 Printer connected via WiFi — prints automatically on every new order.";
+    box.textContent="🟢 Printer connected via USB — prints automatically on every new order.";
     btn.textContent="✅ Printer Connected";
     btn.style.background="#16A34A";
   } else {
     box.style.background="#FEF2F2"; box.style.border="1px solid #FECACA"; box.style.color="#991B1B";
-    box.textContent="🔴 Printer not connected. Tap Connect & Test below.";
-    btn.textContent="🖨️ Connect & Test";
+    box.textContent="🔴 Tap Connect & Test to verify printer is working.";
+    btn.textContent="🖨️ Connect & Test Print";
     btn.style.background="#C4572A";
   }
 }
 
-async function connectPrinter(){
-  const sta = document.getElementById("bt-status");
-  if(sta) sta.textContent = "Testing connection to printer...";
-  await testPrint();
+function rawbtPrint(text){
+  try{
+    const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
+    const a = document.createElement("a");
+    a.href = intentUrl;
+    a.style.display = "none";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ try{ document.body.removeChild(a); }catch(e){} }, 1000);
+  } catch(e){ console.error("Print error:", e); }
 }
 
-function buildEscPos(o){
+function buildTicketText(o){
   const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
-  const enc = new TextEncoder();
-  const ESC=0x1B, GS=0x1D, LF=0x0A;
-  let bytes = [];
-  const b = (...args) => bytes.push(...args);
-  const t = s => bytes.push(...enc.encode(s));
-  const nl = () => b(LF);
-
-  b(ESC,0x40);
-  b(ESC,0x61,0x01);
-  b(ESC,0x45,1); b(ESC,0x21,0x10);
-  t("WESTERN FOOD #06"); nl();
-  b(ESC,0x21,0x00); b(ESC,0x45,0);
-  t("Flavours Foodcourt"); nl();
-  t("================================"); nl();
-  b(ESC,0x21,0x30); b(ESC,0x45,1);
-  t(fmtQ(o.queueNo)); nl();
-  b(ESC,0x21,0x00); b(ESC,0x45,0);
-  t("================================"); nl();
-  b(ESC,0x61,0x00);
-  t(new Date(o.createdAt).toLocaleString("en-SG")); nl();
-  b(ESC,0x61,0x01); b(ESC,0x21,0x10); b(ESC,0x45,1);
-  t(o.dining==="takeaway"?"** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **":"** DINE IN **"); nl();
-  b(ESC,0x21,0x00); b(ESC,0x45,0);
-  t(o.paymentMethod==="cash"?"** CASH — PAY AT COUNTER **":"** PAYNOW **"); nl();
-  if(o.remarks){ b(ESC,0x45,1); t("!! "+o.remarks+" !!"); nl(); b(ESC,0x45,0); }
-  t("--------------------------------"); nl();
-  b(ESC,0x61,0x00);
+  const line  = "================================\n";
+  const line2 = "--------------------------------\n";
+  const dining = o.dining==="takeaway"
+    ? "** TAKE AWAY x"+Math.round((o.takeawayCharge||0)/0.30)+" BOX **"
+    : "** DINE IN **";
+  const payment = o.paymentMethod==="cash" ? "** CASH — COLLECT AT COUNTER **" : "** PAYNOW **";
+  const dt = new Date(o.createdAt).toLocaleString("en-SG");
+  let t = "";
+  t += line;
+  t += "     WESTERN FOOD #06\n";
+  t += "     Flavours Foodcourt\n";
+  t += line;
+  t += "     QUEUE: " + fmtQ(o.queueNo) + "\n";
+  t += line;
+  t += dt + "\n";
+  t += dining + "\n";
+  t += payment + "\n";
+  if(o.remarks) t += "!! REMARKS: " + o.remarks + " !!\n";
+  t += line2;
   o.items.forEach(i=>{
     const ad = addons(i);
-    b(ESC,0x21,0x10); b(ESC,0x45,1);
-    t(i.name); nl();
-    b(ESC,0x21,0x00); b(ESC,0x45,0);
-    t("  Qty: "+i.qty+(o.dining==="takeaway"?" [TAKEAWAY]":"")); nl();
-    if(ad.length){ t("  + "+ad.join(", ")); nl(); }
-    t("--------------------------------"); nl();
+    t += i.name + "\n";
+    t += "  Qty: " + i.qty;
+    if(o.dining==="takeaway") t += "  [TAKEAWAY]";
+    t += "\n";
+    if(ad.length) t += "  + " + ad.join(", ") + "\n";
+    t += line2;
   });
-  b(ESC,0x61,0x01); b(ESC,0x21,0x10); b(ESC,0x45,1);
-  t("TOTAL: "+fmtS(o.total)); nl();
-  b(ESC,0x21,0x00); b(ESC,0x45,0);
-  t("================================"); nl();
-  b(ESC,0x61,0x01);
-  t("** CHECK RECEIPT **"); nl();
-  t(o.paymentMethod==="cash"?"Pay cash at counter":"Show PayNow receipt to collect"); nl();
-  t("================================"); nl();
-  b(LF,LF,LF);
-  b(GS,0x56,0x42,0x00);
-  return new Uint8Array(bytes);
-}
-
-async function sendToPrinter(data){
-  try{
-    // Use Epson ePOS-Print XML over HTTP
-    const xmlBuilder = [];
-    xmlBuilder.push('<?xml version="1.0" encoding="utf-8"?>');
-    xmlBuilder.push('<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">');
-    xmlBuilder.push('<text smooth="true"/>');
-    
-    // Convert ESC/POS bytes to base64 for raw mode
-    const b64 = btoa(String.fromCharCode(...data));
-    xmlBuilder.push('<raw>'+b64+'</raw>');
-    xmlBuilder.push('</epos-print>');
-    
-    const xml = xmlBuilder.join('');
-    const url = 'http://'+PRINTER_IP+'/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000';
-    
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '""'},
-      body: xml
-    });
-    
-    if(resp.ok){
-      updatePrinterStatus(true);
-      return true;
-    } else {
-      console.error("Printer error:", resp.status);
-      updatePrinterStatus(false);
-      return false;
-    }
-  } catch(e){
-    console.error("Print send error:", e);
-    updatePrinterStatus(false);
-    return false;
+  t += "TOTAL: " + fmtS(o.total) + "\n";
+  t += line;
+  t += "     ** CHECK PAYMENT **\n";
+  if(o.paymentMethod==="cash"){
+    t += "  Pay cash at counter\n";
+    t += "  when collecting food\n";
+  } else {
+    t += "  Show PayNow receipt\n";
+    t += "  to collect your food\n";
   }
+  t += line;
+  t += "\n\n\n";
+  return t;
+}
+function printTicket(o){
+  rawbtPrint(buildTicketText(o));
 }
 
-async function printTicket(o){
-  await sendToPrinter(buildEscPos(o));
-}
-
-async function testPrint(){
+function connectPrinter(){
+  const btn = document.getElementById("bt-btn");
   const sta = document.getElementById("bt-status");
-  const enc = new TextEncoder();
-  const ESC=0x1B, GS=0x1D, LF=0x0A;
-  const bytes = [
-    ESC,0x40, ESC,0x61,0x01,
-    ESC,0x45,1, ESC,0x21,0x10,
-    ...enc.encode("WESTERN FOOD #06"), LF,
-    ESC,0x21,0x00, ESC,0x45,0,
-    ...enc.encode("Flavours Foodcourt"), LF,
-    ...enc.encode("--------------------------------"), LF,
-    ESC,0x21,0x10, ESC,0x45,1,
-    ...enc.encode("** PRINTER TEST OK **"), LF,
-    ESC,0x21,0x00, ESC,0x45,0,
-    ...enc.encode("--------------------------------"), LF,
-    LF,LF,LF,
-    GS,0x56,0x42,0x00
-  ];
-  const ok = await sendToPrinter(new Uint8Array(bytes));
-  if(sta) sta.textContent = ok ? "✅ Test print sent!" : "❌ Print failed — check WiFi connection";
+  const testText = "================================\n     WESTERN FOOD #06\n     Flavours Foodcourt\n================================\n   ** PRINTER TEST OK **\n================================\n\n\n";
+  rawbtPrint(testText);
+  btn.textContent = "\u2705 Test Sent";
+  btn.style.background = "#16A34A";
+  if(sta) sta.textContent = "Check if printer printed the test. If yes, ready!";
+  printerConnected = true;
+}
+
+function testPrint(){
+  connectPrinter();
+}
+
+function printPayout(p){
+  const ref = "PAY-" + p.date.replace(/-/g,"") + "-" + p.id.slice(-4);
+  const line2 = "--------------------------------\n";
+  let t = "";
+  t += "================================\n";
+  t += "     WESTERN FOOD #06\n";
+  t += "     Flavours Foodcourt\n";
+  t += "================================\n";
+  t += "     PAYMENT VOUCHER\n";
+  t += "================================\n";
+  t += "Ref: " + ref + "\n";
+  t += "Date: " + p.date + "\n";
+  t += line2;
+  t += "Supplier: " + p.supplier + "\n";
+  t += "Item: " + p.item + "\n";
+  if(p.notes) t += "Notes: " + p.notes + "\n";
+  t += line2;
+  t += "AMOUNT: " + fmtS(p.amount) + "\n";
+  t += line2;
+  t += "Authorised by: ________________\n\n";
+  t += "Signature:     ________________\n";
+  t += "================================\n\n\n";
+  rawbtPrint(t);
 }
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
