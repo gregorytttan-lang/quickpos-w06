@@ -1425,14 +1425,12 @@ function buildTicketText(o){
   t += NORMAL + BOLD_OFF;
   t += "------------------------------------------------" + LF;
 
-  // Queue number — BIGGEST text
-  t += ALIGN_C + DOUBLE_HW + BOLD_ON;
-  t += fmtQ(o.queueNo) + LF;
-  t += NORMAL + BOLD_OFF;
-
-  // Dining type below queue number
-  t += ALIGN_C + DOUBLE_H + BOLD_ON;
-  t += dining + LF;
+  // Queue number + Dining on same line
+  t += ALIGN_L + DOUBLE_H + BOLD_ON;
+  const qStr = fmtQ(o.queueNo);
+  const dStr = dining;
+  const spaces = Math.max(1, 24 - qStr.length - dStr.length);
+  t += qStr + " ".repeat(spaces) + dStr + LF;
   t += NORMAL + BOLD_OFF;
   t += "------------------------------------------------" + LF;
 
