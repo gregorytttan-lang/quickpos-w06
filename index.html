@@ -1461,7 +1461,6 @@ function buildTicketText(o){
   });
 
   // Total — double height
-  t += LF;
   t += ALIGN_L + DOUBLE_H + BOLD_ON;
   t += "TOTAL: " + fmtS(o.total) + LF;
   t += NORMAL + BOLD_OFF;
@@ -1473,7 +1472,7 @@ function buildTicketText(o){
   t += "================================================" + LF;
 
   // Feed and cut
-  t += LF + LF + LF;
+  t += LF;
   t += CUT;
 
   return t;
