@@ -949,7 +949,7 @@ function renderReports(){
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">📋 Orders</div>
-        ${orders.length?`<button onclick="if(confirm('Clear all orders?')){ordersRef.remove();orders=[];renderReports()}" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">Clear</button>`:""}
+        ${orders.length?`<button onclick="if(confirm('⚠️ WARNING: This will permanently delete ALL orders and sales history. Cannot be undone!\\n\\nAre you sure?')){if(confirm('Last chance! Tap OK to permanently wipe all data.')){ordersRef.remove();orders=[];renderReports();}}" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">⚠️ Wipe All Data</button>`:""}
       </div>
       ${!orders.length?"<div style='color:#78716C;font-size:13px'>No orders yet.</div>":[...orders].reverse().slice(0,30).map(o=>`
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #E5E0D8">
