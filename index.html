@@ -237,6 +237,15 @@ function buildPayNowQR(amount){
 const STALL = "Western Food #06 — Flavours Foodcourt";
 const fmtQ  = n => "#" + String(n).padStart(3,"0");
 const fmtS  = n => "$" + Number(n).toFixed(2);
+
+function toast(msg, color){
+  color = color || "#16A34A";
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:"+color+";color:#fff;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);white-space:nowrap";
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
 const uid   = () => "ORD-" + Math.random().toString(36).substr(2,5).toUpperCase();
 const today = () => new Date().toDateString();
 const tme   = ts => new Date(ts).toLocaleTimeString("en-SG",{hour:"2-digit",minute:"2-digit"});
@@ -1035,15 +1044,15 @@ function saveDailyToSheets(){
   };
 
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(()=>{ alert("✅ Daily report saved to Google Sheets!"); })
-    .catch(()=>alert("❌ Failed to connect to Google Sheets. Check your internet connection."));
+    .then(()=>{ toast("✅ Saved to Google Sheets!"); })
+    .catch(()=>toast("❌ Failed to connect. Check internet.","#DC2626"));
 }
 
 function savePayoutToSheets(p){
   const data = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(()=>{ alert("✅ Payout saved to Google Sheets!"); })
-    .catch(()=>alert("❌ Failed to connect to Google Sheets."));
+    .then(()=>{ toast("✅ Payout saved to Google Sheets!"); })
+    .catch(()=>toast("❌ Failed to connect.","#DC2626"));
 }
 
 function sendWhatsApp(){
