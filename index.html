@@ -854,6 +854,12 @@ function renderReports(){
   const allPaynow     = orders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
   const allCash       = orders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
 
+  // Float and payouts
+  const float = parseFloat(ls("float_w06", 0)) || 0;
+  const payouts = ls("payouts_w06",[]);
+  const payoutTotal = payouts.reduce((s,p)=>s+p.amount,0);
+  const cashInBox = float + todayCash - payoutTotal;
+
   // Build daily breakdown
   const dailyMap = {};
   orders.forEach(o=>{
@@ -923,6 +929,30 @@ function renderReports(){
           <div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:10px;color:#1E40AF;margin-bottom:4px">💵 Cash</div>
             <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#2563EB">${fmtS(todayCash)}</div>
+          </div>
+        </div>
+
+        <!-- Float & Cash in Box -->
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:10px">💰 Cash Box Summary</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:13px;color:#78716C;width:120px">Opening Float:</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:13px;color:#1C1917">$</span>
+              <input type="number" id="float-input" value="${float}" min="0" step="0.50" onchange="saveFloat(this.value)" style="width:80px;padding:6px;border:1px solid #E5E0D8;border-radius:8px;font-size:14px;font-weight:600;color:#1C1917">
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px">
+            <span style="color:#78716C">+ Cash Collected:</span>
+            <span style="font-weight:600;color:#2563EB">${fmtS(todayCash)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px">
+            <span style="color:#78716C">- Payouts:</span>
+            <span style="font-weight:600;color:#DC2626">${fmtS(payoutTotal)}</span>
+          </div>
+          <div style="border-top:1px solid #FED7AA;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:#92400E">Cash in Box:</span>
+            <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#C4572A">${fmtS(cashInBox)}</span>
           </div>
         </div>
         <div style="font-size:12px;font-weight:600;color:#78716C;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Top Items Today</div>
@@ -1013,6 +1043,11 @@ function renderReports(){
 // ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────────────────────
 const SHEETS_URL = "https://script.google.com/macros/s/AKfycbwhrOhE-HeFdIl-PY7N7rWMC8BO93TThS1lxuf8saEVAdAzJRLgKqXBJhIQScXfMs8E/exec";
 
+function saveFloat(val){
+  lss("float_w06", parseFloat(val)||0);
+  renderReports();
+}
+
 function saveDailyToSheets(){
   const todayStr = today();
   const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
@@ -1035,6 +1070,11 @@ function saveDailyToSheets(){
   }));
   const topItems = Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,q])=>n+" x"+q);
 
+  const float2 = parseFloat(ls("float_w06",0))||0;
+  const payouts2 = ls("payouts_w06",[]);
+  const payoutTotal2 = payouts2.reduce((s,p)=>s+p.amount,0);
+  const cashInBox2 = float2 + todayCash - payoutTotal2;
+
   const data = {
     type:"daily",
     date: new Date().toLocaleDateString("en-SG"),
@@ -1043,6 +1083,9 @@ function saveDailyToSheets(){
     cash: todayCash,
     orders: todayOrders.length,
     dineIn, takeAway,
+    float: float2,
+    payoutTotal: payoutTotal2,
+    cashInBox: cashInBox2,
     top1:topItems[0]||"", top2:topItems[1]||"", top3:topItems[2]||"",
     top4:topItems[3]||"", top5:topItems[4]||""
   };
