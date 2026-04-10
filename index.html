@@ -1016,7 +1016,11 @@ const SHEETS_URL = "https://script.google.com/macros/s/AKfycbwhrOhE-HeFdIl-PY7N7
 function saveDailyToSheets(){
   const todayStr = today();
   const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
-  if(!todayOrders.length){ alert("No orders today to save."); return; }
+  if(!todayOrders.length){ toast("No orders today to save.","#78716C"); return; }
+
+  // Disable button and show loading
+  const btn = document.querySelector("button[onclick='saveDailyToSheets()']");
+  if(btn){ btn.disabled=true; btn.textContent="⏳ Saving..."; btn.style.background="#78716C"; }
 
   const todayRev    = todayOrders.reduce((s,o)=>s+o.total,0);
   const todayPaynow = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
@@ -1044,8 +1048,14 @@ function saveDailyToSheets(){
   };
 
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(()=>{ toast("✅ Saved to Google Sheets!"); })
-    .catch(()=>toast("❌ Failed to connect. Check internet.","#DC2626"));
+    .then(()=>{
+      toast("✅ Saved to Google Sheets!");
+      if(btn){ btn.disabled=false; btn.textContent="✅ Saved!"; btn.style.background="#16A34A"; }
+    })
+    .catch(()=>{
+      toast("❌ Failed to connect. Check internet.","#DC2626");
+      if(btn){ btn.disabled=false; btn.textContent="📊 Save to Sheets"; btn.style.background="#0F9D58"; }
+    });
 }
 
 function savePayoutToSheets(p){
