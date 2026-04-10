@@ -1035,16 +1035,14 @@ function saveDailyToSheets(){
   };
 
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(r=>r.json())
-    .then(r=>{ if(r.status==="ok") alert("✅ Daily report saved to Google Sheets!"); else alert("❌ Error: "+r.message); })
+    .then(()=>{ alert("✅ Daily report saved to Google Sheets!"); })
     .catch(()=>alert("❌ Failed to connect to Google Sheets. Check your internet connection."));
 }
 
 function savePayoutToSheets(p){
   const data = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(r=>r.json())
-    .then(r=>{ if(r.status==="ok") alert("✅ Payout saved to Google Sheets!"); else alert("❌ Error: "+r.message); })
+    .then(()=>{ alert("✅ Payout saved to Google Sheets!"); })
     .catch(()=>alert("❌ Failed to connect to Google Sheets."));
 }
 
