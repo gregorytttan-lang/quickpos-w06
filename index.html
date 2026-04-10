@@ -1047,9 +1047,21 @@ function saveDailyToSheets(){
     top4:topItems[3]||"", top5:topItems[4]||""
   };
 
+  // Save daily sales first, then save all payouts
   fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
     .then(()=>{
-      toast("✅ Saved to Google Sheets!");
+      // Now save all payouts
+      const payouts = ls("payouts_w06",[]);
+      if(payouts.length){
+        const payoutPromises = payouts.map(p=>{
+          const pd = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
+          return fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(pd)});
+        });
+        return Promise.all(payoutPromises);
+      }
+    })
+    .then(()=>{
+      toast("✅ Sales & Payouts saved to Google Sheets!");
       if(btn){ btn.disabled=false; btn.textContent="✅ Saved!"; btn.style.background="#16A34A"; }
     })
     .catch(()=>{
