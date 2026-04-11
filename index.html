@@ -1661,11 +1661,16 @@ function buildTicketText(o){
 }
 function printAllOrders(){
   const active = orders.filter(o=>o.status!=="collected");
-  if(!active.length){ toast("No active orders to print.","#78716C"); return; }
-  toast("🖨️ Printing " + active.length + " tickets...", "#C4572A");
-  // Combine all tickets into one print job with cut between each
-  const combined = active.map(o=>buildTicketText(o)).join("");
+  const unprinted = active.filter(o=>!o.bulkPrinted);
+  if(!unprinted.length){ toast("No new orders to print.","#78716C"); return; }
+  toast("🖨️ Printing " + unprinted.length + " new tickets...", "#C4572A");
+  // Combine all unprinted tickets into one print job
+  const combined = unprinted.map(o=>buildTicketText(o)).join("");
   rawbtPrint(combined);
+  // Mark all as bulk printed in Firebase
+  unprinted.forEach(o=>{
+    ordersRef.child(o.id).update({bulkPrinted: true});
+  });
 }
 
 function printTicket(o){
