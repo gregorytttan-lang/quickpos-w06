@@ -1663,9 +1663,9 @@ function printAllOrders(){
   const active = orders.filter(o=>o.status!=="collected");
   if(!active.length){ toast("No active orders to print.","#78716C"); return; }
   toast("🖨️ Printing " + active.length + " tickets...", "#C4572A");
-  active.forEach((o, i)=>{
-    setTimeout(()=>{ rawbtPrint(buildTicketText(o)); }, i * 2000);
-  });
+  // Combine all tickets into one print job with cut between each
+  const combined = active.map(o=>buildTicketText(o)).join("");
+  rawbtPrint(combined);
 }
 
 function printTicket(o){
