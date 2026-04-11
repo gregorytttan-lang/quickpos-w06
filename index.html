@@ -285,7 +285,7 @@ function nextQ(){
 
 const SOUP = {id:"soup",label:"Add Mushroom Soup? (+$1.90)",required:true,options:[{name:"No thanks",price:0},{name:"+ Mushroom Soup",price:1.90}]};
 const CHEESE_FRIES = {id:"cheese",label:"Add Cheese Sauce to Fries? (+$0.60)",required:true,options:[{name:"No thanks",price:0},{name:"+ Cheese Sauce",price:0.60}]};
-const SIDE = {id:"side",label:"Add a side?",required:true,options:[{name:"No thanks",price:0},{name:"+ Butter Rice",price:0.70},{name:"+ Egg",price:0.70},{name:"+ Mashed Potato",price:0.70},{name:"+ Fries",price:0.70},{name:"+ Spaghetti (Mushroom Cream)",price:1.50},{name:"+ Spaghetti (Chicken Bolognese)",price:1.50}]};
+const SIDE = {id:"side",label:"Add a side? (choose any)",required:false,multi:true,options:[{name:"+ Butter Rice",price:0.70},{name:"+ Egg",price:0.70},{name:"+ Mashed Potato",price:0.70},{name:"+ Fries",price:0.70},{name:"+ Spaghetti (Mushroom Cream)",price:1.50},{name:"+ Spaghetti (Chicken Bolognese)",price:1.50}]};
 
 const DEFAULT_MENU = [
   {id:"c1",name:"Chicken Mains",emoji:"🍗",items:[
@@ -524,8 +524,13 @@ function takeawayCharge(){
   return qty * 0.30;
 }
 
+function choicePrice(c){
+  if(Array.isArray(c)) return c.reduce((s,x)=>s+(x.price||0),0);
+  return c.price||0;
+}
+
 function cartTotal(){
-  const base = cart.reduce((s,x)=>{ const e=Object.values(x.choices||{}).reduce((cs,c)=>cs+(c.price||0),0); return s+(x.price+e)*x.qty; },0);
+  const base = cart.reduce((s,x)=>{ const e=Object.values(x.choices||{}).reduce((cs,c)=>cs+choicePrice(c),0); return s+(x.price+e)*x.qty; },0);
   return base + takeawayCharge();
 }
 
@@ -575,27 +580,58 @@ function renderModOptions(){
   if(!modItem) return;
   let html = "";
   modItem.modifiers.forEach(mod=>{
-    html += `<div style="margin-bottom:20px">
-      <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">${mod.label}</div>
-      ${mod.options.map(opt=>{
-        const name = opt.name||opt;
-        const price = opt.price||0;
-        const sel = modChoices[mod.id]?.name===name;
-        return `<button onclick="pickMod('${mod.id}','${name}',${price})" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:10px;padding:14px 18px;background:${sel?"#FDF0EA":"#F5F3F0"};color:${sel?"#9A3E1C":"#1C1917"};border:2px solid ${sel?"#C4572A":"#E5E0D8"};border-radius:12px;font-size:15px;font-weight:${sel?600:400};transition:all 0.15s;text-align:left">
-          <span style="display:flex;align-items:center;gap:10px">
-            <span style="width:18px;height:18px;border-radius:50%;border:2px solid ${sel?"#C4572A":"#D4CFC8"};background:${sel?"#C4572A":"transparent"};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${sel?`<span style="width:8px;height:8px;border-radius:50%;background:#fff;display:block"></span>`:""}</span>
-            ${name}
-          </span>
-          ${price>0?`<span style="color:#C4572A;font-size:14px;font-weight:600">+${fmtS(price)}</span>`:""}
-        </button>`;
-      }).join("")}
-    </div>`;
+    if(mod.multi){
+      // Multi-select (checkboxes) for SIDE
+      const selected = modChoices[mod.id] || [];
+      html += `<div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">${mod.label}</div>
+        ${mod.options.map(opt=>{
+          const name = opt.name||opt;
+          const price = opt.price||0;
+          const sel = selected.some(s=>s.name===name);
+          return `<button onclick="pickModMulti('${mod.id}','${name}',${price})" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:10px;padding:14px 18px;background:${sel?"#FDF0EA":"#F5F3F0"};color:${sel?"#9A3E1C":"#1C1917"};border:2px solid ${sel?"#C4572A":"#E5E0D8"};border-radius:12px;font-size:15px;font-weight:${sel?600:400};transition:all 0.15s;text-align:left">
+            <span style="display:flex;align-items:center;gap:10px">
+              <span style="width:18px;height:18px;border-radius:4px;border:2px solid ${sel?"#C4572A":"#D4CFC8"};background:${sel?"#C4572A":"transparent"};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${sel?`<span style="color:#fff;font-size:12px;font-weight:700">✓</span>`:""}</span>
+              ${name}
+            </span>
+            ${price>0?`<span style="color:#C4572A;font-size:14px;font-weight:600">+${fmtS(price)}</span>`:""}
+          </button>`;
+        }).join("")}
+      </div>`;
+    } else {
+      // Single select (radio) for SOUP etc
+      html += `<div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">${mod.label}</div>
+        ${mod.options.map(opt=>{
+          const name = opt.name||opt;
+          const price = opt.price||0;
+          const sel = modChoices[mod.id]?.name===name;
+          return `<button onclick="pickMod('${mod.id}','${name}',${price})" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:10px;padding:14px 18px;background:${sel?"#FDF0EA":"#F5F3F0"};color:${sel?"#9A3E1C":"#1C1917"};border:2px solid ${sel?"#C4572A":"#E5E0D8"};border-radius:12px;font-size:15px;font-weight:${sel?600:400};transition:all 0.15s;text-align:left">
+            <span style="display:flex;align-items:center;gap:10px">
+              <span style="width:18px;height:18px;border-radius:50%;border:2px solid ${sel?"#C4572A":"#D4CFC8"};background:${sel?"#C4572A":"transparent"};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">${sel?`<span style="width:8px;height:8px;border-radius:50%;background:#fff;display:block"></span>`:""}</span>
+              ${name}
+            </span>
+            ${price>0?`<span style="color:#C4572A;font-size:14px;font-weight:600">+${fmtS(price)}</span>`:""}
+          </button>`;
+        }).join("")}
+      </div>`;
+    }
   });
   document.getElementById("mod-options").innerHTML = html;
-  const allPicked = modItem.modifiers.every(m=>modChoices[m.id]);
+  // Confirm button always enabled (SIDE is optional, SOUP is required)
+  const requiredMods = modItem.modifiers.filter(m=>m.required);
+  const allPicked = requiredMods.every(m=>modChoices[m.id]);
   const btn = document.getElementById("mod-confirm");
   btn.disabled = !allPicked;
   btn.style.opacity = allPicked ? "1" : "0.4";
+}
+
+function pickModMulti(modId, name, price){
+  if(!modChoices[modId]) modChoices[modId] = [];
+  const idx = modChoices[modId].findIndex(s=>s.name===name);
+  if(idx>=0) modChoices[modId].splice(idx,1); // deselect
+  else modChoices[modId].push({name, price}); // select
+  renderModOptions();
 }
 
 function pickMod(modId, name, price){
@@ -605,7 +641,8 @@ function pickMod(modId, name, price){
 
 function confirmMod(){
   if(!modItem) return;
-  const allPicked = modItem.modifiers.every(m=>modChoices[m.id]);
+  const requiredMods = modItem.modifiers.filter(m=>m.required);
+  const allPicked = requiredMods.every(m=>modChoices[m.id]);
   if(!allPicked) return;
   addToCart(modItem, modChoices);
   modItem = null; modChoices = {};
@@ -626,9 +663,9 @@ function closeCart(){
 }
 
 function renderCartModal(){
-  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
   document.getElementById("cart-items").innerHTML = cart.map(item=>{
-    const e = Object.values(item.choices||{}).reduce((s,c)=>s+(c.price||0),0);
+    const e = Object.values(item.choices||{}).reduce((s,c)=>s+choicePrice(c),0);
     const unit = item.price + e;
     const ad = addons(item);
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #E5E0D8">
@@ -656,9 +693,9 @@ function proceedToPayment(){
   pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), remarks, createdAt:Date.now()};
   closeCart();
   // Render pay modal items
-  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
   document.getElementById("pay-items").innerHTML = pendingOrder.items.map((item,i)=>{
-    const e = Object.values(item.choices||{}).reduce((s,c)=>s+(c.price||0),0);
+    const e = Object.values(item.choices||{}).reduce((s,c)=>s+choicePrice(c),0);
     const unit = item.price + e;
     const ad = addons(item);
     return `<div style="padding:8px 0;border-bottom:${i<pendingOrder.items.length-1?"1px solid #E5E0D8":"none"}">
@@ -772,7 +809,7 @@ function renderKitchen(){
     document.getElementById("kitchen-orders").innerHTML=`<div style="text-align:center;padding:80px 20px;color:#78716C;grid-column:1/-1"><div style="font-size:48px;margin-bottom:16px">✅</div><div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px">All Clear!</div><div style="font-size:13px">No pending orders</div></div>`;
     return;
   }
-  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";});
   document.getElementById("kitchen-orders").innerHTML = queue.map(order=>{
     const st = STATUS[order.status]||STATUS.paid;
     const age = Math.floor((Date.now()-order.createdAt)/60000);
@@ -1457,7 +1494,7 @@ function updatePrinterStatus(connected){
 function thermerPrint(o){
   try{
     // Build JSON print data for Thermer Browser Print API
-    const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+    const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
     const dining = o.dining==="takeaway" ? "TAKE AWAY" : "DINE IN";
     const payLabel = o.paymentMethod==="cash" ? "CASH" : "PAYNOW";
     const dt = new Date(o.createdAt).toLocaleString("en-SG");
@@ -1539,7 +1576,7 @@ function rawbtPrint(text){
 }
 
 function buildTicketText(o){
-  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
   const ESC = '\x1B';
   const GS  = '\x1D';
   const LF  = '\n';
@@ -1742,7 +1779,7 @@ function flashNewOrder(){
 
 function speakOrder(o){
   if(!window.speechSynthesis || !speechEnabled) return;
-  const addons = c => Object.values(c.choices||{}).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
   const dining = o.dining==="takeaway" ? "Take Away" : "Dine In";
   let msg = "New order! Queue number " + o.queueNo + ". " + dining + ". ";
   o.items.forEach(i=>{
