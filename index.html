@@ -452,8 +452,20 @@ function handleAdd(id){
   const item = getItem(id);
   if(!item) return;
   if(item.modifiers && item.modifiers.length>0){
-    modItem = item; modChoices = {};
-    openModModal(item);
+    // Filter modifiers based on admin toggles
+    const sideOn = ls("mod_side_w06", true);
+    const soupOn = ls("mod_soup_w06", true);
+    const filteredItem = {...item, modifiers: item.modifiers.filter(m=>{
+      if(m.id==="side" && !sideOn) return false;
+      if(m.id==="soup" && !soupOn) return false;
+      return true;
+    })};
+    if(filteredItem.modifiers.length>0){
+      modItem = filteredItem; modChoices = {};
+      openModModal(filteredItem);
+    } else {
+      addToCart(item, {});
+    }
   } else {
     addToCart(item, {});
   }
@@ -807,7 +819,31 @@ function adminTab(t){
 function renderAdmin(){ adminTab("menu-mgmt"); }
 
 function renderAdminMenu(){
-  document.getElementById("admin-menu-mgmt").innerHTML = menu.map(cat=>`
+  const sideOn = ls("mod_side_w06", true);
+  const soupOn = ls("mod_soup_w06", true);
+
+  const modSection = `
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;margin-bottom:14px;overflow:hidden">
+      <div style="background:#F5F3F0;padding:12px 16px">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">⚙️ Modifiers</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #E5E0D8">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#1C1917">Add a Side?</div>
+          <div style="font-size:11px;color:#78716C">Butter Rice / Egg / Mashed Potato / Fries / Spaghetti</div>
+        </div>
+        <button onclick="toggleMod('side')" style="background:${sideOn?"#DCFCE7":"#F5F3F0"};color:${sideOn?"#16A34A":"#78716C"};border:1px solid ${sideOn?"#86EFAC":"#E5E0D8"};border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;min-width:40px">${sideOn?"On":"Off"}</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #E5E0D8">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#1C1917">Add Mushroom Soup?</div>
+          <div style="font-size:11px;color:#78716C">+$1.90</div>
+        </div>
+        <button onclick="toggleMod('soup')" style="background:${soupOn?"#DCFCE7":"#F5F3F0"};color:${soupOn?"#16A34A":"#78716C"};border:1px solid ${soupOn?"#86EFAC":"#E5E0D8"};border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;min-width:40px">${soupOn?"On":"Off"}</button>
+      </div>
+    </div>`;
+
+  document.getElementById("admin-menu-mgmt").innerHTML = modSection + menu.map(cat=>`
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;margin-bottom:14px;overflow:hidden">
       <div style="background:#F5F3F0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between">
         <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">${cat.emoji} ${cat.name}</div>
@@ -826,6 +862,13 @@ function renderAdminMenu(){
       `).join("")}
     </div>
   `).join("");
+}
+
+function toggleMod(mod){
+  const key = "mod_"+mod+"_w06";
+  lss(key, !ls(key, true));
+  renderAdminMenu();
+  renderMenu();
 }
 
 function toggleAvail(cid,iid){
