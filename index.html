@@ -492,7 +492,7 @@ function handleAdd(id){
 }
 
 function addToCart(item, choices){
-  const cartKey = item.id + Object.values(choices).map(c=>c.name||c).join("|");
+  const cartKey = item.id + Object.values(choices).map(c=>Array.isArray(c)?c.map(x=>x.name||x).join("+"):(c.name||c)).join("|");
   const ex = cart.find(x=>x.cartKey===cartKey);
   if(ex){ ex.qty++; } else { cart.push({...item,qty:1,cartKey,choices}); }
   renderMenu();
@@ -840,7 +840,7 @@ function renderKitchen(){
           return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:${i<order.items.length-1?"1px solid #E5E0D8":"none"}">
             <div style="flex:1">
               <div style="font-size:20px;font-weight:700;color:#1C1917;line-height:1.2">${item.name}</div>
-              ${ad.length?`<div style="font-size:13px;color:#7C3AED;margin-top:4px;font-weight:500">${ad.map(c=>c.name||c).join(", ")}</div>`:""}
+              ${ad.length?`<div style="font-size:13px;color:#7C3AED;margin-top:4px;font-weight:500">${ad.map(c=>typeof c==="object"?c.name:c).join(", ")}</div>`:""}
             </div>
             <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:22px;margin-left:12px">×${item.qty}</span>
           </div>`;
