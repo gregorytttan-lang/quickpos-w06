@@ -455,11 +455,31 @@ function handleAdd(id){
     // Filter modifiers based on admin toggles
     const sideOn = ls("mod_side_w06", true);
     const soupOn = ls("mod_soup_w06", true);
+
+    // Build dynamic SIDE options based on menu availability
+    const sideMap = [
+      {name:"+ Butter Rice", price:0.70, id:"a2"},
+      {name:"+ Egg", price:0.70, id:"a6"},
+      {name:"+ Mashed Potato", price:0.70, id:"a5"},
+      {name:"+ Fries", price:0.70, id:"a4"},
+      {name:"+ Spaghetti (Mushroom Cream)", price:1.50, id:"sp2"},
+      {name:"+ Spaghetti (Chicken Bolognese)", price:1.50, id:"sp1"},
+    ];
+    const allMenuItems = menu.flatMap(c=>c.items);
+    const sideOptions = [{name:"No thanks",price:0}, ...sideMap.filter(s=>{
+      const mi = allMenuItems.find(x=>x.id===s.id);
+      return !mi || mi.avail !== false;
+    })];
+
     const filteredItem = {...item, modifiers: item.modifiers.filter(m=>{
       if(m.id==="side" && !sideOn) return false;
       if(m.id==="soup" && !soupOn) return false;
       return true;
+    }).map(m=>{
+      if(m.id==="side") return {...m, options: sideOptions};
+      return m;
     })};
+
     if(filteredItem.modifiers.length>0){
       modItem = filteredItem; modChoices = {};
       openModModal(filteredItem);
