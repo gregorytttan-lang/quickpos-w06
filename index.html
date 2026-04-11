@@ -61,6 +61,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div class="serif" style="font-size:20px;font-weight:700">Kitchen Display</div>
     <div style="display:flex;align-items:center;gap:8px">
       <div id="kitchen-tags" style="display:flex;gap:8px"></div>
+      <button onclick="printAllOrders()" style="background:#C4572A;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🖨️ Print All</button>
       <button id="speech-btn" onclick="toggleSpeech()" style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔊 Voice ON</button>
     </div>
   </div>
@@ -1658,6 +1659,15 @@ function buildTicketText(o){
 
   return t;
 }
+function printAllOrders(){
+  const active = orders.filter(o=>o.status!=="collected");
+  if(!active.length){ toast("No active orders to print.","#78716C"); return; }
+  toast("🖨️ Printing " + active.length + " tickets...", "#C4572A");
+  active.forEach((o, i)=>{
+    setTimeout(()=>{ rawbtPrint(buildTicketText(o)); }, i * 2000);
+  });
+}
+
 function printTicket(o){
   rawbtPrint(buildTicketText(o));
 }
