@@ -1804,26 +1804,40 @@ function speakOrder(o){
   });
   if(o.remarks) msg += "Remarks: " + o.remarks + ".";
 
-  const utter = new SpeechSynthesisUtterance(msg);
-  utter.rate = 0.9;
-  utter.pitch = 0.8;  // lower pitch = more male sounding
-  utter.volume = 1;
+  // Fix Android Chrome speechSynthesis bug — cancel and resume before speaking
+  window.speechSynthesis.cancel();
 
-  // Try to find a male or Asian English voice
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v=>
-    (v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
-    v.name.toLowerCase().includes("english") && v.name.toLowerCase().includes("male") ||
-    v.name.includes("en-SG") ||
-    v.name.includes("en-IN") ||
-    v.lang === "en-SG" ||
-    v.lang === "en-IN"
-  ) || voices.find(v=> v.lang.startsWith("en") && v.name.toLowerCase().includes("male"))
-    || voices.find(v=> v.lang.startsWith("en"));
+  const doSpeak = ()=>{
+    const utter = new SpeechSynthesisUtterance(msg);
+    utter.rate = 0.9;
+    utter.pitch = 0.8;
+    utter.volume = 1;
 
-  if(preferred) utter.voice = preferred;
-  window.speechSynthesis.speak(utter);
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v=>
+      (v.name.toLowerCase().includes("male") && v.lang.startsWith("en")) ||
+      v.name.toLowerCase().includes("english") && v.name.toLowerCase().includes("male") ||
+      v.name.includes("en-SG") ||
+      v.name.includes("en-IN") ||
+      v.lang === "en-SG" ||
+      v.lang === "en-IN"
+    ) || voices.find(v=> v.lang.startsWith("en") && v.name.toLowerCase().includes("male"))
+      || voices.find(v=> v.lang.startsWith("en"));
+
+    if(preferred) utter.voice = preferred;
+    window.speechSynthesis.speak(utter);
+  };
+
+  // Small delay to let cancel() take effect on Android
+  setTimeout(doSpeak, 200);
 }
+
+// Keep speechSynthesis alive on Android — prevents it from dying
+setInterval(()=>{
+  if(speechEnabled && window.speechSynthesis && !window.speechSynthesis.speaking){
+    window.speechSynthesis.resume();
+  }
+}, 5000);
 
 ordersRef.on("value", snap=>{
   const data = snap.val();
