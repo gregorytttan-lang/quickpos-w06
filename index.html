@@ -62,6 +62,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="display:flex;align-items:center;gap:8px">
       <div id="kitchen-tags" style="display:flex;gap:8px"></div>
       <button onclick="printAllOrders()" style="background:#C4572A;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🖨️ Print All</button>
+      <button onclick="testVoiceNow()" style="background:#7C3AED;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔈 Test Voice</button>
       <button id="speech-btn" onclick="toggleSpeech()" style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔊 Voice ON</button>
     </div>
   </div>
@@ -1742,6 +1743,26 @@ let knownOrderIds = new Set();
 let isFirstLoad = true;
 
 let speechEnabled = true;
+
+function testVoiceNow(){
+  if(!window.speechSynthesis){
+    toast("❌ Speech not supported on this browser","#DC2626");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  setTimeout(()=>{
+    const voices = window.speechSynthesis.getVoices();
+    toast("Found " + voices.length + " voices. Speaking...", "#7C3AED");
+    const utter = new SpeechSynthesisUtterance("Testing voice. New order! Chicken Cutlet quantity one.");
+    utter.rate = 0.9;
+    utter.volume = 1;
+    const eng = voices.find(v=>v.lang.startsWith("en"));
+    if(eng) utter.voice = eng;
+    window.speechSynthesis.speak(utter);
+    utter.onerror = (e)=>{ toast("❌ Voice error: " + e.error, "#DC2626"); };
+    utter.onend = ()=>{ toast("✅ Voice test complete!", "#16A34A"); };
+  }, 300);
+}
 
 function testVoice(){
   if(!window.speechSynthesis) { alert("Text to speech not supported on this device."); return; }
