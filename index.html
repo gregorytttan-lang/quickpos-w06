@@ -1744,9 +1744,26 @@ let isFirstLoad = true;
 
 let speechEnabled = true;
 
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.5;
+    osc.start();
+    setTimeout(()=>{ osc.frequency.value = 1100; }, 150);
+    setTimeout(()=>{ osc.frequency.value = 880; }, 300);
+    setTimeout(()=>{ osc.stop(); ctx.close(); }, 500);
+  } catch(e){ console.log("Beep error:", e); }
+}
+
 function testVoiceNow(){
   if(!window.speechSynthesis){
     toast("❌ Speech not supported on this browser","#DC2626");
+    playBeep();
     return;
   }
   window.speechSynthesis.cancel();
@@ -1759,7 +1776,10 @@ function testVoiceNow(){
     const eng = voices.find(v=>v.lang.startsWith("en"));
     if(eng) utter.voice = eng;
     window.speechSynthesis.speak(utter);
-    utter.onerror = (e)=>{ toast("❌ Voice error: " + e.error, "#DC2626"); };
+    utter.onerror = (e)=>{ 
+      toast("❌ Voice error: " + e.error + " — using beep instead", "#DC2626");
+      playBeep();
+    };
     utter.onend = ()=>{ toast("✅ Voice test complete!", "#16A34A"); };
   }, 300);
 }
@@ -1846,6 +1866,7 @@ function speakOrder(o){
       || voices.find(v=> v.lang.startsWith("en"));
 
     if(preferred) utter.voice = preferred;
+    utter.onerror = ()=>{ playBeep(); };
     window.speechSynthesis.speak(utter);
   };
 
