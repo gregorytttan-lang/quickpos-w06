@@ -935,7 +935,7 @@ function toggleAvail(cid,iid){
   const item=cat.items.find(i=>i.id===iid); if(!item) return;
   item.avail = item.avail===false ? true : false;
   saveMenu();
-  // Save to Firebase so all devices sync
+  // Save to Firebase — false means OFF, true means ON
   db.ref("availability/" + iid).set(item.avail===false ? false : true);
   renderAdminMenu();
   renderMenu();
@@ -1735,19 +1735,15 @@ const ordersRef = db.ref("orders");
 db.ref("availability").on("value", snap=>{
   const data = snap.val();
   if(!data) return;
-  let changed = false;
   menu.forEach(cat=>{
     cat.items.forEach(item=>{
       if(data.hasOwnProperty(item.id)){
-        const newAvail = data[item.id];
-        if(item.avail !== newAvail){
-          item.avail = newAvail;
-          changed = true;
-        }
+        item.avail = data[item.id] === false ? false : true;
       }
     });
   });
-  if(changed){ saveMenu(); renderMenu(); }
+  saveMenu();
+  renderMenu();
 });
 
 // Save order to Firebase
