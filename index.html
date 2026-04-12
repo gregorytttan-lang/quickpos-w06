@@ -934,7 +934,11 @@ function toggleAvail(cid,iid){
   const cat=menu.find(c=>c.id===cid); if(!cat) return;
   const item=cat.items.find(i=>i.id===iid); if(!item) return;
   item.avail = item.avail===false ? true : false;
-  saveMenu(); renderAdminMenu();
+  saveMenu();
+  // Save to Firebase so all devices sync
+  db.ref("availability/" + iid).set(item.avail===false ? false : true);
+  renderAdminMenu();
+  renderMenu();
 }
 
 function updatePrice(cid,iid,p){
@@ -1726,6 +1730,25 @@ const FB_CONFIG = {
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 const ordersRef = db.ref("orders");
+
+// Listen for availability changes from admin — syncs to all devices
+db.ref("availability").on("value", snap=>{
+  const data = snap.val();
+  if(!data) return;
+  let changed = false;
+  menu.forEach(cat=>{
+    cat.items.forEach(item=>{
+      if(data.hasOwnProperty(item.id)){
+        const newAvail = data[item.id];
+        if(item.avail !== newAvail){
+          item.avail = newAvail;
+          changed = true;
+        }
+      }
+    });
+  });
+  if(changed){ saveMenu(); renderMenu(); }
+});
 
 // Save order to Firebase
 function saveOrderToFB(order){
