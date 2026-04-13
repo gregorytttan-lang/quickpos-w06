@@ -221,10 +221,15 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 </div>
 
 <!-- Queue Modal -->
-<div id="queue-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center" onclick="closeQueue()">
+<div id="queue-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;overflow-y:auto" onclick="closeQueue()">
   <div style="font-size:11px;color:#16A34A;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.14em;font-weight:600">Order Confirmed</div>
   <div style="font-size:13px;color:#78716C;margin-bottom:16px">Your queue number</div>
-  <div class="serif" id="queue-number" style="font-size:110px;font-weight:700;color:#C4572A;line-height:1;margin-bottom:16px"></div>
+  <div class="serif" id="queue-number" style="font-size:110px;font-weight:700;color:#C4572A;line-height:1;margin-bottom:8px"></div>
+  <div id="queue-dining" style="font-size:14px;font-weight:700;color:#78716C;margin-bottom:16px"></div>
+
+  <!-- Order summary -->
+  <div id="queue-order-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:14px 18px;margin-bottom:16px;width:100%;max-width:320px;text-align:left"></div>
+
   <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:12px;padding:12px 18px;margin-bottom:16px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
     <span style="font-size:22px;flex-shrink:0">📸</span>
     <div style="font-size:13px;color:#92400E;font-weight:700;line-height:1.5">Take a screenshot now so you don't forget your queue number!</div>
@@ -786,6 +791,30 @@ async function confirmPayment(paymentMethod='paynow'){
   cart = []; pendingOrder = null;
   closePayment();
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
+  document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
+
+  // Build order summary
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+  const summaryHtml = `
+    <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Your Items</div>
+    ${o.items.map(i=>{
+      const ad = addons(i);
+      const e = Object.values(i.choices||{}).reduce((s,c)=>s+choicePrice(c),0);
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #E5E0D8">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#1C1917">${i.name} ×${i.qty}</div>
+          ${ad.length?`<div style="font-size:11px;color:#78716C;margin-top:2px">${ad.join(" · ")}</div>`:""}
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#C4572A;margin-left:12px">${fmtS((i.price+e)*i.qty)}</div>
+      </div>`;
+    }).join("")}
+    ${o.dining==="takeaway"&&o.takeawayCharge>0?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E5E0D8;font-size:12px;color:#78716C"><span>Take Away Box</span><span>${fmtS(o.takeawayCharge)}</span></div>`:""}
+    <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px">
+      <span style="font-size:14px;font-weight:700;color:#1C1917">Total</span>
+      <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#C4572A">${fmtS(o.total)}</span>
+    </div>`;
+  document.getElementById("queue-order-summary").innerHTML = summaryHtml;
+
   const cashNotice = document.getElementById("cash-notice");
   if(paymentMethod==="cash"){ cashNotice.classList.remove("hidden"); }
   else { cashNotice.classList.add("hidden"); }
