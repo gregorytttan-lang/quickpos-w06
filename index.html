@@ -259,14 +259,15 @@ function nextQ(){
   return new Promise((resolve)=>{
     const t = today();
     const qRef = db.ref("queue/" + t);
-    // Use Firebase transaction with short timeout
     let resolved = false;
     const timeout = setTimeout(()=>{
       if(!resolved){
         resolved = true;
-        // Emergency fallback - use timestamp based number
-        const n = Math.floor((Date.now() % 86400000) / 60000) + 1; // minute of day 1-1440
-        resolve(n);
+        // Fallback — use local counter to avoid large random numbers
+        const localKey = "localQ_" + t;
+        const localN = (ls(localKey, 0) || 0) + 1;
+        lss(localKey, localN);
+        resolve(localN);
       }
     }, 3000);
     qRef.transaction(current=>{
@@ -275,10 +276,16 @@ function nextQ(){
       if(!resolved){
         resolved = true;
         clearTimeout(timeout);
-        if(committed && snap) resolve(snap.val());
-        else{
-          const n = Math.floor((Date.now() % 86400000) / 60000) + 1;
-          resolve(n);
+        if(committed && snap){
+          // Also update local counter to stay in sync
+          lss("localQ_" + t, snap.val());
+          resolve(snap.val());
+        } else {
+          // Firebase failed — use local counter
+          const localKey = "localQ_" + t;
+          const localN = (ls(localKey, 0) || 0) + 1;
+          lss(localKey, localN);
+          resolve(localN);
         }
       }
     });
