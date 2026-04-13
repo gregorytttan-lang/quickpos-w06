@@ -127,7 +127,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="width:40px;height:4px;background:#E5E0D8;border-radius:2px;margin:0 auto 20px"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="serif" style="font-size:20px;font-weight:700">Your Order</div>
-      <button onclick="closeCart()" style="background:#F5F3F0;border-radius:8px;padding:6px 14px;font-size:13px;color:#78716C">Close</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeCart()" style="background:#F5F3F0;border-radius:8px;padding:6px 14px;font-size:13px;color:#78716C">← Add More</button>
+        <button onclick="clearCartAndClose()" style="background:#FEF2F2;border-radius:8px;padding:6px 14px;font-size:13px;color:#DC2626">Clear</button>
+      </div>
     </div>
     <div id="cart-items"></div>
     <div style="margin-top:16px;padding:16px;background:#F5F3F0;border-radius:12px;border:1px solid #E5E0D8">
@@ -686,6 +689,14 @@ function openCart(){
 function closeCart(){
   const m = document.getElementById("cart-modal");
   m.classList.add("hidden"); m.style.display="none";
+}
+
+function clearCartAndClose(){
+  if(!confirm("Clear all items and go back to menu?")) return;
+  cart = [];
+  diningOption = null;
+  closeCart();
+  renderMenu();
 }
 
 function renderCartModal(){
