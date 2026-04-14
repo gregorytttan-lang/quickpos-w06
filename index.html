@@ -222,71 +222,65 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 </div>
 
 <!-- Queue Modal -->
-<div id="queue-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;overflow-y:auto">
-  <div style="font-size:11px;color:#16A34A;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.14em;font-weight:600">Order Confirmed</div>
-  <div style="font-size:13px;color:#78716C;margin-bottom:16px">Your queue number</div>
-  <div class="serif" id="queue-number" style="font-size:110px;font-weight:700;color:#C4572A;line-height:1;margin-bottom:8px"></div>
-  <div id="queue-dining" style="font-size:14px;font-weight:700;color:#78716C;margin-bottom:16px"></div>
+<div id="queue-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;padding:20px 16px;overflow:hidden">
 
-  <!-- Real-time status tracker -->
-  <div id="order-status-bar" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:16px;padding:16px 20px;margin-bottom:16px;width:100%;max-width:320px">
-    <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px">Order Status</div>
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#1E40AF;font-weight:600">
-      📱 Keep this page open to track your order live!
+  <!-- Top: stall name + Q number side by side -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <div style="font-size:11px;color:#16A34A;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Order Confirmed ✅</div>
+      <div class="serif" style="font-size:13px;font-weight:700;color:#1C1917;margin-top:2px">Western Food #06</div>
+      <div id="queue-dining" style="font-size:12px;color:#78716C;margin-top:2px"></div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:0">
-      <div id="status-received" style="display:flex;align-items:center;gap:12px;padding:10px 0">
-        <div id="dot-received" style="width:28px;height:28px;border-radius:50%;background:#16A34A;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">✅</div>
-        <div style="text-align:left">
-          <div id="lbl-received" style="font-size:13px;font-weight:700;color:#16A34A">Order Received</div>
-          <div style="font-size:11px;color:#78716C">Your order is confirmed</div>
-        </div>
-      </div>
-      <div style="width:2px;height:16px;background:#E5E0D8;margin-left:13px"></div>
-      <div id="status-preparing" style="display:flex;align-items:center;gap:12px;padding:10px 0">
-        <div id="dot-preparing" style="width:28px;height:28px;border-radius:50%;background:#E5E0D8;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">👨‍🍳</div>
-        <div style="text-align:left">
-          <div id="lbl-preparing" style="font-size:13px;font-weight:600;color:#D4CFC8">Chef is Cooking</div>
-          <div style="font-size:11px;color:#D4CFC8">We are preparing your order</div>
-        </div>
-      </div>
-      <div style="width:2px;height:16px;background:#E5E0D8;margin-left:13px"></div>
-      <div id="status-ready" style="display:flex;align-items:center;gap:12px;padding:10px 0">
-        <div id="dot-ready" style="width:28px;height:28px;border-radius:50%;background:#E5E0D8;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">🔔</div>
-        <div style="text-align:left">
-          <div id="lbl-ready" style="font-size:13px;font-weight:600;color:#D4CFC8">Ready for Pickup!</div>
-          <div style="font-size:11px;color:#D4CFC8">Please collect your order</div>
-        </div>
-      </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#78716C;margin-bottom:2px">Queue No.</div>
+      <div class="serif" id="queue-number" style="font-size:64px;font-weight:700;color:#C4572A;line-height:1"></div>
     </div>
   </div>
 
-  <!-- Ready notification banner -->
-  <div id="ready-banner" class="hidden" style="background:#F0FDF4;border:2px solid #16A34A;border-radius:16px;padding:16px 20px;margin-bottom:16px;width:100%;max-width:320px;animation:pulse 1s infinite">
-    <div style="font-size:28px;margin-bottom:6px">🔔</div>
-    <div style="font-size:18px;font-weight:700;color:#16A34A;margin-bottom:4px">Your Food is Ready!</div>
-    <div style="font-size:13px;color:#166534">Please collect your order at the counter</div>
+  <!-- Status tracker horizontal -->
+  <div style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:12px 16px;margin-bottom:10px">
+    <div style="font-size:10px;color:#1E40AF;font-weight:600;margin-bottom:10px">📱 Keep this page open to track your order live!</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <!-- Step 1 -->
+      <div style="flex:1;text-align:center">
+        <div id="dot-received" style="width:32px;height:32px;border-radius:50%;background:#16A34A;display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 6px">✅</div>
+        <div id="lbl-received" style="font-size:10px;font-weight:700;color:#16A34A;line-height:1.3">Order<br>Received</div>
+      </div>
+      <!-- Line -->
+      <div style="flex:0.5;height:2px;background:#E5E0D8;margin-top:16px"></div>
+      <!-- Step 2 -->
+      <div style="flex:1;text-align:center">
+        <div id="dot-preparing" style="width:32px;height:32px;border-radius:50%;background:#E5E0D8;display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 6px">👨‍🍳</div>
+        <div id="lbl-preparing" style="font-size:10px;font-weight:600;color:#D4CFC8;line-height:1.3">Chef is<br>Cooking</div>
+      </div>
+      <!-- Line -->
+      <div style="flex:0.5;height:2px;background:#E5E0D8;margin-top:16px"></div>
+      <!-- Step 3 -->
+      <div style="flex:1;text-align:center">
+        <div id="dot-ready" style="width:32px;height:32px;border-radius:50%;background:#E5E0D8;display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 6px">🔔</div>
+        <div id="lbl-ready" style="font-size:10px;font-weight:600;color:#D4CFC8;line-height:1.3">Ready for<br>Pickup!</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Order summary -->
-  <div id="queue-order-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:14px 18px;margin-bottom:16px;width:100%;max-width:320px;text-align:left"></div>
+  <!-- Ready banner -->
+  <div id="ready-banner" class="hidden" style="background:#F0FDF4;border:2px solid #16A34A;border-radius:12px;padding:12px;margin-bottom:10px;text-align:center;animation:pulse 1s infinite">
+    <div style="font-size:24px;margin-bottom:4px">🔔</div>
+    <div style="font-size:16px;font-weight:700;color:#16A34A;margin-bottom:2px">Your Food is Ready!</div>
+    <div style="font-size:12px;color:#166534">Please collect at the counter</div>
+  </div>
 
-  <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:12px;padding:12px 18px;margin-bottom:16px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
-    <span style="font-size:22px;flex-shrink:0">📸</span>
-    <div style="font-size:13px;color:#92400E;font-weight:700;line-height:1.5">Take a screenshot now so you don't forget your queue number!</div>
+  <!-- Order summary compact -->
+  <div id="queue-order-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:12px 14px;margin-bottom:10px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+
+  <!-- Bottom notices compact -->
+  <div id="cash-notice" class="hidden" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#1E40AF;font-weight:600">
+    💵 Please pay cash at the counter and show this queue number.
   </div>
-  <div style="width:50px;height:2px;background:#E5E0D8;margin:0 auto 20px"></div>
-  <div class="serif" style="font-size:15px;font-weight:600;color:#1C1917;margin-bottom:20px">Western Food #06 — Flavours Foodcourt</div>
-  <div id="cash-notice" class="hidden" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 18px;margin-bottom:20px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
-    <span style="font-size:22px;flex-shrink:0">💵</span>
-    <div style="font-size:13px;color:#1E40AF;font-weight:600;line-height:1.5">Please proceed to the counter to pay cash. Show this queue number to the staff.</div>
+  <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#92400E;font-weight:600">
+    📸 Screenshot this page · 🧾 Keep your PayNow receipt
   </div>
-  <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:14px 18px;margin-bottom:20px;max-width:300px;display:flex;align-items:center;gap:12px;text-align:left">
-    <span style="font-size:22px;flex-shrink:0">🧾</span>
-    <div style="font-size:13px;color:#991B1B;font-weight:600;line-height:1.5">Please keep your NETS / PayNow receipt. You must show it to collect your food.</div>
-  </div>
-  <div style="font-size:13px;color:#78716C;margin-bottom:16px;line-height:1.6;max-width:260px">We will call your number when your food is ready</div>
-  <button onclick="closeQueue()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:10px;padding:12px 24px;font-size:13px;font-weight:600">Close</button>
+  <button onclick="closeQueue()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:10px;padding:12px;font-size:13px;font-weight:600;width:100%">Close & New Order</button>
 </div>
 
 <script>
@@ -1303,44 +1297,39 @@ let trackingOrderId = null;
 let trackingListener = null;
 
 function updateStatusUI(status){
-  const steps = ["received","preparing","ready"];
-  const stepStatus = {
-    "paid":      {active:"received",  label:{received:"Order Received ✅",  preparing:"Chef is Cooking",    ready:"Ready for Pickup!"}},
-    "preparing": {active:"preparing", label:{received:"Order Received ✅",  preparing:"Chef is Cooking 🔄", ready:"Ready for Pickup!"}},
-    "ready":     {active:"ready",     label:{received:"Order Received ✅",  preparing:"Chef is Cooking ✅", ready:"Ready for Pickup! 🔔"}},
-    "collected": {active:"collected", label:{received:"Order Received ✅",  preparing:"Chef is Cooking ✅", ready:"Ready for Pickup! ✅"}},
+  const configs = {
+    "paid":      {received:"#16A34A", preparing:"#E5E0D8", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#D4CFC8", rdyClr:"#D4CFC8"},
+    "preparing": {received:"#16A34A", preparing:"#C4572A", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking 🔄", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#C4572A", rdyClr:"#D4CFC8"},
+    "ready":     {received:"#16A34A", preparing:"#16A34A", ready:"#16A34A", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking ✅", rdyTxt:"Ready for\nPickup! 🔔", rcvClr:"#16A34A", prepClr:"#16A34A", rdyClr:"#16A34A"},
+    "collected": {received:"#16A34A", preparing:"#16A34A", ready:"#16A34A", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking ✅", rdyTxt:"Collected ✅", rcvClr:"#16A34A", prepClr:"#16A34A", rdyClr:"#16A34A"},
   };
-  const s = stepStatus[status] || stepStatus["paid"];
-  const activeIdx = steps.indexOf(s.active);
+  const c = configs[status] || configs["paid"];
 
-  steps.forEach((step, i)=>{
-    const dot = document.getElementById("dot-"+step);
-    const lbl = document.getElementById("lbl-"+step);
-    if(!dot||!lbl) return;
-    if(i < activeIdx || status==="collected"){
-      dot.style.background = "#16A34A"; dot.textContent = "✅";
-      lbl.style.color = "#16A34A";
-    } else if(i === activeIdx){
-      dot.style.background = "#C4572A"; dot.textContent = ["✅","👨‍🍳","🔔"][i];
-      lbl.style.color = "#C4572A";
-    } else {
-      dot.style.background = "#E5E0D8"; dot.textContent = ["✅","👨‍🍳","🔔"][i];
-      lbl.style.color = "#D4CFC8";
-    }
-    lbl.textContent = s.label[step];
-  });
+  const dotR = document.getElementById("dot-received");
+  const dotP = document.getElementById("dot-preparing");
+  const dotD = document.getElementById("dot-ready");
+  const lblR = document.getElementById("lbl-received");
+  const lblP = document.getElementById("lbl-preparing");
+  const lblD = document.getElementById("lbl-ready");
+
+  if(dotR) dotR.style.background = c.received;
+  if(dotP) dotP.style.background = c.preparing;
+  if(dotD) dotD.style.background = c.ready;
+  if(lblR){ lblR.style.color = c.rcvClr; lblR.innerHTML = c.rcvTxt.replace("\n","<br>"); }
+  if(lblP){ lblP.style.color = c.prepClr; lblP.innerHTML = c.prepTxt.replace("\n","<br>"); }
+  if(lblD){ lblD.style.color = c.rdyClr; lblD.innerHTML = c.rdyTxt.replace("\n","<br>"); }
 
   // Show ready banner when food is ready
   const banner = document.getElementById("ready-banner");
   if(banner){
-    if(status==="ready"){ 
+    if(status==="ready"){
       banner.classList.remove("hidden");
-      // Play beep to alert customer
       playBeep();
       playBeep();
       setTimeout(()=>playBeep(), 600);
+    } else {
+      banner.classList.add("hidden");
     }
-    else { banner.classList.add("hidden"); }
   }
 }
 
