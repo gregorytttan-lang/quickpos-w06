@@ -1333,7 +1333,13 @@ function updateStatusUI(status){
   // Show ready banner when food is ready
   const banner = document.getElementById("ready-banner");
   if(banner){
-    if(status==="ready"){ banner.classList.remove("hidden"); }
+    if(status==="ready"){ 
+      banner.classList.remove("hidden");
+      // Play beep to alert customer
+      playBeep();
+      playBeep();
+      setTimeout(()=>playBeep(), 600);
+    }
     else { banner.classList.add("hidden"); }
   }
 }
