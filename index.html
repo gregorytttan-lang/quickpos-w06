@@ -386,15 +386,17 @@ const DEFAULT_MENU = [
     {id:"sp1",name:"Spaghetti — Chicken Bolognese",price:4.90,desc:"Al dente spaghetti • Rich savoury chicken bolognese sauce — Hearty & satisfying!"},
     {id:"sp2",name:"Spaghetti — Mushroom Cream",price:4.90,desc:"Al dente spaghetti • Creamy mushroom cream sauce — Smooth, rich & comforting!"},
   ]},
-  {id:"c4",name:"Snacks & Sides",emoji:"🍟",items:[
-    {id:"sn1",name:"Hash Brown",price:0.70,desc:"Golden crispy hash brown • Perfect snack or side"},
-    {id:"sn2",name:"Onion Rings (7 pcs)",price:3.00,desc:"Crispy golden onion rings • Great for sharing!"},
-    {id:"sn7",name:"Chicken Cheese Ball (5 pcs)",price:3.50,desc:"Juicy chicken bites with melted cheese inside • Perfect sharing snack!"},
-    {id:"sn8",name:"Cheese Stick",price:3.50,desc:"Golden crispy cheese sticks • Gooey melted cheese inside — Addictively good!"},
-    {id:"sn9",name:"Garlic Bread (1 slice)",price:1.00,desc:"Toasted bread with fragrant garlic butter"},
-    {id:"sn10",name:"Cheesy Fries",price:3.00,desc:"Golden crispy fries smothered in rich cheese sauce — Perfect sharing size!"},
-    {id:"sn15",name:"Crispy Chicken Stick",price:3.50,desc:"Tender chicken strips with a super crispy coating — Great snack anytime!"},
-    {id:"sn16",name:"Crispy Popcorn Fish",price:3.50,desc:"Bite-sized golden crispy fish pieces — Great for sharing!"},
+  {id:"c4",name:"Snacks Take & Go",emoji:"🍿",items:[
+    {id:"sn1",name:"Hash Brown",price:0.70,desc:"Golden crispy hash brown • Ready immediately — Perfect snack!"},
+    {id:"sn2",name:"Onion Rings (7 pcs)",price:3.00,desc:"Crispy golden onion rings • Ready immediately — Great for sharing!"},
+    {id:"sn7",name:"Chicken Cheese Ball (5 pcs)",price:3.50,desc:"Juicy chicken bites with melted cheese inside • Ready immediately!"},
+    {id:"sn8",name:"Cheese Stick",price:3.50,desc:"Golden crispy cheese sticks • Gooey melted cheese inside — Ready immediately!"},
+    {id:"sn9",name:"Garlic Bread (1 slice)",price:1.00,desc:"Toasted bread with fragrant garlic butter • Ready immediately!"},
+    {id:"sn10",name:"Cheesy Fries",price:3.00,desc:"Golden crispy fries smothered in rich cheese sauce — Ready immediately!"},
+    {id:"sn15",name:"Crispy Chicken Stick",price:3.50,desc:"Tender chicken strips with a super crispy coating — Ready immediately!"},
+    {id:"sn16",name:"Crispy Popcorn Fish",price:3.50,desc:"Bite-sized golden crispy fish pieces — Ready immediately!"},
+  ]},
+  {id:"c5",name:"Add-ons",emoji:"➕",items:[
     {id:"ss1",name:"Cream of Mushroom Soup",price:2.50,desc:"Warm & comforting creamy mushroom soup — Perfect with any main!"},
     {id:"a1",name:"Salad",price:1.00,desc:"Fresh garden salad"},
     {id:"a2",name:"Butter Rice",price:0.70,desc:"Fragrant buttery rice"},
@@ -409,7 +411,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v6", DEFAULT_MENU);
+let menu    = ls("menu_w06_v7", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -418,7 +420,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v6", menu); }
+function saveMenu()  { lss("menu_w06_v7", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -517,9 +519,29 @@ function switchCat(i){ curCat=i; renderMenu(); }
 
 function getItem(id){ for(const c of menu) for(const i of c.items) if(i.id===id) return i; return null; }
 
+function isAddon(id){
+  const addonCat = menu.find(c=>c.id==="c5");
+  return addonCat ? addonCat.items.some(i=>i.id===id) : false;
+}
+
+function isSnackOnly(id){
+  const snackCat = menu.find(c=>c.id==="c4");
+  return snackCat ? snackCat.items.some(i=>i.id===id) : false;
+}
+
+function cartHasMain(){
+  return cart.some(x=>isMain(x.id));
+}
+
 function handleAdd(id){
   const item = getItem(id);
   if(!item) return;
+
+  // Add-ons require a main in cart
+  if(isAddon(id) && !cartHasMain()){
+    toast("⚠️ Please order a main item first!", "#C4572A");
+    return;
+  }
   if(item.modifiers && item.modifiers.length>0){
     // Filter modifiers based on admin toggles
     const sideOn = ls("mod_side_w06", true);
@@ -585,6 +607,11 @@ function isMain(id){
     }
   }
   return false;
+}
+
+function orderNeedsKitchen(){
+  // Goes to kitchen if cart has any main OR any add-on item
+  return cart.some(x=>isMain(x.id) || isAddon(x.id));
 }
 
 function takeawayCharge(){
@@ -820,13 +847,31 @@ async function confirmPayment(paymentMethod='paynow'){
   if(btn2){ btn2.textContent="⏳ Processing..."; btn2.disabled=true; }
 
   const queueNo = await nextQ();
-  const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now()};
-  orders.push(o); saveOrderToFB(o);
+  const needsKitchen = orderNeedsKitchen();
+  const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now(), needsKitchen};
+  orders.push(o);
+  if(needsKitchen){
+    saveOrderToFB(o);
+  }
   // Printing handled automatically on kitchen tablet via Firebase listener
   cart = []; pendingOrder = null;
   closePayment();
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
+
+  // Show different status for snacks-only vs kitchen orders
+  const statusBar = document.getElementById("order-status-bar");
+  if(!needsKitchen){
+    statusBar.innerHTML = `
+      <div style="text-align:center;padding:10px 0">
+        <div style="font-size:40px;margin-bottom:8px">⚡</div>
+        <div style="font-size:16px;font-weight:700;color:#16A34A;margin-bottom:4px">Ready to Collect Now!</div>
+        <div style="font-size:12px;color:#78716C">Your snacks are ready — please collect at the counter</div>
+      </div>`;
+  } else {
+    updateStatusUI("paid");
+    startTrackingOrder(o.id);
+  }
 
   // Build order summary
   const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
@@ -855,8 +900,6 @@ async function confirmPayment(paymentMethod='paynow'){
   else { cashNotice.classList.add("hidden"); }
   const m = document.getElementById("queue-modal");
   m.classList.remove("hidden"); m.style.display="flex";
-  updateStatusUI("paid");
-  startTrackingOrder(o.id);
   renderMenu();
   updateKitchenBadge();
 }
