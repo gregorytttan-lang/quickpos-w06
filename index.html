@@ -1350,6 +1350,11 @@ function startTrackingOrder(orderId){
   trackingListener = ordersRef.child(orderId).on("value", snap=>{
     const o = snap.val();
     if(!o) return;
+    // Always keep Q number visible
+    const qEl = document.getElementById("queue-number");
+    const dEl = document.getElementById("queue-dining");
+    if(qEl && o.queueNo) qEl.textContent = fmtQ(o.queueNo);
+    if(dEl) dEl.textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
     updateStatusUI(o.status);
   });
 }
