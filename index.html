@@ -194,15 +194,17 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center"></div></div>
         <div style="font-size:10px;color:#78716C;margin-top:10px;font-weight:500">Amount is pre-filled — just confirm & pay</div>
       </div>
+      <!-- Screenshot button -->
+      <button onclick="screenshotQR()" style="background:#C4572A;color:#fff;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:700;width:100%;max-width:212px;margin-bottom:16px">📸 Save QR to Phone</button>
       <!-- Steps -->
       <div style="display:flex;flex-direction:column;gap:10px;text-align:left">
         <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
           <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span>
-          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Open your bank app and scan the QR code</span>
+          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Tap <strong style="color:#fff">Save QR to Phone</strong> above to save the QR</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
           <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span>
-          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Confirm the amount and complete payment</span>
+          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Open bank app → PayNow → Scan from gallery → Confirm payment</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
           <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span>
@@ -297,6 +299,26 @@ const STALL = "Western Food #06 — Flavours Foodcourt";
 const fmtQ  = n => "#" + String(n).padStart(3,"0");
 const fmtS  = n => "$" + Number(n).toFixed(2);
 
+function screenshotQR(){
+  const canvas = document.querySelector('#dynamic-qr canvas');
+  if(!canvas){ toast("QR not ready, please try again","#DC2626"); return; }
+  canvas.toBlob(async (blob)=>{
+    const file = new File([blob], 'paynow-qr.png', {type:'image/png'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'PayNow QR'}); }
+      catch(e){ if(e.name!=='AbortError') fallbackDownload(canvas); }
+    } else {
+      fallbackDownload(canvas);
+    }
+  });
+}
+function fallbackDownload(canvas){
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'paynow-qr.png';
+  a.click();
+  toast("QR saved! Open bank app and scan from gallery 📂");
+}
 function toast(msg, color){
   color = color || "#16A34A";
   const t = document.createElement("div");
