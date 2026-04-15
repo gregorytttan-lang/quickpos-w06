@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:#FAF9F7;font-family:'DM Sans',sans-serif;color:#1C1917;min-height:100vh}
@@ -190,7 +191,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
       <div style="background:#fff;border-radius:16px;padding:16px;display:inline-block;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
         <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px">NETS / PayNow</div>
         <div id="pay-qr-wrap">
-          <canvas id="paynow-qr" style="width:180px;height:180px;display:block;border-radius:4px"></canvas>
+          <div id="paynow-qr" style="width:180px;height:180px;display:block;border-radius:4px"></div>
         </div>
         <div style="font-size:10px;color:#78716C;margin-top:10px;font-weight:500">Scan with your bank app</div>
       </div>
@@ -832,11 +833,20 @@ function proceedToPayment(){
   m.classList.remove("hidden"); m.style.display="block";
 
   // Generate PayNow QR dynamically
-  const qrCanvas = document.getElementById("paynow-qr");
-  if(qrCanvas && typeof QRCode !== "undefined"){
-    qrCanvas.innerHTML = "";
+  const qrDiv = document.getElementById("paynow-qr");
+  if(qrDiv){
+    qrDiv.innerHTML = "";
     const qrData = buildPayNowQR(pendingOrder.total);
-    new QRCode(qrCanvas, {text: qrData, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M});
+    if(typeof QRCode !== "undefined"){
+      new QRCode(qrDiv, {text: qrData, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M});
+    } else {
+      // Fallback — use Google Charts API
+      const img = document.createElement("img");
+      img.src = "https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl=" + encodeURIComponent(qrData);
+      img.style.width = "180px";
+      img.style.height = "180px";
+      qrDiv.appendChild(img);
+    }
   }
 }
 
@@ -2226,6 +2236,5 @@ updateKitchenBadge();
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
