@@ -1013,15 +1013,15 @@ function renderKitchen(){
         </div>
       </div>
       <div style="padding:12px 16px">
-        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:13px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
+        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:16px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
         ${order.items.map((item,i)=>{
           const ad = addons(item);
           return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:${i<order.items.length-1?"1px solid #E5E0D8":"none"}">
             <div style="flex:1">
-              <div style="font-size:20px;font-weight:700;color:#1C1917;line-height:1.2">${item.name}</div>
-              ${ad.length?`<div style="font-size:13px;color:#7C3AED;margin-top:4px;font-weight:500">${ad.map(c=>typeof c==="object"?c.name:c).join(", ")}</div>`:""}
+              <div style="font-size:26px;font-weight:700;color:#1C1917;line-height:1.2">${item.name}</div>
+              ${ad.length?`<div style="font-size:16px;color:#7C3AED;margin-top:4px;font-weight:500">${ad.map(c=>typeof c==="object"?c.name:c).join(", ")}</div>`:""}
             </div>
-            <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:22px;margin-left:12px">×${item.qty}</span>
+            <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:28px;margin-left:12px">×${item.qty}</span>
           </div>`;
         }).join("")}
       </div>
@@ -1031,8 +1031,8 @@ function renderKitchen(){
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
       </div>
       <div style="padding:8px 14px;background:#FEF2F2;border-top:1px solid #FECACA;display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px">🧾</span>
-        <span style="font-size:11px;color:#991B1B;font-weight:600">Check NETS/PayNow receipt before serving</span>
+        <span style="font-size:16px">🧾</span>
+        <span style="font-size:13px;color:#991B1B;font-weight:600">Check PayNow confirmation before serving</span>
       </div>
     </div>`;
   }).join("");
