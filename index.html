@@ -850,9 +850,7 @@ async function confirmPayment(paymentMethod='paynow'){
   const needsKitchen = orderNeedsKitchen();
   const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now(), needsKitchen};
   orders.push(o);
-  if(needsKitchen){
-    saveOrderToFB(o);
-  }
+  saveOrderToFB(o);
   // Printing handled automatically on kitchen tablet via Firebase listener
   cart = []; pendingOrder = null;
   closePayment();
@@ -937,14 +935,14 @@ function updOrder(id, status){
 }
 
 function updateKitchenBadge(){
-  const n = orders.filter(o=>o.status==="paid"||o.status==="preparing").length;
+  const n = orders.filter(o=>(o.status==="paid"||o.status==="preparing") && o.needsKitchen!==false).length;
   const b = document.getElementById("kitchen-badge");
   if(n>0){ b.classList.remove("hidden"); b.style.display="flex"; b.textContent=n; }
   else { b.classList.add("hidden"); }
 }
 
 function renderKitchen(){
-  const queue = orders.filter(o=>o.status!=="collected").sort((a,b)=>a.createdAt-b.createdAt);
+  const queue = orders.filter(o=>o.status!=="collected" && o.needsKitchen!==false).sort((a,b)=>a.createdAt-b.createdAt);
   const tags  = document.getElementById("kitchen-tags");
   const n1 = orders.filter(o=>o.status==="paid").length;
   const n2 = orders.filter(o=>o.status==="preparing").length;
