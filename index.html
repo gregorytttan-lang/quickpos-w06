@@ -1931,6 +1931,8 @@ function printAllOrders(){
   const active = orders.filter(o=>o.status!=="collected");
   const unprinted = active.filter(o=>!o.bulkPrinted);
   if(!unprinted.length){ toast("No new orders to print.","#78716C"); return; }
+  // Sort by queue number so tickets print in order #001, #002, #003...
+  unprinted.sort((a,b)=>a.queueNo - b.queueNo);
   toast("🖨️ Printing " + unprinted.length + " new tickets...", "#C4572A");
   // Combine all unprinted tickets into one print job
   const combined = unprinted.map(o=>buildTicketText(o)).join("");
