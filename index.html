@@ -288,7 +288,7 @@ const PAYNOW_UEN = "53155285C";
 function tlv(tag,val){const v=String(val);return tag+v.length.toString().padStart(2,"0")+v;}
 function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++){c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF;}}return c.toString(16).toUpperCase().padStart(4,"0");}
 function buildPayNowQR(amount){
-  const mid=tlv("00","SG.PAYNOW")+tlv("01","2")+tlv("02",PAYNOW_UEN)+tlv("03","1");
+  const mid=tlv("00","SG.PAYNOW")+tlv("01","2")+tlv("02",PAYNOW_UEN)+tlv("03","0");
   const body=tlv("00","01")+tlv("01","12")+tlv("26",mid)+tlv("52","0000")+tlv("53","702")+tlv("54",amount.toFixed(2))+tlv("58","SG")+tlv("59","WESTERN FOOD 06")+tlv("60","Singapore")+"6304";
   return body+crc16(body);
 }
