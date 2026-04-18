@@ -1370,6 +1370,7 @@ function toggleStall(){
 
 let trackingOrderId = null;
 let trackingListener = null;
+let lastTrackedStatus = null;
 
 function updateStatusUI(status){
   const configs = {
@@ -1399,17 +1400,20 @@ function updateStatusUI(status){
   if(banner){
     if(status==="ready"){
       banner.classList.remove("hidden");
-      playBeep();
-      playBeep();
-      setTimeout(()=>playBeep(), 600);
+      // Only beep when status CHANGES to ready, not on every Firebase update
+      if(lastTrackedStatus !== "ready"){
+        playBeeps(12);
+      }
     } else {
       banner.classList.add("hidden");
     }
   }
+  lastTrackedStatus = status;
 }
 
 function startTrackingOrder(orderId){
   trackingOrderId = orderId;
+  lastTrackedStatus = null;
   if(trackingListener) ordersRef.child(orderId).off("value", trackingListener);
   trackingListener = ordersRef.child(orderId).on("value", snap=>{
     const o = snap.val();
@@ -2067,15 +2071,29 @@ function playBeep(){
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    // Compressor to push volume as high as possible
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -6;
+    compressor.knee.value = 0;
+    compressor.ratio.value = 20;
+    compressor.attack.value = 0;
+    compressor.release.value = 0.1;
     osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    gain.gain.value = 1.0;
+    gain.connect(compressor);
+    compressor.connect(ctx.destination);
+    osc.frequency.value = 1100;
+    gain.gain.value = 3.0;
     osc.start();
-    setTimeout(()=>{ osc.frequency.value = 1100; }, 150);
-    setTimeout(()=>{ osc.frequency.value = 880; }, 300);
-    setTimeout(()=>{ osc.stop(); ctx.close(); }, 500);
+    setTimeout(()=>{ osc.frequency.value = 880; }, 150);
+    setTimeout(()=>{ osc.frequency.value = 1100; }, 300);
+    setTimeout(()=>{ osc.stop(); ctx.close(); }, 450);
   } catch(e){ console.log("Beep error:", e); }
+}
+
+function playBeeps(count){
+  for(let i=0;i<count;i++){
+    setTimeout(()=>playBeep(), i*500);
+  }
 }
 
 function testVoiceNow(){
