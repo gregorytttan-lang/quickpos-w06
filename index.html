@@ -24,7 +24,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <body>
 
 <!-- NAV -->
-<nav id="nav" style="background:#fff;border-bottom:1px solid #E5E0D8;display:flex;align-items:stretch;position:sticky;top:0;z-index:100;padding:0 8px">
+<nav id="nav" style="background:#fff;border-bottom:1px solid #E5E0D8;display:flex;align-items:stretch;position:sticky;top:0;z-index:9999;padding:0 8px">
   <div class="serif" style="font-size:15px;font-weight:700;color:#1C1917;padding:14px 12px 14px 4px;border-right:1px solid #E5E0D8;margin-right:6px;display:flex;align-items:center;gap:4px;white-space:nowrap">
     🥩 <span style="color:#C4572A">Quick</span>POS
   </div>
@@ -36,7 +36,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <!-- MENU VIEW -->
 <div id="view-menu">
   <!-- Closed screen overlay -->
-  <div id="closed-screen" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#FFF7ED;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center">
+  <div id="closed-screen" class="hidden" style="position:fixed;top:48px;left:0;width:100%;height:calc(100% - 48px);background:#FFF7ED;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center">
     <div style="font-size:64px;margin-bottom:24px">🔒</div>
     <div class="serif" style="font-size:26px;font-weight:700;color:#1C1917;margin-bottom:12px">We Are Closed</div>
     <div style="font-size:16px;color:#C4572A;font-weight:600;margin-bottom:8px">Western Food #06</div>
