@@ -862,6 +862,11 @@ function closePayment(){
   const m = document.getElementById("pay-modal");
   m.classList.add("hidden"); m.style.display="none";
   pendingOrder = null;
+  // Always reset buttons when modal closes
+  const btn1 = document.querySelector("button[onclick=\"confirmPayment('paynow')\"]");
+  const btn2 = document.querySelector("button[onclick=\"confirmPayment('cash')\"]");
+  if(btn1){ btn1.textContent="✅ I Have Paid — Get Queue Number"; btn1.disabled=false; }
+  if(btn2){ btn2.textContent="💵 Pay by Cash at Counter"; btn2.disabled=false; }
 }
 
 async function confirmPayment(paymentMethod='paynow'){
@@ -872,12 +877,19 @@ async function confirmPayment(paymentMethod='paynow'){
   if(btn1){ btn1.textContent="⏳ Processing..."; btn1.disabled=true; }
   if(btn2){ btn2.textContent="⏳ Processing..."; btn2.disabled=true; }
 
+  // Safety timeout — never stay stuck longer than 8 seconds
+  const safetyTimer = setTimeout(()=>{
+    if(btn1){ btn1.textContent="✅ I Have Paid — Get Queue Number"; btn1.disabled=false; }
+    if(btn2){ btn2.textContent="💵 Pay by Cash at Counter"; btn2.disabled=false; }
+    toast("Something went wrong — please try again","#DC2626");
+  }, 8000);
+
   const queueNo = await nextQ();
+  clearTimeout(safetyTimer);
   const needsKitchen = orderNeedsKitchen();
   const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now(), needsKitchen};
   orders.push(o);
   saveOrderToFB(o);
-  // Printing handled automatically on kitchen tablet via Firebase listener
   cart = []; pendingOrder = null;
   closePayment();
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
