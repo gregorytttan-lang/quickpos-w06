@@ -223,6 +223,16 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   </div>
 </div>
 
+<!-- Thank You Modal (snack-only orders) -->
+<div id="thankyou-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center">
+  <div style="font-size:72px;margin-bottom:24px">🙏</div>
+  <div class="serif" style="font-size:36px;font-weight:700;color:#1C1917;margin-bottom:12px">Thank You!</div>
+  <div style="font-size:18px;color:#C4572A;font-weight:600;margin-bottom:8px">Payment Received</div>
+  <div style="font-size:15px;color:#78716C;margin-bottom:32px;line-height:1.6">Your snacks will be ready shortly.<br>Please collect at the counter.</div>
+  <div id="thankyou-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:16px;padding:16px 20px;width:100%;max-width:320px;margin-bottom:32px;text-align:left"></div>
+  <button onclick="closeThankyou()" style="background:#C4572A;color:#fff;border-radius:14px;padding:16px 48px;font-size:17px;font-weight:600">New Order</button>
+</div>
+
 <!-- Queue Modal -->
 <div id="queue-modal" class="hidden overlay" style="background:#fff;display:flex;flex-direction:column;padding:20px 16px;overflow:hidden">
 
@@ -886,14 +896,25 @@ async function confirmPayment(paymentMethod='paynow'){
     toast("Something went wrong — please try again","#DC2626");
   }, 8000);
 
-  const queueNo = await nextQ();
-  clearTimeout(safetyTimer);
   const needsKitchen = orderNeedsKitchen();
-  const o = {...pendingOrder, queueNo, status:"paid", paymentMethod, paidAt:Date.now(), needsKitchen};
+
+  // Snack-only orders — no queue number needed
+  const queueNo = needsKitchen ? await nextQ() : null;
+  clearTimeout(safetyTimer);
+  const o = {...pendingOrder, queueNo, status: needsKitchen ? "paid" : "collected", paymentMethod, paidAt:Date.now(), needsKitchen};
   orders.push(o);
   saveOrderToFB(o);
   cart = []; pendingOrder = null;
   closePayment();
+
+  // Snack-only — show Thank You screen, no queue modal
+  if(!needsKitchen){
+    showThankYou(o);
+    renderMenu();
+    updateKitchenBadge();
+    return;
+  }
+
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
 
@@ -942,6 +963,33 @@ async function confirmPayment(paymentMethod='paynow'){
   updateKitchenBadge();
 }
 
+function showThankYou(o){
+  const addons = c => Object.values(c.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+  const summaryHtml = o.items.map(i=>{
+    const ad = addons(i);
+    const e = Object.values(i.choices||{}).reduce((s,c)=>s+choicePrice(c),0);
+    return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #E5E0D8">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:#1C1917">${i.name} ×${i.qty}</div>
+        ${ad.length?`<div style="font-size:11px;color:#78716C;margin-top:2px">${ad.join(" · ")}</div>`:""}
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#C4572A;margin-left:12px">${fmtS((i.price+e)*i.qty)}</div>
+    </div>`;
+  }).join("") + `<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px">
+    <span style="font-size:14px;font-weight:700;color:#1C1917">Total</span>
+    <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#C4572A">${fmtS(o.total)}</span>
+  </div>`;
+  document.getElementById("thankyou-summary").innerHTML = summaryHtml;
+  const m = document.getElementById("thankyou-modal");
+  m.classList.remove("hidden"); m.style.display="flex";
+}
+
+function closeThankyou(){
+  const m = document.getElementById("thankyou-modal");
+  m.classList.add("hidden"); m.style.display="none";
+  renderMenu();
+}
+
 function closeQueue(){
   const m = document.getElementById("queue-modal");
   m.classList.add("hidden"); m.style.display="none";
@@ -982,7 +1030,7 @@ function updateKitchenBadge(){
 }
 
 function renderKitchen(){
-  const snackIds = ["sn1","sn2","sn7","sn8","sn9","sn10","sn15","sn16"];
+  const snackIds = ["sn1","sn2","sn7","sn8","sn9","sn10","sn15","sn16","sn17"];
   const needsKitchenCheck = o => {
     if(o.needsKitchen === false) return false;
     if(o.needsKitchen === true) return true;
