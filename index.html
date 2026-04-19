@@ -302,15 +302,17 @@ const fmtS  = n => "$" + Number(n).toFixed(2);
 function screenshotQR(){
   const canvas = document.querySelector('#dynamic-qr canvas');
   if(!canvas){ toast("QR not ready, please try again","#DC2626"); return; }
-  canvas.toBlob(async (blob)=>{
-    const file = new File([blob], 'paynow-qr.png', {type:'image/png'});
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file], title:'PayNow QR'}); }
-      catch(e){ if(e.name!=='AbortError') fallbackDownload(canvas); }
-    } else {
-      fallbackDownload(canvas);
-    }
-  });
+  try{
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'paynow-qr.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast("✅ QR saved! Open bank app → PayNow → Scan from gallery 📂");
+  } catch(e){
+    toast("❌ Save failed — try screenshot instead","#DC2626");
+  }
 }
 function fallbackDownload(canvas){
   const a = document.createElement('a');
