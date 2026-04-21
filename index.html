@@ -1112,7 +1112,10 @@ function adminTab(t){
     b.style.fontWeight = x===t?"600":"400";
   });
   if(t==="menu-mgmt") renderAdminMenu();
-  if(t==="reports")   renderReports();
+  if(t==="reports"){ 
+    document.getElementById("admin-reports").classList.remove("hidden");
+    renderReports(); 
+  }
 }
 
 function renderAdmin(){ adminTab("menu-mgmt"); renderStallStatus(); }
@@ -1193,7 +1196,6 @@ function resetMenu(){ menu=DEFAULT_MENU; saveMenu(); renderAdminMenu(); }
 function renderReports(){
   const el = document.getElementById("admin-reports");
   if(!el) return;
-  // Show loading if orders not yet fetched
   if(!orders || orders.length === 0){
     el.innerHTML = `<div style="text-align:center;padding:40px;color:#78716C">
       <div style="font-size:32px;margin-bottom:12px">📊</div>
@@ -2322,7 +2324,9 @@ ordersRef.on("value", snap=>{
   renderMenu();
   renderKitchen();
   updateKitchenBadge();
-  renderReports();
+  // Only re-render reports if the tab is currently visible
+  const reportsEl = document.getElementById("admin-reports");
+  if(reportsEl && !reportsEl.classList.contains("hidden")) renderReports();
 });
 
 renderMenu();
