@@ -2087,7 +2087,13 @@ function printPayout(p){
 
 // ── FIREBASE REALTIME SYNC ────────────────────────────────────────────────────
 const FB_CONFIG = {
-  databaseURL: "https://quickpos-w06-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: "AIzaSyAYKFXAcIAR6iJ29RkimJSthEpfRPZSKBY",
+  authDomain: "quickpos-w06.firebaseapp.com",
+  databaseURL: "https://quickpos-w06-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "quickpos-w06",
+  storageBucket: "quickpos-w06.appspot.com",
+  messagingSenderId: "1015464203400",
+  appId: "1:1015464203400:web:fe788848e3b0da2b403b3d"
 };
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
