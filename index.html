@@ -1114,7 +1114,12 @@ function adminTab(t){
   if(t==="menu-mgmt") renderAdminMenu();
   if(t==="reports"){ 
     document.getElementById("admin-reports").classList.remove("hidden");
-    renderReports(); 
+    // Force fresh fetch from Firebase then render
+    ordersRef.once("value", snap=>{
+      const data = snap.val();
+      orders = data ? Object.values(data) : [];
+      renderReports();
+    });
   }
 }
 
