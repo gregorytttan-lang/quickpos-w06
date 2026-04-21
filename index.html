@@ -1191,6 +1191,17 @@ function updatePrice(cid,iid,p){
 function resetMenu(){ menu=DEFAULT_MENU; saveMenu(); renderAdminMenu(); }
 
 function renderReports(){
+  const el = document.getElementById("admin-reports");
+  if(!el) return;
+  // Show loading if orders not yet fetched
+  if(!orders || orders.length === 0){
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:#78716C">
+      <div style="font-size:32px;margin-bottom:12px">📊</div>
+      <div style="font-size:14px;font-weight:600;color:#1C1917;margin-bottom:4px">No orders yet</div>
+      <div style="font-size:12px">Orders will appear here once customers start ordering.</div>
+    </div>`;
+    return;
+  }
   const todayStr = today();
   const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
   const todayRev      = todayOrders.reduce((s,o)=>s+o.total,0);
