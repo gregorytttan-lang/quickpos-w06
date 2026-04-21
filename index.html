@@ -1207,13 +1207,13 @@ function renderReports(){
     return;
   }
   const todayStr = today();
-  const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
-  const todayRev      = todayOrders.reduce((s,o)=>s+o.total,0);
-  const todayPaynow   = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
-  const todayCash     = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
-  const allRev        = orders.reduce((s,o)=>s+o.total,0);
-  const allPaynow     = orders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
-  const allCash       = orders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
+  const todayOrders = orders.filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const todayRev      = todayOrders.reduce((s,o)=>s+(o.total||0),0);
+  const todayPaynow   = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
+  const todayCash     = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
+  const allRev        = orders.reduce((s,o)=>s+((o && o.total)||0),0);
+  const allPaynow     = orders.filter(o=>o && o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
+  const allCash       = orders.filter(o=>o && o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
 
   // Float and payouts
   const float = parseFloat(ls("float_w06", 0)) || 0;
@@ -1224,26 +1224,32 @@ function renderReports(){
   // Build daily breakdown
   const dailyMap = {};
   orders.forEach(o=>{
+    if(!o || !o.createdAt) return;
     const d = new Date(o.createdAt).toDateString();
     if(!dailyMap[d]) dailyMap[d]={rev:0,cash:0,paynow:0,count:0,items:{}};
-    dailyMap[d].rev+=o.total;
-    if(o.paymentMethod==="cash") dailyMap[d].cash+=o.total;
-    else dailyMap[d].paynow+=o.total;
+    dailyMap[d].rev+=(o.total||0);
+    if(o.paymentMethod==="cash") dailyMap[d].cash+=(o.total||0);
+    else dailyMap[d].paynow+=(o.total||0);
     dailyMap[d].count++;
-    o.items.forEach(i=>{
+    (o.items||[]).forEach(i=>{
+      if(!i || !i.name) return;
       if(!dailyMap[d].items[i.name]) dailyMap[d].items[i.name]=0;
-      dailyMap[d].items[i.name]+=i.qty;
+      dailyMap[d].items[i.name]+=(i.qty||0);
     });
   });
   const days = Object.entries(dailyMap).sort((a,b)=>new Date(b[0])-new Date(a[0]));
 
   // Today's top items
   const todayItemMap = {};
-  todayOrders.forEach(o=>o.items.forEach(i=>{
-    if(!todayItemMap[i.name]) todayItemMap[i.name]={qty:0,rev:0};
-    todayItemMap[i.name].qty+=i.qty;
-    todayItemMap[i.name].rev+=i.price*i.qty;
-  }));
+  todayOrders.forEach(o=>{
+    if(!o) return;
+    (o.items||[]).forEach(i=>{
+      if(!i || !i.name) return;
+      if(!todayItemMap[i.name]) todayItemMap[i.name]={qty:0,rev:0};
+      todayItemMap[i.name].qty+=(i.qty||0);
+      todayItemMap[i.name].rev+=((i.price||0)*(i.qty||0));
+    });
+  });
   const todayTop = Object.entries(todayItemMap).sort((a,b)=>b[1].qty-a[1].qty);
 
   document.getElementById("admin-reports").innerHTML = `
