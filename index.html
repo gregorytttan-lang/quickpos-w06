@@ -1114,12 +1114,7 @@ function adminTab(t){
   if(t==="menu-mgmt") renderAdminMenu();
   if(t==="reports"){ 
     document.getElementById("admin-reports").classList.remove("hidden");
-    // Force fresh fetch from Firebase then render
-    ordersRef.once("value", snap=>{
-      const data = snap.val();
-      orders = data ? Object.values(data) : [];
-      renderReports();
-    });
+    renderReports();
   }
 }
 
@@ -1201,11 +1196,13 @@ function resetMenu(){ menu=DEFAULT_MENU; saveMenu(); renderAdminMenu(); }
 function renderReports(){
   const el = document.getElementById("admin-reports");
   if(!el) return;
+  try {
   if(!orders || orders.length === 0){
     el.innerHTML = `<div style="text-align:center;padding:40px;color:#78716C">
       <div style="font-size:32px;margin-bottom:12px">📊</div>
       <div style="font-size:14px;font-weight:600;color:#1C1917;margin-bottom:4px">No orders yet</div>
       <div style="font-size:12px">Orders will appear here once customers start ordering.</div>
+      <div style="font-size:10px;margin-top:20px;color:#DC2626">Orders array length: ${orders ? orders.length : 'undefined'}</div>
     </div>`;
     return;
   }
@@ -1402,6 +1399,13 @@ function renderReports(){
   `;
   renderPayouts();
   renderMonthlyArchives();
+  } catch(e) {
+    el.innerHTML = `<div style="padding:20px;background:#FEF2F2;border:2px solid #DC2626;border-radius:12px;color:#991B1B">
+      <div style="font-weight:700;font-size:16px;margin-bottom:10px">⚠️ Report Error</div>
+      <div style="font-size:13px;font-family:monospace;word-break:break-word">${e.message || e}</div>
+      <div style="font-size:11px;margin-top:10px;color:#78716C">Orders count: ${orders ? orders.length : 'undefined'}</div>
+    </div>`;
+  }
 }
 
 // ── GOOGLE SHEETS INTEGRATION ─────────────────────────────────────────────────
