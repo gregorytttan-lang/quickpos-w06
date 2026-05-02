@@ -1168,7 +1168,10 @@ function renderAdminMenu(){
 
 function toggleMod(mod){
   const key = "mod_"+mod+"_w06";
-  lss(key, !ls(key, true));
+  const newVal = !ls(key, true);
+  lss(key, newVal);
+  // Sync to Firebase so customer phones see the change
+  db.ref("settings/mod_"+mod).set(newVal);
   renderAdminMenu();
   renderMenu();
 }
@@ -2143,6 +2146,15 @@ db.ref("availability").on("value", snap=>{
     });
   });
   saveMenu();
+  renderMenu();
+});
+
+// Listen for modifier toggle changes (soup/side on-off from admin)
+db.ref("settings").on("value", snap=>{
+  const data = snap.val();
+  if(!data) return;
+  if(data.hasOwnProperty("mod_soup")) lss("mod_soup_w06", data.mod_soup);
+  if(data.hasOwnProperty("mod_side")) lss("mod_side_w06", data.mod_side);
   renderMenu();
 });
 
