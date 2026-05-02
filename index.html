@@ -60,6 +60,15 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     </div>
     <div id="cat-tabs" style="display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px"></div>
   </div>
+  <!-- Recovery banner -->
+  <div id="recovery-banner" class="hidden" style="background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="showRecoveredOrder()">
+    <div style="font-size:28px">📋</div>
+    <div style="flex:1;color:#fff">
+      <div style="font-size:13px;font-weight:700;line-height:1.3">You have an active order</div>
+      <div id="recovery-banner-detail" style="font-size:12px;opacity:0.9;margin-top:2px"></div>
+    </div>
+    <div style="color:#fff;font-size:18px">→</div>
+  </div>
   <!-- Items list -->
   <div id="items-list" style="padding-bottom:100px"></div>
   <!-- Cart FAB -->
@@ -508,6 +517,8 @@ function showView(v){
 // ── MENU ────────────────────────────────────────────────────────────────────
 function renderMenu(){
   const avail = menu.map(c=>({...c,items:c.items.filter(i=>i.avail!==false)})).filter(c=>c.items.length);
+  // Show recovery banner if customer has a recent order (within 2 hours)
+  renderRecoveryBanner();
   // Tabs
   const tabs = document.getElementById("cat-tabs");
   tabs.innerHTML = avail.map((c,i)=>`
@@ -551,6 +562,56 @@ function renderMenu(){
 }
 
 function switchCat(i){ curCat=i; renderMenu(); }
+
+// ── ORDER RECOVERY ──
+function renderRecoveryBanner(){
+  const banner = document.getElementById("recovery-banner");
+  if(!banner) return;
+  const last = ls("last_order_w06", null);
+  if(!last || !last.queueNo){ banner.classList.add("hidden"); return; }
+  // Auto-clear if older than 2 hours
+  const ageMin = (Date.now() - last.paidAt) / 60000;
+  if(ageMin > 120){
+    lss("last_order_w06", null);
+    banner.classList.add("hidden");
+    return;
+  }
+  // Check Firebase status — if collected, hide banner
+  const fbOrder = orders.find(o=>o.id===last.orderId);
+  if(fbOrder && fbOrder.status==="collected"){
+    lss("last_order_w06", null);
+    banner.classList.add("hidden");
+    return;
+  }
+  banner.classList.remove("hidden");
+  document.getElementById("recovery-banner-detail").textContent = `Queue ${fmtQ(last.queueNo)} · Tap to view`;
+}
+
+function showRecoveredOrder(){
+  const last = ls("last_order_w06", null);
+  if(!last) return;
+  // Find latest status from Firebase
+  const fbOrder = orders.find(o=>o.id===last.orderId);
+  const status = fbOrder ? fbOrder.status : "paid";
+  // Restart queue tracking using the existing queue modal
+  startTrackingOrder(last.orderId);
+  document.getElementById("queue-number").textContent = fmtQ(last.queueNo);
+  document.getElementById("queue-dining").textContent = last.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
+  // Show items
+  const itemsHtml = last.items.map(i=>{
+    const ad = Object.values(i.choices||{}).flatMap(x=>Array.isArray(x)?x:[x]).filter(x=>{const n=x.name||x;return n!=="No thanks"&&n!=="None";}).map(x=>x.name||x);
+    const e = Object.values(i.choices||{}).reduce((s,c)=>s+choicePrice(c),0);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E5E0D8">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${i.name} ×${i.qty}</div>${ad.length?`<div style="font-size:11px;color:#78716C">${ad.join(" · ")}</div>`:""}</div>
+      <div style="font-size:13px;font-weight:600;color:#C4572A">${fmtS((i.price+e)*i.qty)}</div>
+    </div>`;
+  }).join("");
+  const summaryEl = document.getElementById("queue-items-summary");
+  if(summaryEl) summaryEl.innerHTML = itemsHtml + `<div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;border-top:2px solid #E5E0D8"><span style="font-weight:700">Total</span><span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:18px">${fmtS(last.total)}</span></div>`;
+  updateStatusUI(status);
+  const m = document.getElementById("queue-modal");
+  m.classList.remove("hidden"); m.style.display="flex";
+}
 
 function getItem(id){ for(const c of menu) for(const i of c.items) if(i.id===id) return i; return null; }
 
@@ -905,6 +966,10 @@ async function confirmPayment(paymentMethod='paynow'){
   const o = {...pendingOrder, queueNo, status: needsKitchen ? "paid" : "collected", paymentMethod, paidAt:Date.now(), needsKitchen};
   orders.push(o);
   saveOrderToFB(o);
+  // Save last order for recovery (only kitchen orders need recovery)
+  if(needsKitchen){
+    lss("last_order_w06", {orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining});
+  }
   cart = []; pendingOrder = null;
   closePayment();
 
