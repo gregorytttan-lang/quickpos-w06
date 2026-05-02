@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Western Food #06 — Flavours Foodcourt</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
@@ -308,6 +311,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
 const PAYNOW_UEN = "53155285C";
+const APP_VERSION = "2026-04-26-v1"; // Update this whenever you push changes
 function tlv(tag,val){const v=String(val);return tag+v.length.toString().padStart(2,"0")+v;}
 function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++){c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF;}}return c.toString(16).toUpperCase().padStart(4,"0");}
 function buildPayNowQR(amount){
@@ -2220,7 +2224,21 @@ db.ref("settings").on("value", snap=>{
   if(!data) return;
   if(data.hasOwnProperty("mod_soup")) lss("mod_soup_w06", data.mod_soup);
   if(data.hasOwnProperty("mod_side")) lss("mod_side_w06", data.mod_side);
+  // Auto-reload if new app version pushed
+  if(data.app_version && data.app_version !== APP_VERSION){
+    console.log("New version detected:", data.app_version, "vs local:", APP_VERSION);
+    setTimeout(()=>location.reload(true), 1000);
+    return;
+  }
   renderMenu();
+});
+
+// Push current version to Firebase on load (so others know this is the latest)
+db.ref("settings/app_version").once("value", snap=>{
+  const fbVer = snap.val();
+  if(!fbVer || fbVer < APP_VERSION){
+    db.ref("settings/app_version").set(APP_VERSION);
+  }
 });
 
 // Save order to Firebase
