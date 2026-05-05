@@ -323,7 +323,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
 const PAYNOW_UEN = "53155285C";
-const APP_VERSION = "2026-04-26-v2"; // Update this whenever you push changes
+const APP_VERSION = "2026-04-26-v3"; // Update this whenever you push changes
 function tlv(tag,val){const v=String(val);return tag+v.length.toString().padStart(2,"0")+v;}
 function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++){c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF;}}return c.toString(16).toUpperCase().padStart(4,"0");}
 function buildPayNowQR(amount){
@@ -2191,30 +2191,6 @@ function testPrint(){
   connectPrinter();
 }
 
-function printPayout(p){
-  const ref = "PAY-" + p.date.replace(/-/g,"") + "-" + p.id.slice(-4);
-  const line2 = "--------------------------------\n";
-  let t = "";
-  t += "================================\n";
-  t += "     WESTERN FOOD #06\n";
-  t += "     Flavours Foodcourt\n";
-  t += "================================\n";
-  t += "     PAYMENT VOUCHER\n";
-  t += "================================\n";
-  t += "Ref: " + ref + "\n";
-  t += "Date: " + p.date + "\n";
-  t += line2;
-  t += "Supplier: " + p.supplier + "\n";
-  t += "Item: " + p.item + "\n";
-  if(p.notes) t += "Notes: " + p.notes + "\n";
-  t += line2;
-  t += "AMOUNT: " + fmtS(p.amount) + "\n";
-  t += line2;
-  t += "Authorised by: ________________\n\n";
-  t += "Signature:     ________________\n";
-  t += "================================\n\n\n";
-  rawbtPrint(t);
-}
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
 // ── FIREBASE REALTIME SYNC ────────────────────────────────────────────────────
