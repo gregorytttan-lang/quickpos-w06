@@ -323,7 +323,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
 const PAYNOW_UEN = "53155285C";
-const APP_VERSION = "2026-04-26-v3"; // Update this whenever you push changes
+const APP_VERSION = "2026-04-26-v4"; // Update this whenever you push changes
 function tlv(tag,val){const v=String(val);return tag+v.length.toString().padStart(2,"0")+v;}
 function crc16(str){let c=0xFFFF;for(let i=0;i<str.length;i++){c^=str.charCodeAt(i)<<8;for(let j=0;j<8;j++){c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF;}}return c.toString(16).toUpperCase().padStart(4,"0");}
 function buildPayNowQR(amount){
@@ -373,20 +373,19 @@ function ls(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}c
 function lss(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 
 function nextQ(){
-  return new Promise((resolve)=>{
+  return new Promise((resolve, reject)=>{
     const t = today();
     const qRef = db.ref("queue/" + t);
     let resolved = false;
+    // 15s timeout — long enough for slow 4G at the foodcourt
     const timeout = setTimeout(()=>{
       if(!resolved){
         resolved = true;
-        // Fallback — use local counter to avoid large random numbers
-        const localKey = "localQ_" + t;
-        const localN = (ls(localKey, 0) || 0) + 1;
-        lss(localKey, localN);
-        resolve(localN);
+        // CRITICAL: never fall back to local counter — that causes duplicate queue numbers
+        // across devices. Better to fail loudly so customer can retry.
+        reject(new Error("Network slow. Please check your connection and tap I Have Paid again."));
       }
-    }, 3000);
+    }, 15000);
     qRef.transaction(current=>{
       return (current||0) + 1;
     }, (err, committed, snap)=>{
@@ -394,15 +393,9 @@ function nextQ(){
         resolved = true;
         clearTimeout(timeout);
         if(committed && snap){
-          // Also update local counter to stay in sync
-          lss("localQ_" + t, snap.val());
           resolve(snap.val());
         } else {
-          // Firebase failed — use local counter
-          const localKey = "localQ_" + t;
-          const localN = (ls(localKey, 0) || 0) + 1;
-          lss(localKey, localN);
-          resolve(localN);
+          reject(new Error("Could not get queue number. Please check your connection and try again."));
         }
       }
     });
@@ -996,17 +989,29 @@ async function confirmPayment(paymentMethod='paynow'){
   if(btn1){ btn1.textContent="⏳ Processing..."; btn1.disabled=true; }
   if(btn2){ btn2.textContent="⏳ Processing..."; btn2.disabled=true; }
 
-  // Safety timeout — never stay stuck longer than 8 seconds
+  // Safety timeout — must be longer than nextQ timeout (15s) to allow Firebase to finish
   const safetyTimer = setTimeout(()=>{
     if(btn1){ btn1.textContent="✅ I Have Paid — Get Queue Number"; btn1.disabled=false; }
     if(btn2){ btn2.textContent="💵 Pay by Cash at Counter"; btn2.disabled=false; }
     toast("Something went wrong — please try again","#DC2626");
-  }, 8000);
+  }, 20000);
 
   const needsKitchen = orderNeedsKitchen();
 
   // Snack-only orders — no queue number needed
-  const queueNo = needsKitchen ? await nextQ() : null;
+  let queueNo = null;
+  if(needsKitchen){
+    try {
+      queueNo = await nextQ();
+    } catch(e) {
+      clearTimeout(safetyTimer);
+      // Reset payment buttons so customer can retry
+      if(btn1){ btn1.textContent="✅ I Have Paid — Get Queue Number"; btn1.disabled=false; }
+      if(btn2){ btn2.textContent="💵 Pay by Cash at Counter"; btn2.disabled=false; }
+      toast(e.message || "Network slow. Please try again.", "#DC2626");
+      return;
+    }
+  }
   clearTimeout(safetyTimer);
   const o = {...pendingOrder, queueNo, status: needsKitchen ? "paid" : "collected", paymentMethod, paidAt:Date.now(), needsKitchen};
   orders.push(o);
