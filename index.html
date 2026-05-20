@@ -109,8 +109,8 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="admin-reports" class="hidden"></div>
   <div id="admin-printer" class="hidden">
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:12px">
-      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">Epson TM-m30III — USB-C Printer</div>
-      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via RawBT app + USB-C cable. Make sure RawBT is open and Epson is connected.</div>
+      <div class="serif" style="font-size:14px;font-weight:700;margin-bottom:4px">SPRT SP-POS887BTDM — Bluetooth Printer</div>
+      <div style="font-size:12px;color:#78716C;margin-bottom:8px">Prints via RawBT app over Bluetooth. Keep RawBT running in background and printer powered on.</div>
       <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:10px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.6">
         ✅ Keep RawBT running in background. Tap 🖨️ on each order to print.
       </div>
@@ -306,6 +306,8 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="font-size:12px;color:#166534">Please collect at the counter</div>
   </div>
 
+  <!-- Wait time estimate (FIX 14) -->
+  <div id="queue-wait-est" style="text-align:center;font-size:13px;color:#78716C;padding:4px 0 8px;font-weight:600"></div>
   <!-- Order summary compact -->
   <div id="queue-order-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:12px 14px;margin-bottom:10px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
 
@@ -322,7 +324,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-04-26-v5"; // Update this whenever you push changes
+const APP_VERSION = 20260518001; // YYYYMMDD + 3-digit build# — increment on every deploy
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -517,7 +519,7 @@ function saveMenu()  { lss("menu_w06_v7", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-const STAFF_PWD = "123456789";
+const STAFF_PWD = "OliyvE@W06#2026"; // Change quarterly — never commit plaintext in comments
 let _pendingView = null;
 let _authed = false;
 
@@ -589,6 +591,7 @@ function renderMenu(){
             <span style="font-size:16px;font-weight:600;color:#1C1917;line-height:1.3">${item.name}</span>
             ${hasOpt?`<span style="font-size:10px;background:rgba(124,58,237,0.1);color:#7C3AED;border-radius:20px;padding:2px 8px;font-weight:600">options</span>`:""}
           </div>
+          ${item.desc&&item.desc.includes("MOST ORDERED")?`<span style="display:inline-block;background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px">⭐ Most Ordered</span>`:""}${item.desc&&item.desc.includes("Chef's Signature")?`<span style="display:inline-block;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px;margin-left:4px">🏆 Chef's Favourite</span>`:""}
           ${item.desc?`<div style="font-size:13px;color:#78716C;line-height:1.5;margin-bottom:6px">${item.desc}</div>`:""}
           <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#C4572A">${fmtS(item.price)}</div>
         </div>
@@ -608,7 +611,7 @@ function renderMenu(){
   updateCartFab();
 }
 
-function switchCat(i){ curCat=i; renderMenu(); }
+function switchCat(i){ curCat=i; renderMenu(); window.scrollTo({top:0,behavior:'smooth'}); }
 
 // ── ORDER RECOVERY ──
 function renderRecoveryBanner(){
@@ -751,11 +754,78 @@ function handleAdd(id){
   }
 }
 
+
+// ── UPSELL ENGINE ─────────────────────────────────────────────────────────────
+// FIX 15: Show a one-tap "Add Mushroom Soup?" prompt whenever a main is added
+// and soup is not already in the cart. Dismisses after 7 seconds automatically.
+
+function _cartHasSoup(){
+  return cart.some(x =>
+    x.choices && Object.values(x.choices).some(ch => {
+      const n = (ch && ch.name) || (typeof ch === "string" ? ch : "");
+      return n.toLowerCase().includes("mushroom soup");
+    })
+  );
+}
+
+function maybeUpsell(item){
+  const soupOn = ls("mod_soup_w06", true);
+  if(!soupOn)          return; // soup modifier is disabled in admin
+  if(!isMain(item.id)) return; // only upsell after main items
+  if(_cartHasSoup())   return; // soup already in order
+
+  // Remove any existing upsell toast first
+  const existing = document.getElementById("_upsell_toast");
+  if(existing) existing.remove();
+
+  const t = document.createElement("div");
+  t.id = "_upsell_toast";
+  t.style.cssText = [
+    "position:fixed","bottom:90px","left:50%","transform:translateX(-50%)",
+    "background:#1C1917","color:#fff","padding:14px 18px","border-radius:16px",
+    "font-size:14px","font-weight:600","z-index:9999",
+    "box-shadow:0 6px 24px rgba(0,0,0,0.35)",
+    "display:flex","align-items:center","gap:12px",
+    "white-space:nowrap","max-width:92vw"
+  ].join(";");
+  t.innerHTML =
+    `<span>🍵 Add Mushroom Soup?</span>` +
+    `<span style="color:#F97316;font-weight:800">+$1.90</span>` +
+    `<button id="_upsell_yes" style="background:#16A34A;color:#fff;border:none;` +
+      `border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Add ✓</button>` +
+    `<button id="_upsell_no" style="background:transparent;color:rgba(255,255,255,0.55);` +
+      `border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px">×</button>`;
+
+  document.body.appendChild(t);
+
+  document.getElementById("_upsell_yes").onclick = () => { t.remove(); quickAddSoup(item); };
+  document.getElementById("_upsell_no").onclick  = () => t.remove();
+  setTimeout(() => { try{ t.remove(); }catch(e){} }, 7000);
+}
+
+function quickAddSoup(baseItem){
+  // Find the cart entry for this main item (most recently added)
+  const mainEntry = cart.slice().reverse().find(x => x.id === baseItem.id);
+  if(!mainEntry){ toast("Could not add soup — please add from the cart", "#78716C"); return; }
+  const idx = cart.indexOf(mainEntry);
+  // Build new choices with soup added alongside existing choices
+  const newChoices = {...mainEntry.choices, soup: {name:"+ Mushroom Soup", price:1.90}};
+  // Regenerate cartKey using exact same logic as addToCart
+  const newKey = mainEntry.id + Object.values(newChoices)
+    .map(ch => Array.isArray(ch) ? ch.map(x => x.name||x).join("+") : (ch.name||ch))
+    .join("|");
+  cart[idx] = {...mainEntry, choices: newChoices, cartKey: newKey};
+  renderMenu();
+  updateCartFab();
+  toast("🍵 Mushroom Soup added!", "#16A34A");
+}
+
 function addToCart(item, choices){
   const cartKey = item.id + Object.values(choices).map(c=>Array.isArray(c)?c.map(x=>x.name||x).join("+"):(c.name||c)).join("|");
   const ex = cart.find(x=>x.cartKey===cartKey);
   if(ex){ ex.qty++; } else { cart.push({...item,qty:1,cartKey,choices}); }
   renderMenu();
+  maybeUpsell(item); // FIX 15: show soup upsell prompt after adding a main
 }
 
 function removeFromCart(cartKey){
@@ -917,7 +987,6 @@ function confirmMod(){
 
 // ── CART ─────────────────────────────────────────────────────────────────────
 function openCart(){
-  diningOption = null;
   renderCartModal();
   openModal("cart-modal");
 }
@@ -1066,6 +1135,11 @@ async function confirmPayment(paymentMethod='paynow'){
 
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
+  // FIX 14: Estimated wait time based on current pending queue depth
+  const _pendingCount = orders.filter(x=>x.status==="paid"||x.status==="preparing").length;
+  const _waitMins = Math.max(10, _pendingCount * 5);
+  const _waitEl = document.getElementById("queue-wait-est");
+  if(_waitEl) _waitEl.textContent = "⏱️ Est. wait: ~" + _waitMins + " min" + (_waitMins!==1?"s":"");
 
   // Show different status for snacks-only vs kitchen orders
   const statusBar = document.getElementById("order-status-bar");
@@ -1156,6 +1230,17 @@ const STATUS = {
   collected: {color:"#78716C",label:"Collected",bg:"#F5F3F0"},
 };
 
+function cancelOrder(id){
+  if(!confirm("⚠️ Void this order? This removes it from the kitchen display and cannot be undone.")) return;
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  o.status = "cancelled";
+  db.ref("orders").child(id).update({status:"cancelled", cancelledAt:Date.now()});
+  renderKitchen();
+  updateKitchenBadge();
+  toast("Order voided","#78716C");
+}
+
 function updOrder(id, status){
   const o = orders.find(x=>x.id===id);
   if(o){
@@ -1183,7 +1268,7 @@ function renderKitchen(){
     // For old orders without needsKitchen flag — check items
     return (o.items||[]).some(i => i && !snackIds.includes(i.id));
   };
-  const queue = orders.filter(o=>o && o.status!=="collected" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const tags  = document.getElementById("kitchen-tags");
   const n1 = orders.filter(o=>o.status==="paid").length;
   const n2 = orders.filter(o=>o.status==="preparing").length;
@@ -1221,7 +1306,7 @@ function renderKitchen(){
         </div>
       </div>
       <div style="padding:12px 16px">
-        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:16px;color:#92400E;font-weight:600">⚠️ ${order.remarks}</div>`:""}
+        ${order.remarks?`<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:16px;color:#92400E;font-weight:600">⚠️ ${order.remarks.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:""}
         ${(order.items||[]).filter(i=>i && i.name).map((item,i,arr)=>{
           const ad = addons(item);
           return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:${i<arr.length-1?"1px solid #E5E0D8":"none"}">
@@ -1237,6 +1322,7 @@ function renderKitchen(){
         ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
+        <button onclick="cancelOrder('${order.id}')" style="padding:11px 14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:9px">✕ Void</button>
       </div>
       <div style="padding:8px 14px;background:#FEF2F2;border-top:1px solid #FECACA;display:flex;align-items:center;gap:8px">
         <span style="font-size:16px">🧾</span>
@@ -1727,16 +1813,25 @@ function saveDailyToSheets(){
       // Now save all payouts
       const payouts = ls("payouts_w06",[]);
       if(payouts.length){
+        // FIX 12: Use allSettled so one failed payout doesn't hide the others
         const payoutPromises = payouts.map(p=>{
           const pd = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
-          return fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(pd)});
+          return fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(pd)})
+            .then(()=>({status:"fulfilled"}))
+            .catch(()=>({status:"rejected"}));
         });
         return Promise.all(payoutPromises);
       }
     })
-    .then(()=>{
-      toast("✅ Sales & Payouts saved to Google Sheets!");
-      if(btn){ btn.disabled=false; btn.textContent="✅ Saved!"; btn.style.background="#16A34A"; }
+    .then((results)=>{
+      const failed = results ? results.filter(r=>r && r.status==="rejected").length : 0;
+      if(failed > 0){
+        toast("⚠️ Sales saved. " + failed + " payout(s) failed to sync — retry later.", "#CA8A04");
+        if(btn){ btn.disabled=false; btn.textContent="⚠️ Partial Save"; btn.style.background="#CA8A04"; }
+      } else {
+        toast("✅ Sales & Payouts saved to Google Sheets!");
+        if(btn){ btn.disabled=false; btn.textContent="✅ Saved!"; btn.style.background="#16A34A"; }
+      }
     })
     .catch(()=>{
       toast("❌ Failed to connect. Check internet.","#DC2626");
@@ -1776,6 +1871,13 @@ function sendWhatsApp(){
   msg += "✅ PayNow: *" + fmtS(todayPaynow) + "*\n";
   msg += "💵 Cash: *" + fmtS(todayCashAmt) + "*\n";
   msg += "🍽️ Dine In: " + dineIn + "  🥡 Take Away: " + takeAway + "\n";
+  // FIX 13: Include payouts and net cash-in-box in daily report
+  const _waPayouts = ls("payouts_w06",[]);
+  const _waPayoutTotal = _waPayouts.reduce((s,p)=>s+p.amount,0);
+  const _waFloat = parseFloat(ls("float_w06",0))||0;
+  const _waCashInBox = _waFloat + todayCashAmt - _waPayoutTotal;
+  if(_waPayoutTotal>0) msg += "💸 Payouts: *" + fmtS(_waPayoutTotal) + "*\n";
+  msg += "🏦 Cash in Box: *" + fmtS(_waCashInBox) + "*\n";
   msg += "─────────────────────\n";
   msg += "🏆 *Top Selling Items:*\n";
   topItems.forEach(([name,qty],i)=>{ msg += (i+1)+". "+name+" × "+qty+"\n"; });
@@ -1797,6 +1899,8 @@ function addPayout(){
   const payouts = ls("payouts_w06",[]);
   payouts.push(payout);
   lss("payouts_w06", payouts);
+  // FIX 7: Mirror payout to Firebase — protects against browser storage loss
+  db.ref("payouts").child(payout.id).set(payout);
   document.getElementById("pay-supplier").value="";
   document.getElementById("pay-item").value="";
   document.getElementById("pay-amount").value="";
@@ -1809,6 +1913,8 @@ function deletePayout(id){
   if(!confirm("Delete this payout?")) return;
   const payouts = ls("payouts_w06",[]).filter(p=>p.id!==id);
   lss("payouts_w06", payouts);
+  // FIX 7: Also delete from Firebase
+  db.ref("payouts").child(id).remove();
   renderPayouts();
 }
 
@@ -1892,7 +1998,9 @@ function archiveMonth(){
   const itemMap = {};
   monthOrders.forEach(o=>o.items.forEach(i=>{
     if(!itemMap[i.name]) itemMap[i.name]={qty:0,rev:0};
-    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=i.price*i.qty;
+    // FIX 11: Include modifier add-on prices in per-item revenue
+    const _extraRev = Object.values(i.choices||{}).reduce((s,ch)=>s+(Array.isArray(ch)?ch.reduce((a,x)=>a+(x.price||0),0):(ch&&ch.price||0)),0);
+    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=(i.price+_extraRev)*i.qty;
   }));
 
   const dailyMap = {};
@@ -2229,6 +2337,65 @@ function testPrint(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
+
+// ── IDLE SESSION RESET ────────────────────────────────────────────────────────
+// FIX 4: Auto-clear cart after 3 minutes of inactivity on the kiosk tablet.
+// Prevents next customer from seeing or accidentally paying for a previous order.
+const IDLE_TIMEOUT_MS  = 180000; // 3 minutes — reset session
+const IDLE_WARN_MS     = 150000; // 2.5 minutes — show warning banner
+
+let _idleTimer    = null;
+let _idleWarnTimer = null;
+let _idleWarnEl   = null;
+
+function _removeIdleWarning(){
+  if(_idleWarnEl){ try{ _idleWarnEl.remove(); }catch(e){} _idleWarnEl = null; }
+}
+
+function _doSessionReset(){
+  _removeIdleWarning();
+  cart        = [];
+  pendingOrder = null;
+  diningOption = null;
+  curCat       = 0;
+  // Close every modal gracefully
+  ["mod-modal","cart-modal","pay-modal","queue-modal",
+   "thankyou-modal","recovery-list-modal"].forEach(id => closeModal(id));
+  renderMenu();
+  updateCartFab();
+  toast("🔄 Session reset — ready for next customer", "#78716C");
+}
+
+function resetIdleTimer(){
+  clearTimeout(_idleTimer);
+  clearTimeout(_idleWarnTimer);
+  _removeIdleWarning();
+
+  // Only start timer when there is something to lose (cart has items)
+  if(!cart || cart.length === 0) return;
+
+  // Warning banner at 2.5 minutes
+  _idleWarnTimer = setTimeout(()=>{
+    _idleWarnEl = document.createElement("div");
+    _idleWarnEl.style.cssText = [
+      "position:fixed","top:52px","left:0","width:100%",
+      "background:#DC2626","color:#fff","text-align:center",
+      "padding:12px 16px","font-size:14px","font-weight:700",
+      "z-index:99998","box-shadow:0 2px 8px rgba(0,0,0,0.2)"
+    ].join(";");
+    _idleWarnEl.textContent = "⏱️ Session resets in 30 seconds — tap anywhere to keep your order";
+    document.body.appendChild(_idleWarnEl);
+  }, IDLE_WARN_MS);
+
+  // Full reset at 3 minutes
+  _idleTimer = setTimeout(_doSessionReset, IDLE_TIMEOUT_MS);
+}
+
+// Attach to every meaningful user interaction
+["touchstart","touchend","click","keydown","scroll"].forEach(evt =>
+  document.addEventListener(evt, resetIdleTimer, {passive: true})
+);
+
 // ── FIREBASE REALTIME SYNC ────────────────────────────────────────────────────
 const FB_CONFIG = {
   apiKey: "AIzaSyAYKFXAcIAR6iJ29RkimJSy3vzka0gsdTs",
@@ -2291,7 +2458,7 @@ db.ref("settings").on("value", snap=>{
 // Push current version to Firebase on load (so others know this is the latest)
 db.ref("settings/app_version").once("value", snap=>{
   const fbVer = snap.val();
-  if(!fbVer || fbVer < APP_VERSION){
+  if(!fbVer || Number(fbVer) < APP_VERSION){
     db.ref("settings/app_version").set(APP_VERSION);
   }
 });
@@ -2464,7 +2631,9 @@ setInterval(()=>{
   }
 }, 5000);
 
-ordersRef.on("value", snap=>{
+// FIX 8: Limit listener to last 500 orders — prevents slow loading as DB grows.
+// archiveMonth() queries Firebase directly so historical data is never lost.
+db.ref("orders").limitToLast(500).on("value", snap=>{
   const data = snap.val();
   orders = data ? Object.values(data) : [];
 
@@ -2472,10 +2641,12 @@ ordersRef.on("value", snap=>{
   if(!isFirstLoad){
     orders.forEach(o=>{
       if(!knownOrderIds.has(o.id)){
+        // FIX 2: Always beep on new order, regardless of which tab is open
+        playBeep();
+        // Voice announcement + screen flash only when kitchen tab is visible
         const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
         if(kitchenVisible){
           speakOrder(o);
-          // Flash the screen to alert staff of new order
           flashNewOrder();
         }
       }
