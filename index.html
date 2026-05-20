@@ -2641,9 +2641,11 @@ setInterval(()=>{
   }
 }, 5000);
 
-// FIX 8: Limit listener to last 500 orders — prevents slow loading as DB grows.
-// archiveMonth() queries Firebase directly so historical data is never lost.
-db.ref("orders").limitToLast(500).on("value", snap=>{
+// FIX 8 (corrected): Filter by createdAt timestamp — reliable for any order ID format.
+// limitToLast(500) was broken because order IDs are random strings, not sequential keys.
+// This filter guarantees every order placed today is always included.
+const _todayStartMs=(()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime();})();
+db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs).on("value", snap=>{
   const data = snap.val();
   orders = data ? Object.values(data) : [];
 
