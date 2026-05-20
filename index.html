@@ -1142,7 +1142,7 @@ async function confirmPayment(paymentMethod='paynow'){
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
   // FIX 14: Estimated wait time based on current pending queue depth
   const _pendingCount = orders.filter(x=>x.status==="paid"||x.status==="preparing").length;
-  const _waitMins = Math.max(10, _pendingCount * 5);
+  const _waitMins = Math.max(5, _pendingCount * 2); // 100 plates/hr ≈ 2 min per order
   const _waitEl = document.getElementById("queue-wait-est");
   if(_waitEl) _waitEl.textContent = "⏱️ Est. wait: ~" + _waitMins + " min" + (_waitMins!==1?"s":"");
 
@@ -1491,6 +1491,41 @@ function renderReports(){
   });
   const todayTop = Object.entries(todayItemMap).sort((a,b)=>b[1].qty-a[1].qty);
 
+  // ── TIME SLOT ANALYSIS ────────────────────────────────────────────────────
+  const TIME_SLOTS = [
+    {key:"breakfast", label:"Breakfast", emoji:"🌅", start:7,  end:11},
+    {key:"lunch",     label:"Lunch",     emoji:"🍱", start:11, end:15},
+    {key:"tea",       label:"Tea Break", emoji:"☕", start:15, end:17},
+    {key:"dinner",    label:"Dinner",    emoji:"🌆", start:17, end:21},
+  ];
+  const slotStats = {};
+  TIME_SLOTS.forEach(s=>{ slotStats[s.key]={count:0,rev:0,paynow:0,cash:0,items:{}}; });
+  const hourMap = {};
+  todayOrders.forEach(o=>{
+    if(!o || !o.createdAt) return;
+    const h = new Date(o.createdAt).getHours();
+    hourMap[h] = (hourMap[h]||0) + 1;
+    const slot = TIME_SLOTS.find(s => h >= s.start && h < s.end);
+    if(slot){
+      slotStats[slot.key].count++;
+      slotStats[slot.key].rev   += (o.total||0);
+      slotStats[slot.key].paynow+= o.paymentMethod!=="cash" ? (o.total||0) : 0;
+      slotStats[slot.key].cash  += o.paymentMethod==="cash"  ? (o.total||0) : 0;
+      (o.items||[]).forEach(i=>{
+        if(!i || !i.name) return;
+        if(!slotStats[slot.key].items[i.name]) slotStats[slot.key].items[i.name]=0;
+        slotStats[slot.key].items[i.name]+=(i.qty||0);
+      });
+    }
+  });
+  // Peak hour — which single hour had the most orders
+  const peakHourEntry = Object.entries(hourMap).sort((a,b)=>b[1]-a[1])[0];
+  const peakHourLabel = peakHourEntry
+    ? peakHourEntry[0]+":00–"+(+peakHourEntry[0]+1)+":00 · "+peakHourEntry[1]+" orders"
+    : "No data yet";
+  // Busiest slot
+  const busiestSlot = TIME_SLOTS.slice().sort((a,b)=>slotStats[b.key].count - slotStats[a.key].count)[0];
+
   document.getElementById("admin-reports").innerHTML = `
     <!-- Summary cards -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
@@ -1572,6 +1607,48 @@ function renderReports(){
           </div>`).join("")}
       `}
     </div>
+
+    <!-- Time Slot Analysis -->
+    ${todayOrders.length > 0 ? `
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">⏰ Today by Time Slot</div>
+        <div style="background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700">
+          🔥 Peak hour: ${peakHourLabel}
+        </div>
+      </div>
+      <div style="font-size:11px;color:#78716C;margin-bottom:14px">
+        Busiest slot: <strong style="color:#C4572A">${busiestSlot.emoji} ${busiestSlot.label}</strong> — ${slotStats[busiestSlot.key].count} orders · ${fmtS(slotStats[busiestSlot.key].rev)}
+      </div>
+      ${TIME_SLOTS.map(s=>{
+        const d = slotStats[s.key];
+        const topItems = Object.entries(d.items).sort((a,b)=>b[1]-a[1]).slice(0,2);
+        const pct = todayOrders.length ? Math.round(d.count/todayOrders.length*100) : 0;
+        const barW = pct;
+        return \`<div style="padding:10px 0;border-top:1px solid #E5E0D8">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:20px;width:26px;text-align:center">\${s.emoji}</span>
+            <div style="flex:1">
+              <div style="display:flex;align-items:baseline;gap:6px">
+                <span style="font-size:13px;font-weight:700;color:#1C1917">\${s.label}</span>
+                <span style="font-size:10px;color:#78716C">\${s.start}:00 – \${s.end}:00</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:'Playfair Display',serif;font-weight:700;color:\${d.count>0?'#C4572A':'#D4CFC8'};font-size:15px">\${fmtS(d.rev)}</div>
+              <div style="font-size:11px;color:#78716C">\${d.count} orders\${d.count?' · '+pct+'%':''}</div>
+            </div>
+          </div>
+          <div style="background:#F5F3F0;border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden">
+            <div style="height:100%;width:\${barW}%;background:\${d.count>0?'#C4572A':'#E5E0D8'};border-radius:4px;transition:width 0.4s"></div>
+          </div>
+          \${topItems.length
+            ? \`<div style="display:flex;gap:6px;flex-wrap:wrap">\${topItems.map(([n,q])=>\`<span style="background:#F5F3F0;color:#78716C;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600">\${n} ×\${q}</span>\`).join('')}</div>\`
+            : \`<div style="font-size:10px;color:#D4CFC8">No orders in this slot</div>\`
+          }
+        </div>\`;
+      }).join("")}
+    </div>` : ""}
 
     <!-- Daily History -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
