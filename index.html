@@ -324,7 +324,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = 20260518001; // YYYYMMDD + 3-digit build# — increment on every deploy
+const APP_VERSION = "2026-05-18-v1"; // Increment string on every deploy e.g. "2026-05-18-v2"
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -2446,11 +2446,16 @@ db.ref("settings").on("value", snap=>{
   if(!data) return;
   if(data.hasOwnProperty("mod_soup")) lss("mod_soup_w06", data.mod_soup);
   if(data.hasOwnProperty("mod_side")) lss("mod_side_w06", data.mod_side);
-  // Auto-reload if new app version pushed
-  if(data.app_version && data.app_version !== APP_VERSION){
-    console.log("New version detected:", data.app_version, "vs local:", APP_VERSION);
-    setTimeout(()=>location.reload(true), 1000);
-    return;
+  // Auto-reload if a newer app version was pushed by admin
+  // Uses string comparison — both local and Firebase store the same format
+  if(data.app_version){
+    const fbV  = String(data.app_version);
+    const locV = String(APP_VERSION);
+    if(fbV !== locV && fbV > locV){
+      console.log("New version available:", fbV, "→ reloading");
+      setTimeout(()=>location.reload(true), 1000);
+      return;
+    }
   }
   renderMenu();
 });
@@ -2458,7 +2463,7 @@ db.ref("settings").on("value", snap=>{
 // Push current version to Firebase on load (so others know this is the latest)
 db.ref("settings/app_version").once("value", snap=>{
   const fbVer = snap.val();
-  if(!fbVer || Number(fbVer) < APP_VERSION){
+  if(!fbVer || fbVer < APP_VERSION){
     db.ref("settings/app_version").set(APP_VERSION);
   }
 });
