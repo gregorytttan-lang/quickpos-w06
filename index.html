@@ -175,63 +175,68 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <!-- Payment Modal -->
 <div id="pay-modal" class="hidden overlay" style="background:#FAF9F7">
-  <div style="max-width:400px;margin:0 auto;padding:32px 24px">
-    <div class="serif" style="font-size:20px;font-weight:700;color:#1C1917;margin-bottom:2px;text-align:center">Western Food #06</div>
-    <div style="font-size:13px;color:#78716C;margin-bottom:24px;text-align:center">Complete payment to place your order</div>
-    <!-- Order summary -->
-    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:16px 20px;margin-bottom:20px">
-      <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">Order Summary</div>
+  <div style="max-width:400px;margin:0 auto;padding:10px 16px 24px">
+    <!-- Compact header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="serif" style="font-size:17px;font-weight:700;color:#1C1917">Western Food #06</div>
+      <button onclick="closePayment()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">← Back</button>
+    </div>
+    <!-- Payment QR Section — shown FIRST so it's visible without scrolling -->
+    <div style="background:linear-gradient(135deg,#1C1917 0%,#3D2B1F 100%);border-radius:20px;padding:16px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden">
+      <!-- Decorative circles -->
+      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(196,87,42,0.15)"></div>
+      <div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(196,87,42,0.10)"></div>
+      <!-- Amount -->
+      <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:4px">Amount to Pay</div>
+      <div id="pay-amount-big" style="font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1"></div>
+      <!-- QR + Save button side by side on wider screens, stacked on small -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+        <!-- QR Card -->
+        <div style="background:#fff;border-radius:14px;padding:12px;display:inline-block;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+          <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">PayNow</div>
+          <div style="font-size:9px;color:#78716C;margin-bottom:8px">UEN: 53155285C</div>
+          <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:160px;height:160px;display:flex;align-items:center;justify-content:center"></div></div>
+          <div style="font-size:9px;color:#78716C;margin-top:8px;font-weight:500">Amount pre-filled — confirm & pay</div>
+        </div>
+        <!-- Save button + steps stacked -->
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;max-width:200px">
+          <button onclick="screenshotQR()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;width:100%">📸 Save QR</button>
+          <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
+            <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">1</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">Save QR to phone</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
+            <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">2</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">Bank app → PayNow → Scan gallery</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
+            <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">3</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">Tap <strong style="color:#fff">I Have Paid</strong> below</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Action buttons — right after QR, above the fold -->
+    <button onclick="confirmPayment('paynow')" style="background:#16A34A;color:#fff;border-radius:14px;padding:16px;font-size:16px;font-weight:600;width:100%;margin-bottom:10px">✅ I Have Paid — Get Queue Number</button>
+    <button onclick="confirmPayment('cash')" style="background:#2563EB;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:600;width:100%;margin-bottom:14px">💵 Pay by Cash at Counter</button>
+    <!-- Order summary — below the fold, customer can scroll to verify -->
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">Order Summary</div>
       <div id="pay-items"></div>
-      <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:2px solid #E5E0D8">
-        <span class="serif" style="font-size:18px;font-weight:700">Total</span>
-        <span class="serif" id="pay-total" style="font-size:22px;font-weight:700;color:#C4572A"></span>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:2px solid #E5E0D8">
+        <span class="serif" style="font-size:16px;font-weight:700">Total</span>
+        <span class="serif" id="pay-total" style="font-size:20px;font-weight:700;color:#C4572A"></span>
       </div>
       <div id="pay-remarks-wrap" class="hidden" style="margin-top:10px;padding:10px;background:#FEF9C3;border-radius:8px;border:1px solid #FDE68A">
         <div style="font-size:11px;color:#92400E;font-weight:600;margin-bottom:2px">⚠️ Special Remarks</div>
         <div id="pay-remarks-text" style="font-size:13px;color:#78350F"></div>
       </div>
     </div>
-    <!-- Payment QR Section -->
-    <div style="background:linear-gradient(135deg,#1C1917 0%,#3D2B1F 100%);border-radius:20px;padding:24px;margin-bottom:20px;text-align:center;position:relative;overflow:hidden">
-      <!-- Decorative circles -->
-      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(196,87,42,0.15)"></div>
-      <div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(196,87,42,0.10)"></div>
-      <!-- Amount -->
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:6px">Amount to Pay</div>
-      <div id="pay-amount-big" style="font-family:'Playfair Display',serif;font-size:44px;font-weight:700;color:#fff;margin-bottom:20px;line-height:1"></div>
-      <!-- QR Card -->
-      <div style="background:#fff;border-radius:16px;padding:16px;display:inline-block;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
-        <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px">PayNow</div>
-        <div style="font-size:9px;color:#78716C;margin-bottom:10px">UEN: 53155285C</div>
-        <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center"></div></div>
-        <div style="font-size:10px;color:#78716C;margin-top:10px;font-weight:500">Amount is pre-filled — just confirm & pay</div>
-      </div>
-      <!-- Screenshot button -->
-      <button onclick="screenshotQR()" style="background:#C4572A;color:#fff;border-radius:12px;padding:14px 24px;font-size:15px;font-weight:700;width:100%;max-width:212px;margin-bottom:16px">📸 Save QR to Phone</button>
-      <!-- Steps -->
-      <div style="display:flex;flex-direction:column;gap:10px;text-align:left">
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
-          <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span>
-          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Tap <strong style="color:#fff">Save QR to Phone</strong> above to save the QR</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
-          <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span>
-          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Open bank app → PayNow → Scan from gallery → Confirm payment</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px">
-          <span style="background:#C4572A;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span>
-          <span style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.4">Tap <strong style="color:#fff">I Have Paid</strong> below to get your queue number</span>
-        </div>
-      </div>
-    </div>
     <!-- Receipt warning -->
-    <div style="background:#FEF2F2;border:3px solid #DC2626;border-radius:16px;padding:20px;margin-bottom:24px;text-align:center">
-      <div style="font-size:40px;margin-bottom:10px">📱</div>
-      <div style="font-size:26px;color:#DC2626;font-weight:800;line-height:1.4">Done paying?<br>Screenshot your confirmation and show us at the counter.<br>See you soon! 😊</div>
+    <div style="background:#FEF2F2;border:3px solid #DC2626;border-radius:16px;padding:14px;margin-bottom:16px;text-align:center">
+      <div style="font-size:28px;margin-bottom:6px">📱</div>
+      <div style="font-size:18px;color:#DC2626;font-weight:800;line-height:1.4">Done paying? Screenshot your confirmation and show us at the counter. See you soon! 😊</div>
     </div>
-    <button onclick="confirmPayment('paynow')" style="background:#16A34A;color:#fff;border-radius:14px;padding:18px;font-size:17px;font-weight:600;width:100%;margin-bottom:12px">✅ I Have Paid — Get Queue Number</button>
-    <button onclick="confirmPayment('cash')" style="background:#2563EB;color:#fff;border-radius:14px;padding:18px;font-size:17px;font-weight:600;width:100%;margin-bottom:12px">💵 Pay by Cash at Counter</button>
-    <button onclick="closePayment()" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:10px;padding:10px;font-size:13px;width:100%">← Back to Menu</button>
   </div>
 </div>
 
