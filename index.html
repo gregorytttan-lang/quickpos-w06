@@ -176,29 +176,21 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <!-- Payment Modal -->
 <div id="pay-modal" class="hidden overlay" style="background:#FAF9F7">
   <div style="max-width:400px;margin:0 auto;padding:10px 16px 24px">
-    <!-- Compact header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="serif" style="font-size:17px;font-weight:700;color:#1C1917">Western Food #06</div>
       <button onclick="closePayment()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">← Back</button>
     </div>
-    <!-- Payment QR Section — shown FIRST so it's visible without scrolling -->
     <div style="background:linear-gradient(135deg,#1C1917 0%,#3D2B1F 100%);border-radius:20px;padding:16px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden">
-      <!-- Decorative circles -->
       <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(196,87,42,0.15)"></div>
-      <div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(196,87,42,0.10)"></div>
-      <!-- Amount -->
       <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:4px">Amount to Pay</div>
       <div id="pay-amount-big" style="font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1"></div>
-      <!-- QR + Save button side by side on wider screens, stacked on small -->
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
-        <!-- QR Card -->
         <div style="background:#fff;border-radius:14px;padding:12px;display:inline-block;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
           <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">PayNow</div>
           <div style="font-size:9px;color:#78716C;margin-bottom:8px">UEN: 53155285C</div>
           <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:160px;height:160px;display:flex;align-items:center;justify-content:center"></div></div>
           <div style="font-size:9px;color:#78716C;margin-top:8px;font-weight:500">Amount pre-filled — confirm & pay</div>
         </div>
-        <!-- Save button + steps stacked -->
         <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;max-width:200px">
           <button onclick="screenshotQR()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;width:100%">📸 Save QR</button>
           <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
@@ -216,10 +208,8 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         </div>
       </div>
     </div>
-    <!-- Action buttons — right after QR, above the fold -->
     <button onclick="confirmPayment('paynow')" style="background:#16A34A;color:#fff;border-radius:14px;padding:16px;font-size:16px;font-weight:600;width:100%;margin-bottom:10px">✅ I Have Paid — Get Queue Number</button>
     <button onclick="confirmPayment('cash')" style="background:#2563EB;color:#fff;border-radius:14px;padding:14px;font-size:15px;font-weight:600;width:100%;margin-bottom:14px">💵 Pay by Cash at Counter</button>
-    <!-- Order summary — below the fold, customer can scroll to verify -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:16px;padding:14px 16px;margin-bottom:14px">
       <div style="font-size:11px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px">Order Summary</div>
       <div id="pay-items"></div>
@@ -232,7 +222,6 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         <div id="pay-remarks-text" style="font-size:13px;color:#78350F"></div>
       </div>
     </div>
-    <!-- Receipt warning -->
     <div style="background:#FEF2F2;border:3px solid #DC2626;border-radius:16px;padding:14px;margin-bottom:16px;text-align:center">
       <div style="font-size:28px;margin-bottom:6px">📱</div>
       <div style="font-size:18px;color:#DC2626;font-weight:800;line-height:1.4">Done paying? Screenshot your confirmation and show us at the counter. See you soon! 😊</div>
@@ -311,7 +300,6 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="font-size:12px;color:#166534">Please collect at the counter</div>
   </div>
 
-  <!-- Wait time estimate (FIX 14) -->
   <div id="queue-wait-est" style="text-align:center;font-size:13px;color:#78716C;padding:4px 0 8px;font-weight:600"></div>
   <!-- Order summary compact -->
   <div id="queue-order-summary" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:12px;padding:12px 14px;margin-bottom:10px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
@@ -329,7 +317,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-05-18-v1"; // Increment string on every deploy e.g. "2026-05-18-v2"
+const APP_VERSION = "2026-05-18-v1"; // Increment on every deploy e.g. "2026-05-18-v2"
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -524,7 +512,7 @@ function saveMenu()  { lss("menu_w06_v7", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-const STAFF_PWD = "Olivye2009"; // Change quarterly — never commit plaintext in comments
+const STAFF_PWD = "Olivye2009";
 let _pendingView = null;
 let _authed = false;
 
@@ -596,7 +584,7 @@ function renderMenu(){
             <span style="font-size:16px;font-weight:600;color:#1C1917;line-height:1.3">${item.name}</span>
             ${hasOpt?`<span style="font-size:10px;background:rgba(124,58,237,0.1);color:#7C3AED;border-radius:20px;padding:2px 8px;font-weight:600">options</span>`:""}
           </div>
-          ${item.desc&&item.desc.includes("MOST ORDERED")?`<span style="display:inline-block;background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px">⭐ Most Ordered</span>`:""}${item.desc&&item.desc.includes("Chef's Signature")?`<span style="display:inline-block;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px;margin-left:4px">🏆 Chef's Favourite</span>`:""}
+          ${item.desc&&item.desc.includes("MOST ORDERED")?'<span style="display:inline-block;background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px">⭐ Most Ordered</span>':""}${item.desc&&item.desc.includes("Chef")&&item.desc.includes("Signature")?'<span style="display:inline-block;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px;margin-left:4px">🏆 Chef Favourite</span>':""}${item.desc&&item.desc.includes("Chef")&&item.desc.includes("Recommendation")?'<span style="display:inline-block;background:#FFF7ED;color:#C4572A;border:1px solid #FED7AA;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;margin-bottom:5px">🏆 Chef Recommendation</span>':""}
           ${item.desc?`<div style="font-size:13px;color:#78716C;line-height:1.5;margin-bottom:6px">${item.desc}</div>`:""}
           <div style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#C4572A">${fmtS(item.price)}</div>
         </div>
@@ -760,69 +748,33 @@ function handleAdd(id){
 }
 
 
-// ── UPSELL ENGINE ─────────────────────────────────────────────────────────────
-// FIX 15: Show a one-tap "Add Mushroom Soup?" prompt whenever a main is added
-// and soup is not already in the cart. Dismisses after 7 seconds automatically.
-
+// -- UPSELL ENGINE --
 function _cartHasSoup(){
-  return cart.some(x =>
-    x.choices && Object.values(x.choices).some(ch => {
-      const n = (ch && ch.name) || (typeof ch === "string" ? ch : "");
-      return n.toLowerCase().includes("mushroom soup");
-    })
-  );
+  return cart.some(x=>x.choices&&Object.values(x.choices).some(ch=>{
+    const n=(ch&&ch.name)||(typeof ch==="string"?ch:"");
+    return n.toLowerCase().includes("mushroom soup");
+  }));
 }
-
 function maybeUpsell(item){
-  const soupOn = ls("mod_soup_w06", true);
-  if(!soupOn)          return; // soup modifier is disabled in admin
-  if(!isMain(item.id)) return; // only upsell after main items
-  if(_cartHasSoup())   return; // soup already in order
-
-  // Remove any existing upsell toast first
-  const existing = document.getElementById("_upsell_toast");
-  if(existing) existing.remove();
-
-  const t = document.createElement("div");
-  t.id = "_upsell_toast";
-  t.style.cssText = [
-    "position:fixed","bottom:90px","left:50%","transform:translateX(-50%)",
-    "background:#1C1917","color:#fff","padding:14px 18px","border-radius:16px",
-    "font-size:14px","font-weight:600","z-index:9999",
-    "box-shadow:0 6px 24px rgba(0,0,0,0.35)",
-    "display:flex","align-items:center","gap:12px",
-    "white-space:nowrap","max-width:92vw"
-  ].join(";");
-  t.innerHTML =
-    `<span>🍵 Add Mushroom Soup?</span>` +
-    `<span style="color:#F97316;font-weight:800">+$1.90</span>` +
-    `<button id="_upsell_yes" style="background:#16A34A;color:#fff;border:none;` +
-      `border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Add ✓</button>` +
-    `<button id="_upsell_no" style="background:transparent;color:rgba(255,255,255,0.55);` +
-      `border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px">×</button>`;
-
+  const soupOn=ls("mod_soup_w06",true);
+  if(!soupOn||!isMain(item.id)||_cartHasSoup()) return;
+  const ex=document.getElementById("_ut"); if(ex) ex.remove();
+  const t=document.createElement("div"); t.id="_ut";
+  t.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1C1917;color:#fff;padding:14px 18px;border-radius:16px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,0.35);display:flex;align-items:center;gap:12px;white-space:nowrap;max-width:92vw";
+  t.innerHTML='<span>🍵 Add Mushroom Soup?</span><span style="color:#F97316;font-weight:800">+$1.90</span><button id="_uy" style="background:#16A34A;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer">Add ✓</button><button id="_un" style="background:transparent;color:rgba(255,255,255,0.55);border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px">×</button>';
   document.body.appendChild(t);
-
-  document.getElementById("_upsell_yes").onclick = () => { t.remove(); quickAddSoup(item); };
-  document.getElementById("_upsell_no").onclick  = () => t.remove();
-  setTimeout(() => { try{ t.remove(); }catch(e){} }, 7000);
+  document.getElementById("_uy").onclick=()=>{t.remove();quickAddSoup(item);};
+  document.getElementById("_un").onclick=()=>t.remove();
+  setTimeout(()=>{try{t.remove();}catch(e){}},7000);
 }
-
 function quickAddSoup(baseItem){
-  // Find the cart entry for this main item (most recently added)
-  const mainEntry = cart.slice().reverse().find(x => x.id === baseItem.id);
-  if(!mainEntry){ toast("Could not add soup — please add from the cart", "#78716C"); return; }
-  const idx = cart.indexOf(mainEntry);
-  // Build new choices with soup added alongside existing choices
-  const newChoices = {...mainEntry.choices, soup: {name:"+ Mushroom Soup", price:1.90}};
-  // Regenerate cartKey using exact same logic as addToCart
-  const newKey = mainEntry.id + Object.values(newChoices)
-    .map(ch => Array.isArray(ch) ? ch.map(x => x.name||x).join("+") : (ch.name||ch))
-    .join("|");
-  cart[idx] = {...mainEntry, choices: newChoices, cartKey: newKey};
-  renderMenu();
-  updateCartFab();
-  toast("🍵 Mushroom Soup added!", "#16A34A");
+  const me=cart.slice().reverse().find(x=>x.id===baseItem.id);
+  if(!me){toast("Could not add soup — please add from cart","#78716C");return;}
+  const idx=cart.indexOf(me);
+  const nc={...me.choices,soup:{name:"+ Mushroom Soup",price:1.90}};
+  const nk=me.id+Object.values(nc).map(ch=>Array.isArray(ch)?ch.map(x=>x.name||x).join("+"):(ch.name||ch)).join("|");
+  cart[idx]={...me,choices:nc,cartKey:nk};
+  renderMenu();updateCartFab();toast("🍵 Mushroom Soup added!","#16A34A");
 }
 
 function addToCart(item, choices){
@@ -830,7 +782,7 @@ function addToCart(item, choices){
   const ex = cart.find(x=>x.cartKey===cartKey);
   if(ex){ ex.qty++; } else { cart.push({...item,qty:1,cartKey,choices}); }
   renderMenu();
-  maybeUpsell(item); // FIX 15: show soup upsell prompt after adding a main
+  maybeUpsell(item);
 }
 
 function removeFromCart(cartKey){
@@ -1140,11 +1092,10 @@ async function confirmPayment(paymentMethod='paynow'){
 
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
-  // FIX 14: Estimated wait time based on current pending queue depth
-  const _pendingCount = orders.filter(x=>x.status==="paid"||x.status==="preparing").length;
-  const _waitMins = Math.max(5, _pendingCount * 2); // 100 plates/hr ≈ 2 min per order
-  const _waitEl = document.getElementById("queue-wait-est");
-  if(_waitEl) _waitEl.textContent = "⏱️ Est. wait: ~" + _waitMins + " min" + (_waitMins!==1?"s":"");
+  const _pc=orders.filter(x=>x.status==="paid"||x.status==="preparing").length;
+  const _wm=Math.max(5,_pc*2);
+  const _we=document.getElementById("queue-wait-est");
+  if(_we) _we.textContent="⏱️ Est. wait: ~"+_wm+" min"+(_wm!==1?"s":"");
 
   // Show different status for snacks-only vs kitchen orders
   const statusBar = document.getElementById("order-status-bar");
@@ -1236,13 +1187,11 @@ const STATUS = {
 };
 
 function cancelOrder(id){
-  if(!confirm("⚠️ Void this order? This removes it from the kitchen display and cannot be undone.")) return;
-  const o = orders.find(x=>x.id===id);
-  if(!o) return;
-  o.status = "cancelled";
-  db.ref("orders").child(id).update({status:"cancelled", cancelledAt:Date.now()});
-  renderKitchen();
-  updateKitchenBadge();
+  if(!confirm("Void this order? Cannot be undone.")) return;
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  o.status="cancelled";
+  db.ref("orders").child(id).update({status:"cancelled",cancelledAt:Date.now()});
+  renderKitchen(); updateKitchenBadge();
   toast("Order voided","#78716C");
 }
 
@@ -1491,40 +1440,65 @@ function renderReports(){
   });
   const todayTop = Object.entries(todayItemMap).sort((a,b)=>b[1].qty-a[1].qty);
 
-  // ── TIME SLOT ANALYSIS ────────────────────────────────────────────────────
-  const TIME_SLOTS = [
-    {key:"breakfast", label:"Breakfast", emoji:"🌅", start:7,  end:11},
-    {key:"lunch",     label:"Lunch",     emoji:"🍱", start:11, end:15},
-    {key:"tea",       label:"Tea Break", emoji:"☕", start:15, end:17},
-    {key:"dinner",    label:"Dinner",    emoji:"🌆", start:17, end:21},
+  // -- TIME SLOT ANALYSIS --
+  const TIME_SLOTS=[
+    {key:'breakfast',label:'Breakfast',emoji:'🌅',start:7, end:11},
+    {key:'lunch',    label:'Lunch',    emoji:'🍱',start:11,end:15},
+    {key:'tea',      label:'Tea Break',emoji:'☕',start:15,end:17},
+    {key:'dinner',   label:'Dinner',   emoji:'🌆',start:17,end:21},
   ];
-  const slotStats = {};
-  TIME_SLOTS.forEach(s=>{ slotStats[s.key]={count:0,rev:0,paynow:0,cash:0,items:{}}; });
-  const hourMap = {};
-  todayOrders.forEach(o=>{
-    if(!o || !o.createdAt) return;
-    const h = new Date(o.createdAt).getHours();
-    hourMap[h] = (hourMap[h]||0) + 1;
-    const slot = TIME_SLOTS.find(s => h >= s.start && h < s.end);
-    if(slot){
-      slotStats[slot.key].count++;
-      slotStats[slot.key].rev   += (o.total||0);
-      slotStats[slot.key].paynow+= o.paymentMethod!=="cash" ? (o.total||0) : 0;
-      slotStats[slot.key].cash  += o.paymentMethod==="cash"  ? (o.total||0) : 0;
-      (o.items||[]).forEach(i=>{
-        if(!i || !i.name) return;
-        if(!slotStats[slot.key].items[i.name]) slotStats[slot.key].items[i.name]=0;
-        slotStats[slot.key].items[i.name]+=(i.qty||0);
+  const slotStats={};
+  TIME_SLOTS.forEach(function(s){slotStats[s.key]={count:0,rev:0,items:{}};});
+  const hourMap={};
+  todayOrders.forEach(function(o){
+    if(!o||!o.createdAt) return;
+    const h=new Date(o.createdAt).getHours();
+    hourMap[h]=(hourMap[h]||0)+1;
+    const sl=TIME_SLOTS.find(function(s){return h>=s.start&&h<s.end;});
+    if(sl){
+      slotStats[sl.key].count++;
+      slotStats[sl.key].rev+=(o.total||0);
+      (o.items||[]).forEach(function(i){
+        if(!i||!i.name) return;
+        if(!slotStats[sl.key].items[i.name]) slotStats[sl.key].items[i.name]=0;
+        slotStats[sl.key].items[i.name]+=(i.qty||0);
       });
     }
   });
-  // Peak hour — which single hour had the most orders
-  const peakHourEntry = Object.entries(hourMap).sort((a,b)=>b[1]-a[1])[0];
-  const peakHourLabel = peakHourEntry
-    ? peakHourEntry[0]+":00–"+(+peakHourEntry[0]+1)+":00 · "+peakHourEntry[1]+" orders"
-    : "No data yet";
-  // Busiest slot
-  const busiestSlot = TIME_SLOTS.slice().sort((a,b)=>slotStats[b.key].count - slotStats[a.key].count)[0];
+  const _pe=Object.entries(hourMap).sort(function(a,b){return b[1]-a[1];})[0];
+  const peakHourLabel=_pe?(_pe[0]+':00-'+(+_pe[0]+1)+':00 · '+_pe[1]+' orders'):'No data yet';
+  const busiestSlot=TIME_SLOTS.slice().sort(function(a,b){return slotStats[b.key].count-slotStats[a.key].count;})[0];
+  let _slotHTML='';
+  if(todayOrders.length>0){
+    let _rows='';
+    TIME_SLOTS.forEach(function(s){
+      const d=slotStats[s.key];
+      const pct=todayOrders.length?Math.round(d.count/todayOrders.length*100):0;
+      const top=Object.entries(d.items).sort(function(a,b){return b[1]-a[1];}).slice(0,2);
+      const topHtml=top.length
+        ? '<div style="display:flex;gap:6px;flex-wrap:wrap">'+top.map(function(e){return '<span style="background:#F5F3F0;color:#78716C;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600">'+e[0]+' x'+e[1]+'</span>';}).join('')+'</div>'
+        : '<div style="font-size:10px;color:#D4CFC8">No orders in this slot</div>';
+      _rows+='<div style="padding:10px 0;border-top:1px solid #E5E0D8">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+          '<span style="font-size:20px;width:26px;text-align:center">'+s.emoji+'</span>'+
+          '<div style="flex:1"><span style="font-size:13px;font-weight:700;color:#1C1917">'+s.label+'</span> <span style="font-size:10px;color:#78716C">'+s.start+':00-'+s.end+':00</span></div>'+
+          '<div style="text-align:right">'+
+            '<div style="font-weight:700;color:'+(d.count>0?'#C4572A':'#D4CFC8')+';font-size:15px">'+fmtS(d.rev)+'</div>'+
+            '<div style="font-size:11px;color:#78716C">'+d.count+' orders'+(d.count?' · '+pct+'%':'')+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="background:#F5F3F0;border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+(d.count>0?'#C4572A':'#E5E0D8')+';border-radius:4px"></div>'+
+        '</div>'+topHtml+'</div>';
+    });
+    _slotHTML='<div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">'+
+        '<div style="font-family:Playfair Display,serif;font-size:14px;font-weight:700">⏰ Today by Time Slot</div>'+
+        '<div style="background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700">🔥 Peak: '+peakHourLabel+'</div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#78716C;margin-bottom:12px">Busiest: <strong style="color:#C4572A">'+busiestSlot.emoji+' '+busiestSlot.label+'</strong> — '+slotStats[busiestSlot.key].count+' orders · '+fmtS(slotStats[busiestSlot.key].rev)+'</div>'+
+      _rows+'</div>';
+  }
 
   document.getElementById("admin-reports").innerHTML = `
     <!-- Summary cards -->
@@ -1608,47 +1582,7 @@ function renderReports(){
       `}
     </div>
 
-    <!-- Time Slot Analysis -->
-    ${todayOrders.length > 0 ? `
-    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
-        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700">⏰ Today by Time Slot</div>
-        <div style="background:#FEF9C3;color:#92400E;border:1px solid #FDE68A;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700">
-          🔥 Peak hour: ${peakHourLabel}
-        </div>
-      </div>
-      <div style="font-size:11px;color:#78716C;margin-bottom:14px">
-        Busiest slot: <strong style="color:#C4572A">${busiestSlot.emoji} ${busiestSlot.label}</strong> — ${slotStats[busiestSlot.key].count} orders · ${fmtS(slotStats[busiestSlot.key].rev)}
-      </div>
-      ${TIME_SLOTS.map(s=>{
-        const d = slotStats[s.key];
-        const topItems = Object.entries(d.items).sort((a,b)=>b[1]-a[1]).slice(0,2);
-        const pct = todayOrders.length ? Math.round(d.count/todayOrders.length*100) : 0;
-        const barW = pct;
-        return \`<div style="padding:10px 0;border-top:1px solid #E5E0D8">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <span style="font-size:20px;width:26px;text-align:center">\${s.emoji}</span>
-            <div style="flex:1">
-              <div style="display:flex;align-items:baseline;gap:6px">
-                <span style="font-size:13px;font-weight:700;color:#1C1917">\${s.label}</span>
-                <span style="font-size:10px;color:#78716C">\${s.start}:00 – \${s.end}:00</span>
-              </div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-family:'Playfair Display',serif;font-weight:700;color:\${d.count>0?'#C4572A':'#D4CFC8'};font-size:15px">\${fmtS(d.rev)}</div>
-              <div style="font-size:11px;color:#78716C">\${d.count} orders\${d.count?' · '+pct+'%':''}</div>
-            </div>
-          </div>
-          <div style="background:#F5F3F0;border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden">
-            <div style="height:100%;width:\${barW}%;background:\${d.count>0?'#C4572A':'#E5E0D8'};border-radius:4px;transition:width 0.4s"></div>
-          </div>
-          \${topItems.length
-            ? \`<div style="display:flex;gap:6px;flex-wrap:wrap">\${topItems.map(([n,q])=>\`<span style="background:#F5F3F0;color:#78716C;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600">\${n} ×\${q}</span>\`).join('')}</div>\`
-            : \`<div style="font-size:10px;color:#D4CFC8">No orders in this slot</div>\`
-          }
-        </div>\`;
-      }).join("")}
-    </div>` : ""}
+    ${_slotHTML}
 
     <!-- Daily History -->
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
@@ -1895,24 +1829,21 @@ function saveDailyToSheets(){
       // Now save all payouts
       const payouts = ls("payouts_w06",[]);
       if(payouts.length){
-        // FIX 12: Use allSettled so one failed payout doesn't hide the others
         const payoutPromises = payouts.map(p=>{
-          const pd = {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""};
-          return fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(pd)})
-            .then(()=>({status:"fulfilled"}))
-            .catch(()=>({status:"rejected"}));
+          const pd={type:"payout",date:p.date,supplier:p.supplier,item:p.item,amount:p.amount,notes:p.notes||""};
+          return fetch(SHEETS_URL,{method:"POST",body:JSON.stringify(pd)}).then(()=>({ok:true})).catch(()=>({ok:false}));
         });
         return Promise.all(payoutPromises);
       }
     })
     .then((results)=>{
-      const failed = results ? results.filter(r=>r && r.status==="rejected").length : 0;
-      if(failed > 0){
-        toast("⚠️ Sales saved. " + failed + " payout(s) failed to sync — retry later.", "#CA8A04");
-        if(btn){ btn.disabled=false; btn.textContent="⚠️ Partial Save"; btn.style.background="#CA8A04"; }
+      const failed=results?results.filter(r=>r&&!r.ok).length:0;
+      if(failed>0){
+        toast("⚠️ Sales saved. "+failed+" payout(s) failed to sync.","#CA8A04");
+        if(btn){btn.disabled=false;btn.textContent="⚠️ Partial";btn.style.background="#CA8A04";}
       } else {
         toast("✅ Sales & Payouts saved to Google Sheets!");
-        if(btn){ btn.disabled=false; btn.textContent="✅ Saved!"; btn.style.background="#16A34A"; }
+        if(btn){btn.disabled=false;btn.textContent="✅ Saved!";btn.style.background="#16A34A";}
       }
     })
     .catch(()=>{
@@ -1953,15 +1884,12 @@ function sendWhatsApp(){
   msg += "✅ PayNow: *" + fmtS(todayPaynow) + "*\n";
   msg += "💵 Cash: *" + fmtS(todayCashAmt) + "*\n";
   msg += "🍽️ Dine In: " + dineIn + "  🥡 Take Away: " + takeAway + "\n";
-  // FIX 13: Include payouts and net cash-in-box in daily report
-  const _waPayouts = ls("payouts_w06",[]);
-  const _waPayoutTotal = _waPayouts.reduce((s,p)=>s+p.amount,0);
-  const _waFloat = parseFloat(ls("float_w06",0))||0;
-  const _waCashInBox = _waFloat + todayCashAmt - _waPayoutTotal;
-  if(_waPayoutTotal>0) msg += "💸 Payouts: *" + fmtS(_waPayoutTotal) + "*\n";
-  msg += "🏦 Cash in Box: *" + fmtS(_waCashInBox) + "*\n";
-  msg += "─────────────────────\n";
-  msg += "🏆 *Top Selling Items:*\n";
+  const _waPO=ls("payouts_w06",[]);const _waPT=_waPO.reduce((s,p)=>s+p.amount,0);
+  const _waFl=parseFloat(ls("float_w06",0))||0;
+  if(_waPT>0) msg+="💸 Payouts: *"+fmtS(_waPT)+"*\n";
+  msg+="🏦 Cash in Box: *"+fmtS(_waFl+todayCashAmt-_waPT)+"*\n";
+  msg+="─────────────────────\n";
+  msg+="🏆 *Top Selling Items:*\n";
   topItems.forEach(([name,qty],i)=>{ msg += (i+1)+". "+name+" × "+qty+"\n"; });
   msg += "─────────────────────\n";
   msg += "✅ End of Day Report";
@@ -1981,7 +1909,6 @@ function addPayout(){
   const payouts = ls("payouts_w06",[]);
   payouts.push(payout);
   lss("payouts_w06", payouts);
-  // FIX 7: Mirror payout to Firebase — protects against browser storage loss
   db.ref("payouts").child(payout.id).set(payout);
   document.getElementById("pay-supplier").value="";
   document.getElementById("pay-item").value="";
@@ -1995,7 +1922,6 @@ function deletePayout(id){
   if(!confirm("Delete this payout?")) return;
   const payouts = ls("payouts_w06",[]).filter(p=>p.id!==id);
   lss("payouts_w06", payouts);
-  // FIX 7: Also delete from Firebase
   db.ref("payouts").child(id).remove();
   renderPayouts();
 }
@@ -2080,9 +2006,8 @@ function archiveMonth(){
   const itemMap = {};
   monthOrders.forEach(o=>o.items.forEach(i=>{
     if(!itemMap[i.name]) itemMap[i.name]={qty:0,rev:0};
-    // FIX 11: Include modifier add-on prices in per-item revenue
-    const _extraRev = Object.values(i.choices||{}).reduce((s,ch)=>s+(Array.isArray(ch)?ch.reduce((a,x)=>a+(x.price||0),0):(ch&&ch.price||0)),0);
-    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=(i.price+_extraRev)*i.qty;
+    const _xr=Object.values(i.choices||{}).reduce((s,ch)=>s+(Array.isArray(ch)?ch.reduce((a,x)=>a+(x.price||0),0):(ch&&ch.price||0)),0);
+    itemMap[i.name].qty+=i.qty; itemMap[i.name].rev+=(i.price+_xr)*i.qty;
   }));
 
   const dailyMap = {};
@@ -2420,63 +2345,29 @@ function testPrint(){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
 
-// ── IDLE SESSION RESET ────────────────────────────────────────────────────────
-// FIX 4: Auto-clear cart after 3 minutes of inactivity on the kiosk tablet.
-// Prevents next customer from seeing or accidentally paying for a previous order.
-const IDLE_TIMEOUT_MS  = 180000; // 3 minutes — reset session
-const IDLE_WARN_MS     = 150000; // 2.5 minutes — show warning banner
-
-let _idleTimer    = null;
-let _idleWarnTimer = null;
-let _idleWarnEl   = null;
-
-function _removeIdleWarning(){
-  if(_idleWarnEl){ try{ _idleWarnEl.remove(); }catch(e){} _idleWarnEl = null; }
-}
-
+// -- IDLE SESSION RESET --
+const IDLE_TIMEOUT_MS=180000,IDLE_WARN_MS=150000;
+let _idleTimer=null,_idleWarnTimer=null,_idleWarnEl=null;
+function _removeIdleWarning(){if(_idleWarnEl){try{_idleWarnEl.remove();}catch(e){}}_idleWarnEl=null;}
 function _doSessionReset(){
   _removeIdleWarning();
-  cart        = [];
-  pendingOrder = null;
-  diningOption = null;
-  curCat       = 0;
-  // Close every modal gracefully
-  ["mod-modal","cart-modal","pay-modal","queue-modal",
-   "thankyou-modal","recovery-list-modal"].forEach(id => closeModal(id));
-  renderMenu();
-  updateCartFab();
-  toast("🔄 Session reset — ready for next customer", "#78716C");
+  cart=[];pendingOrder=null;diningOption=null;curCat=0;
+  ["mod-modal","cart-modal","pay-modal","queue-modal","thankyou-modal","recovery-list-modal"].forEach(id=>closeModal(id));
+  renderMenu();updateCartFab();
+  toast("Session reset — ready for next customer","#78716C");
 }
-
 function resetIdleTimer(){
-  clearTimeout(_idleTimer);
-  clearTimeout(_idleWarnTimer);
-  _removeIdleWarning();
-
-  // Only start timer when there is something to lose (cart has items)
-  if(!cart || cart.length === 0) return;
-
-  // Warning banner at 2.5 minutes
-  _idleWarnTimer = setTimeout(()=>{
-    _idleWarnEl = document.createElement("div");
-    _idleWarnEl.style.cssText = [
-      "position:fixed","top:52px","left:0","width:100%",
-      "background:#DC2626","color:#fff","text-align:center",
-      "padding:12px 16px","font-size:14px","font-weight:700",
-      "z-index:99998","box-shadow:0 2px 8px rgba(0,0,0,0.2)"
-    ].join(";");
-    _idleWarnEl.textContent = "⏱️ Session resets in 30 seconds — tap anywhere to keep your order";
+  clearTimeout(_idleTimer);clearTimeout(_idleWarnTimer);_removeIdleWarning();
+  if(!cart||cart.length===0) return;
+  _idleWarnTimer=setTimeout(()=>{
+    _idleWarnEl=document.createElement("div");
+    _idleWarnEl.style.cssText="position:fixed;top:52px;left:0;width:100%;background:#DC2626;color:#fff;text-align:center;padding:12px 16px;font-size:14px;font-weight:700;z-index:99998";
+    _idleWarnEl.textContent="Session resets in 30 seconds — tap anywhere to keep your order";
     document.body.appendChild(_idleWarnEl);
-  }, IDLE_WARN_MS);
-
-  // Full reset at 3 minutes
-  _idleTimer = setTimeout(_doSessionReset, IDLE_TIMEOUT_MS);
+  },IDLE_WARN_MS);
+  _idleTimer=setTimeout(_doSessionReset,IDLE_TIMEOUT_MS);
 }
-
-// Attach to every meaningful user interaction
-["touchstart","touchend","click","keydown","scroll"].forEach(evt =>
-  document.addEventListener(evt, resetIdleTimer, {passive: true})
-);
+["touchstart","touchend","click","keydown","scroll"].forEach(evt=>document.addEventListener(evt,resetIdleTimer,{passive:true}));
 
 // ── FIREBASE REALTIME SYNC ────────────────────────────────────────────────────
 const FB_CONFIG = {
@@ -2528,16 +2419,10 @@ db.ref("settings").on("value", snap=>{
   if(!data) return;
   if(data.hasOwnProperty("mod_soup")) lss("mod_soup_w06", data.mod_soup);
   if(data.hasOwnProperty("mod_side")) lss("mod_side_w06", data.mod_side);
-  // Auto-reload if a newer app version was pushed by admin
-  // Uses string comparison — both local and Firebase store the same format
+  // Auto-reload only if Firebase has a STRICTLY NEWER version string
   if(data.app_version){
-    const fbV  = String(data.app_version);
-    const locV = String(APP_VERSION);
-    if(fbV !== locV && fbV > locV){
-      console.log("New version available:", fbV, "→ reloading");
-      setTimeout(()=>location.reload(true), 1000);
-      return;
-    }
+    const fbV=String(data.app_version), locV=String(APP_VERSION);
+    if(fbV!==locV && fbV>locV){ setTimeout(()=>location.reload(true),1000); return; }
   }
   renderMenu();
 });
@@ -2718,9 +2603,6 @@ setInterval(()=>{
   }
 }, 5000);
 
-// FIX 8 (corrected): Filter by createdAt timestamp — reliable for any order ID format.
-// limitToLast(500) was broken because order IDs are random strings, not sequential keys.
-// This filter guarantees every order placed today is always included.
 const _todayStartMs=(()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime();})();
 db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs).on("value", snap=>{
   const data = snap.val();
@@ -2730,14 +2612,9 @@ db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs).on("value", sn
   if(!isFirstLoad){
     orders.forEach(o=>{
       if(!knownOrderIds.has(o.id)){
-        // FIX 2: Always beep on new order, regardless of which tab is open
         playBeep();
-        // Voice announcement + screen flash only when kitchen tab is visible
         const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
-        if(kitchenVisible){
-          speakOrder(o);
-          flashNewOrder();
-        }
+        if(kitchenVisible){ speakOrder(o); flashNewOrder(); }
       }
     });
   }
