@@ -331,7 +331,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-05-21-v1"; // payment gate: dual-checkbox modal + threshold fix + red UNVERIFIED badge
+const APP_VERSION = "2026-05-21-v2"; // fix: checkbox stale ref bug in payment gate modal
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -1132,21 +1132,26 @@ function showPayConfirm(){
   if(lbl2){ lbl2.style.borderColor="#E5E0D8"; lbl2.style.background="#fff"; }
 
   // Evaluate both checkboxes — enable confirm only when both ticked
-  function evalChecks(){
-    const both = chk1 && chk2 && chk1.checked && chk2.checked;
-    if(cfmBtn){
-      cfmBtn.disabled = !both;
-      cfmBtn.style.background    = both ? "#16A34A" : "#D4CFC8";
-      cfmBtn.style.cursor        = both ? "pointer" : "not-allowed";
-      cfmBtn.style.boxShadow     = both ? "0 4px 16px rgba(22,163,74,0.3)" : "none";
+  function evalChecks(c1, c2){
+    c1 = c1 || document.getElementById("pg-check-scanned");
+    c2 = c2 || document.getElementById("pg-check-confirmed");
+    const l1 = document.getElementById("pg-check1-label");
+    const l2 = document.getElementById("pg-check2-label");
+    const cb = document.getElementById("pg-confirm-btn");
+    const both = c1 && c2 && c1.checked && c2.checked;
+    if(cb){
+      cb.disabled           = !both;
+      cb.style.background   = both ? "#16A34A" : "#D4CFC8";
+      cb.style.cursor       = both ? "pointer"  : "not-allowed";
+      cb.style.boxShadow    = both ? "0 4px 16px rgba(22,163,74,0.3)" : "none";
     }
-    if(lbl1){ lbl1.style.borderColor = chk1.checked ? "#16A34A" : "#E5E0D8"; lbl1.style.background = chk1.checked ? "#F0FFF4" : "#fff"; }
-    if(lbl2){ lbl2.style.borderColor = chk2.checked ? "#16A34A" : "#E5E0D8"; lbl2.style.background = chk2.checked ? "#F0FFF4" : "#fff"; }
+    if(l1){ l1.style.borderColor = c1.checked ? "#16A34A" : "#E5E0D8"; l1.style.background = c1.checked ? "#F0FFF4" : "#fff"; }
+    if(l2){ l2.style.borderColor = c2.checked ? "#16A34A" : "#E5E0D8"; l2.style.background = c2.checked ? "#F0FFF4" : "#fff"; }
   }
 
-  // Re-attach listeners cleanly (replace node to remove any stale handlers)
-  if(chk1){ const n=chk1.cloneNode(true); chk1.parentNode.replaceChild(n,chk1); n.addEventListener("change",evalChecks); }
-  if(chk2){ const n=chk2.cloneNode(true); chk2.parentNode.replaceChild(n,chk2); n.addEventListener("change",evalChecks); }
+  // Re-attach listeners cleanly — clone to remove stale handlers, then reassign live refs
+  if(chk1){ const n=chk1.cloneNode(true); chk1.parentNode.replaceChild(n,chk1); n.addEventListener("change", function(){ evalChecks(document.getElementById("pg-check-scanned"), document.getElementById("pg-check-confirmed")); }); }
+  if(chk2){ const n=chk2.cloneNode(true); chk2.parentNode.replaceChild(n,chk2); n.addEventListener("change", function(){ evalChecks(document.getElementById("pg-check-scanned"), document.getElementById("pg-check-confirmed")); }); }
 
   const modal = document.getElementById("pay-confirm-modal");
   if(modal) modal.style.display = "flex";
