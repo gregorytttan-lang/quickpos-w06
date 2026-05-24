@@ -2958,238 +2958,302 @@ updateKitchenBadge();
     </div>
     <div class="qd-chips" id="qd-chips"><div class="qd-nomiss">— No missed numbers —</div></div>
   </div>
-  <!-- Debug bar: always visible, shows live Firebase state -->
-  <div id="qd-debug-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:6px 16px;font-size:11px;font-family:monospace;color:#E8C547;z-index:99999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+  <!-- Debug bar: always on, shows live Firebase state in small text at bottom -->
+  <div id="qd-debug-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0A0908;color:#E8C547;font-size:11px;font-family:monospace;padding:5px 14px;z-index:99999;white-space:nowrap;overflow:hidden"></div>
 </div>
 
 <script>
 // ── QUEUE DISPLAY SYSTEM ──────────────────────────────────────────────────────
-// Activated when URL contains ?display=1
-// Uses same Firebase project — no extra config needed.
+// Self-contained: initialises its own Firebase connection.
+// Activated by ?display=1 in the URL.
+(function() {
+  'use strict';
 
-(function(){
-  const IS_DISPLAY = new URLSearchParams(location.search).get('display') === '1';
+  var IS_DISPLAY = new URLSearchParams(location.search).get('display') === '1';
   if (!IS_DISPLAY) return;
 
-  // Lock into display mode: show QD view, hide everything else
-  document.getElementById('view-qdisplay').classList.add('active');
-  document.getElementById('nav').style.display = 'none';
-  ['view-menu','view-kitchen','view-admin'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.classList.add('hidden');el.style.display='none';}
+  // ── Show display view, hide everything else ─────────────────────────────────
+  var qdView = document.getElementById('view-qdisplay');
+  if (qdView) qdView.classList.add('active');
+  var nav = document.getElementById('nav');
+  if (nav) nav.style.display = 'none';
+  ['view-menu','view-kitchen','view-admin'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
   });
-  document.title = 'Queue Display — OLIYVE Western';
+  document.title = 'Queue Display — OLIYVE';
 
-  // ── Constants ───────────────────────────────────────────────────────────────
-  const SERVE_MS   = 60_000;
-  const MISSED_MS  = 10 * 60_000;
-  const MAX_ACTIVE = 4;
-  const MAX_MISSED = 2;
-  const RING_R     = 46;
-  const RING_C     = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 289.03
+  // ── Constants ────────────────────────────────────────────────────────────────
+  var SERVE_MS   = 60000;
+  var MISSED_MS  = 600000;
+  var MAX_ACTIVE = 4;
+  var MAX_MISSED = 2;
+  var RING_R     = 46;
+  var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
 
-  // ── State ───────────────────────────────────────────────────────────────────
-  let qdEntries    = {};
-  let qdAnnounced  = new Set();
-  let qdDataReceived = false;
+  // ── State ────────────────────────────────────────────────────────────────────
+  var qdEntries     = {};
+  var qdAnnounced   = {};
+  var qdDataReceived = false;
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  const qdFmt = n => String(n).padStart(3,'0');
-
-  // NO time filter — show any 'serving' entry the moment it arrives.
-  // qdTick() handles cleanup after 1 min / 10 min.
-  function qdActive(){
-    return Object.entries(qdEntries)
-      .filter(([,e]) => e.status === 'serving')
-      .sort((a,b) => b[1].calledAt - a[1].calledAt)
-      .slice(0, MAX_ACTIVE);
+  // ── Debug bar ────────────────────────────────────────────────────────────────
+  function qdDebug(msg, color) {
+    var bar = document.getElementById('qd-debug-bar');
+    if (!bar) return;
+    bar.textContent = msg;
+    bar.style.background = color || '#1C1408';
+    bar.style.display = 'block';
   }
-  function qdMissed(){
-    return Object.entries(qdEntries)
-      .filter(([,e]) => e.status === 'missed')
-      .sort((a,b) => b[1].calledAt - a[1].calledAt)
-      .slice(0, MAX_MISSED);
-  }
-  // ── Clock ───────────────────────────────────────────────────────────────────
-  const QD_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const QD_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function qdClock(){
-    const n=new Date();
-    const h=String(n.getHours()).padStart(2,'0');
-    const m=String(n.getMinutes()).padStart(2,'0');
-    document.getElementById('qd-clock').textContent=h+':'+m;
-    document.getElementById('qd-date').textContent=
-      QD_DAYS[n.getDay()]+'  '+n.getDate()+' '+QD_MON[n.getMonth()]+' '+n.getFullYear();
-  }
-  setInterval(qdClock,1000); qdClock();
+  // Show immediately so user knows IIFE ran
+  qdDebug('Queue Display starting...');
 
-  // ── Wake Lock ────────────────────────────────────────────────────────────────
-  let _qdWl=null;
-  async function qdWakeLock(){
-    try{if('wakeLock' in navigator)_qdWl=await navigator.wakeLock.request('screen');}
-    catch(e){console.log('WakeLock:',e.message);}
+  // ── Self-contained Firebase init ─────────────────────────────────────────────
+  // Uses a named app 'qd' so it never conflicts with the main app instance
+  var QD_FB_CONFIG = {
+    apiKey:            "AIzaSyAYKFXAcIAR6iJ29RkimJSy3vzka0gsdTs",
+    authDomain:        "quickpos-w06.firebaseapp.com",
+    databaseURL:       "https://quickpos-w06-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "quickpos-w06",
+    storageBucket:     "quickpos-w06.firebasestorage.app",
+    messagingSenderId: "1015464203400",
+    appId:             "1:1015464203400:web:fe788848e3b0da2b403b3d"
+  };
+  var qdApp = null;
+  try {
+    // Reuse if already initialised (e.g. after hot reload)
+    qdApp = firebase.apps.find(function(a) { return a.name === 'qd'; })
+         || firebase.initializeApp(QD_FB_CONFIG, 'qd');
+  } catch(e) {
+    qdDebug('Firebase init error: ' + e.message, '#7F1D1D');
+    return;
+  }
+  var qdDb = qdApp.database();
+  qdDebug('Firebase initialised — connecting...');
+
+  // ── Clock ────────────────────────────────────────────────────────────────────
+  var QD_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var QD_MON  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function qdClock() {
+    var n = new Date();
+    var h = String(n.getHours()).padStart(2,'0');
+    var m = String(n.getMinutes()).padStart(2,'0');
+    var clk = document.getElementById('qd-clock');
+    var dat = document.getElementById('qd-date');
+    if (clk) clk.textContent = h + ':' + m;
+    if (dat) dat.textContent = QD_DAYS[n.getDay()] + '  ' + n.getDate() + ' ' + QD_MON[n.getMonth()] + ' ' + n.getFullYear();
+  }
+  setInterval(qdClock, 1000);
+  qdClock();
+
+  // ── Wake Lock ─────────────────────────────────────────────────────────────────
+  var _qdWl = null;
+  function qdWakeLock() {
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(function(wl) { _qdWl = wl; }).catch(function(){});
+    }
   }
   qdWakeLock();
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')qdWakeLock();});
-
-  // ── Connection dot ──────────────────────────────────────────────────────────
-  db.ref('.info/connected').on('value',snap=>{
-    const dot=document.getElementById('qd-conn');
-    if(!dot) return;
-    const ok=snap.val();
-    dot.style.background=ok?'#16A34A':'#DC2626';
-    dot.style.boxShadow=ok?'0 0 5px #16A34A':'0 0 5px #DC2626';
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') qdWakeLock();
   });
 
-  // ── Debug bar helper ─────────────────────────────────────────────────────────
-  function qdDebug(msg,color){
-    const bar=document.getElementById('qd-debug-bar');
-    if(bar){bar.textContent=msg;bar.style.background=color||'#1C1810';bar.style.display='block';}
-  }
+  // ── Connection dot ────────────────────────────────────────────────────────────
+  qdDb.ref('.info/connected').on('value', function(snap) {
+    var dot = document.getElementById('qd-conn');
+    if (!dot) return;
+    var ok = snap.val();
+    dot.style.background  = ok ? '#16A34A' : '#DC2626';
+    dot.style.boxShadow   = ok ? '0 0 5px #16A34A' : '0 0 5px #DC2626';
+    qdDebug(ok ? 'Firebase connected OK' : 'Firebase disconnected — check WiFi');
+  });
 
-  // ── TTS ─────────────────────────────────────────────────────────────────────
-  function qdSpeak(queueNo,times){
-    times=times||3;
-    if(!window.speechSynthesis) return;
-    const num=parseInt(queueNo);
-    const text='Number '+num+', please come to the counter';
-    let count=0;
-    function go(){
-      if(count>=times) return;
+  // ── TTS ───────────────────────────────────────────────────────────────────────
+  function qdSpeak(queueNo, times) {
+    if (!window.speechSynthesis) return;
+    times = times || 3;
+    var num  = parseInt(queueNo);
+    var text = 'Number ' + num + ', please come to the counter';
+    var count = 0;
+    function go() {
+      if (count >= times) return;
       count++;
       window.speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(text);
-      u.lang='en-SG'; u.rate=0.84; u.pitch=0.9; u.volume=1;
-      const vs=window.speechSynthesis.getVoices();
-      const v=vs.find(function(v){return v.lang==='en-SG';})
-             ||vs.find(function(v){return v.lang==='en-IN';})
-             ||vs.find(function(v){return v.lang.startsWith('en')&&v.name.toLowerCase().includes('male');})
-             ||vs.find(function(v){return v.lang.startsWith('en');});
-      if(v) u.voice=v;
-      u.onend=function(){if(count<times)setTimeout(go,2800);};
-      u.onerror=function(){if(count<times)setTimeout(go,2800);};
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-SG'; u.rate = 0.84; u.pitch = 0.9; u.volume = 1;
+      var vs = window.speechSynthesis.getVoices();
+      var v = null;
+      for (var i = 0; i < vs.length; i++) {
+        if (vs[i].lang === 'en-SG') { v = vs[i]; break; }
+      }
+      if (!v) for (var i = 0; i < vs.length; i++) {
+        if (vs[i].lang === 'en-IN') { v = vs[i]; break; }
+      }
+      if (!v) for (var i = 0; i < vs.length; i++) {
+        if (vs[i].lang.indexOf('en') === 0) { v = vs[i]; break; }
+      }
+      if (v) u.voice = v;
+      u.onend  = function() { if (count < times) setTimeout(go, 2800); };
+      u.onerror = function() { if (count < times) setTimeout(go, 2800); };
       window.speechSynthesis.speak(u);
     }
-    setTimeout(go,400);
+    setTimeout(go, 400);
   }
-  setInterval(function(){if(window.speechSynthesis&&!window.speechSynthesis.speaking)window.speechSynthesis.resume();},5000);
+  setInterval(function() {
+    if (window.speechSynthesis && !window.speechSynthesis.speaking) {
+      window.speechSynthesis.resume();
+    }
+  }, 5000);
 
-  // ── Full render (called on every Firebase snapshot) ──────────────────────────
-  function qdRender(){
-    const now=Date.now();
-    // qdActive() and qdMissed() have NO time filter — show any serving/missed entry immediately
-    const active=qdActive();
-    const missed=qdMissed();
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  function qdFmt(n) { return String(n).padStart(3, '0'); }
 
-    // Debug bar: shows raw Firebase state at all times
-    const statuses=Object.values(qdEntries).map(function(e){return e.status||'?';}).join(', ')||'empty';
-    qdDebug('Firebase '+(qdDataReceived?'OK':'waiting')+' | entries:['+statuses+'] | serving='+active.length+' missed='+missed.length);
+  // No time filter — show ANY serving/missed entry as soon as it arrives
+  function qdActive() {
+    return Object.entries(qdEntries)
+      .filter(function(kv) { return kv[1].status === 'serving'; })
+      .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
+      .slice(0, MAX_ACTIVE);
+  }
+  function qdMissed() {
+    return Object.entries(qdEntries)
+      .filter(function(kv) { return kv[1].status === 'missed'; })
+      .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
+      .slice(0, MAX_MISSED);
+  }
 
-    const grid=document.getElementById('qd-grid');
-    if(!active.length){
-      grid.innerHTML='<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">'+(qdDataReceived?'Waiting for orders':'Connecting...')+'</div></div>';
+  // ── Render ────────────────────────────────────────────────────────────────────
+  function qdRender() {
+    var now    = Date.now();
+    var active = qdActive();
+    var missed = qdMissed();
+    var total  = Object.keys(qdEntries).length;
+    var statusList = Object.values(qdEntries).map(function(e) { return e.status; }).join(',') || 'empty';
+
+    qdDebug('FB:' + (qdDataReceived ? 'OK' : 'wait') + ' entries:' + total + '[' + statusList + '] serving=' + active.length + ' missed=' + missed.length);
+
+    var grid = document.getElementById('qd-grid');
+    if (!grid) return;
+
+    if (!active.length) {
+      grid.innerHTML = '<div class="qd-empty-state"><div class="qd-empty-icon">&#x1F37D;&#xFE0F;</div><div class="qd-empty-txt">' + (qdDataReceived ? 'Waiting for orders' : 'Connecting...') + '</div></div>';
     } else {
-      let html='';
-      for(let i=0;i<MAX_ACTIVE;i++){
-        if(i<active.length){
-          const entry=active[i];
-          const id=entry[0]; const e=entry[1];
-          const elapsed=Math.max(0,Math.floor((now-e.calledAt)/1000));
-          const remain=Math.max(0,60-elapsed);
-          const offset=+(Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2));
-          const urgent=remain<=15;
-          const sc=urgent?'#DC2626':'#E8C547';
-          html+='<div class="qd-card qd-active" data-id="'+id+'">'
-            +'<div class="qd-radial"></div>'
-            +'<div class="qd-hash">#</div>'
-            +'<div class="qd-num">'+qdFmt(e.queueNo)+'</div>'
-            +'<div class="qd-ring">'
-            +'<svg viewBox="0 0 100 100" width="82" height="82">'
-            +'<circle cx="50" cy="50" r="'+RING_R+'" fill="none" stroke="#1C1408" stroke-width="7"/>'
-            +'<circle class="qd-arc" cx="50" cy="50" r="'+RING_R+'" fill="none"'
-            +' stroke="'+sc+'" stroke-width="7"'
-            +' stroke-dasharray="'+RING_C+'" stroke-dashoffset="'+offset+'"'
-            +' stroke-linecap="round" transform="rotate(-90 50 50)"/>'
-            +'</svg>'
-            +'<div class="qd-secs'+(urgent?' urgent':'')+'">'+remain+'</div>'
-            +'</div></div>';
+      var html = '';
+      for (var i = 0; i < MAX_ACTIVE; i++) {
+        if (i < active.length) {
+          var id = active[i][0];
+          var e  = active[i][1];
+          var elapsed = Math.max(0, Math.floor((now - e.calledAt) / 1000));
+          var remain  = Math.max(0, 60 - elapsed);
+          var offset  = Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2);
+          var urgent  = remain <= 15;
+          var sc      = urgent ? '#DC2626' : '#E8C547';
+          html += '<div class="qd-card qd-active" data-id="' + id + '">'
+                + '<div class="qd-radial"></div>'
+                + '<div class="qd-hash">#</div>'
+                + '<div class="qd-num">' + qdFmt(e.queueNo) + '</div>'
+                + '<div class="qd-ring">'
+                + '<svg viewBox="0 0 100 100" width="82" height="82">'
+                + '<circle cx="50" cy="50" r="' + RING_R + '" fill="none" stroke="#1C1408" stroke-width="7"/>'
+                + '<circle class="qd-arc" cx="50" cy="50" r="' + RING_R + '" fill="none"'
+                + ' stroke="' + sc + '" stroke-width="7"'
+                + ' stroke-dasharray="' + RING_C + '" stroke-dashoffset="' + offset + '"'
+                + ' stroke-linecap="round" transform="rotate(-90 50 50)"/>'
+                + '</svg>'
+                + '<div class="qd-secs' + (urgent ? ' urgent' : '') + '">' + remain + '</div>'
+                + '</div></div>';
         } else {
-          html+='<div class="qd-card qd-empty"><div class="qd-num">-</div></div>';
+          html += '<div class="qd-card qd-empty"><div class="qd-num">-</div></div>';
         }
       }
-      grid.innerHTML=html;
+      grid.innerHTML = html;
     }
 
-    const chips=document.getElementById('qd-chips');
-    if(!missed.length){
-      chips.innerHTML='<div class="qd-nomiss">No missed numbers</div>';
+    var chips = document.getElementById('qd-chips');
+    if (!chips) return;
+    if (!missed.length) {
+      chips.innerHTML = '<div class="qd-nomiss">No missed numbers</div>';
     } else {
-      chips.innerHTML=missed.map(function(entry){
-        const id=entry[0]; const e=entry[1];
-        const age=Math.max(0,now-e.calledAt);
-        const mins=Math.floor(age/60000);
-        const secs=Math.floor((age%60000)/1000);
-        return '<div class="qd-chip" data-id="'+id+'"><div><div class="qd-mhash">#</div>'
-          +'<div class="qd-mnum">'+qdFmt(e.queueNo)+'</div></div>'
-          +'<div class="qd-mtime">Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago</div></div>';
+      chips.innerHTML = missed.map(function(kv) {
+        var id  = kv[0]; var e = kv[1];
+        var age  = Math.max(0, now - e.calledAt);
+        var mins = Math.floor(age / 60000);
+        var secs = Math.floor((age % 60000) / 1000);
+        return '<div class="qd-chip" data-id="' + id + '">'
+             + '<div><div class="qd-mhash">#</div><div class="qd-mnum">' + qdFmt(e.queueNo) + '</div></div>'
+             + '<div class="qd-mtime">Called<br>' + (mins > 0 ? mins + 'm ' + secs + 's' : secs + 's') + ' ago</div>'
+             + '</div>';
       }).join('');
     }
   }
 
-  // ── Tick ─────────────────────────────────────────────────────────────────────
-  function qdTick(){
-    const now=Date.now();
-    let changed=false;
-    Object.entries(qdEntries).forEach(function(entry){
-      const id=entry[0]; const e=entry[1];
-      const age=now-e.calledAt;
-      if(e.status==='serving'&&age>=SERVE_MS){
-        db.ref('queue_display').child(id).update({status:'missed'});
-        qdEntries[id].status='missed'; changed=true;
-      } else if(e.status==='missed'&&age>=MISSED_MS){
-        db.ref('queue_display').child(id).remove();
-        delete qdEntries[id]; changed=true;
+  // ── Tick (1s) — transitions + in-place ring update ────────────────────────────
+  function qdTick() {
+    var now = Date.now();
+    var changed = false;
+    Object.keys(qdEntries).forEach(function(id) {
+      var e   = qdEntries[id];
+      var age = now - e.calledAt;
+      if (e.status === 'serving' && age >= SERVE_MS) {
+        qdDb.ref('queue_display').child(id).update({ status: 'missed' });
+        qdEntries[id].status = 'missed';
+        changed = true;
+      } else if (e.status === 'missed' && age >= MISSED_MS) {
+        qdDb.ref('queue_display').child(id).remove();
+        delete qdEntries[id];
+        changed = true;
       }
     });
-    if(changed){qdRender();return;}
+    if (changed) { qdRender(); return; }
 
-    document.querySelectorAll('.qd-card.qd-active').forEach(function(card){
-      const id=card.dataset.id; const e=qdEntries[id]; if(!e) return;
-      const elapsed=Math.max(0,Math.floor((Date.now()-e.calledAt)/1000));
-      const remain=Math.max(0,60-elapsed);
-      const offset=+(Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2));
-      const urgent=remain<=15;
-      const arc=card.querySelector('.qd-arc');
-      if(arc){arc.setAttribute('stroke-dashoffset',offset);arc.setAttribute('stroke',urgent?'#DC2626':'#E8C547');}
-      const secEl=card.querySelector('.qd-secs');
-      if(secEl){secEl.textContent=remain;secEl.className='qd-secs'+(urgent?' urgent':'');}
+    document.querySelectorAll('.qd-card.qd-active').forEach(function(card) {
+      var id = card.dataset.id;
+      var e  = qdEntries[id];
+      if (!e) return;
+      var elapsed = Math.max(0, Math.floor((Date.now() - e.calledAt) / 1000));
+      var remain  = Math.max(0, 60 - elapsed);
+      var offset  = Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2);
+      var urgent  = remain <= 15;
+      var arc = card.querySelector('.qd-arc');
+      if (arc) {
+        arc.setAttribute('stroke-dashoffset', offset);
+        arc.setAttribute('stroke', urgent ? '#DC2626' : '#E8C547');
+      }
+      var secEl = card.querySelector('.qd-secs');
+      if (secEl) {
+        secEl.textContent  = remain;
+        secEl.className    = 'qd-secs' + (urgent ? ' urgent' : '');
+      }
     });
-    document.querySelectorAll('.qd-chip').forEach(function(chip){
-      const id=chip.dataset.id; const e=qdEntries[id]; if(!e) return;
-      const age=Math.max(0,Date.now()-e.calledAt);
-      const mins=Math.floor(age/60000); const secs=Math.floor((age%60000)/1000);
-      const t=chip.querySelector('.qd-mtime');
-      if(t) t.innerHTML='Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
+
+    document.querySelectorAll('.qd-chip').forEach(function(chip) {
+      var id = chip.dataset.id;
+      var e  = qdEntries[id];
+      if (!e) return;
+      var age  = Math.max(0, Date.now() - e.calledAt);
+      var mins = Math.floor(age / 60000);
+      var secs = Math.floor((age % 60000) / 1000);
+      var t = chip.querySelector('.qd-mtime');
+      if (t) t.innerHTML = 'Called<br>' + (mins > 0 ? mins + 'm ' + secs + 's' : secs + 's') + ' ago';
     });
   }
-  setInterval(qdTick,1000);
+  setInterval(qdTick, 1000);
 
-  // ── Firebase listener ────────────────────────────────────────────────────────
-  db.ref('queue_display').on('value', function(snap){
-    qdDataReceived=true;
-    const data=snap.val()||{};
-    Object.entries(data).forEach(function(entry){
-      const id=entry[0]; const e=entry[1];
-      const key=id+'_'+e.calledAt;
-      if(e.status==='serving'&&!qdAnnounced.has(key)){
-        qdAnnounced.add(key);
-        qdSpeak(e.queueNo,3);
+  // ── Firebase realtime listener ────────────────────────────────────────────────
+  qdDb.ref('queue_display').on('value', function(snap) {
+    qdDataReceived = true;
+    var data = snap.val() || {};
+    Object.keys(data).forEach(function(id) {
+      var e   = data[id];
+      var key = id + '_' + e.calledAt;
+      if (e.status === 'serving' && !qdAnnounced[key]) {
+        qdAnnounced[key] = true;
+        qdSpeak(e.queueNo, 3);
       }
     });
-    qdEntries=data;
+    qdEntries = data;
     qdRender();
-  }, function(err){
-    qdDebug('Firebase read error: '+err.code+' — check Realtime Database Rules','#7F1D1D');
+  }, function(err) {
+    qdDebug('READ ERROR: ' + err.code + ' — add queue_display rule in Firebase Console Rules', '#7F1D1D');
   });
 
 })(); // end IIFE — only runs if ?display=1
