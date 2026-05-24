@@ -33,61 +33,63 @@ body{
   align-items:center;
 }
 .hdr-logo{
-  display:flex;flex-direction:column;gap:4px;
-  min-width:230px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:6px;
+  min-width:260px;flex-shrink:0;
 }
 .hdr-brand{
   font-family:'Playfair Display',serif;
-  font-size:23px;font-weight:800;
+  font-size:30px;font-weight:800;
   color:#FAF9F7;letter-spacing:0.02em;white-space:nowrap;
 }
 .hdr-brand .accent{color:#C4572A}
 .hdr-stall{
-  font-size:11px;color:#5A4A3E;font-weight:500;
-  display:flex;align-items:center;gap:6px;
+  font-size:14px;color:#8A7A6E;font-weight:500;
+  display:flex;align-items:center;gap:8px;
 }
 .conn-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:#16A34A;box-shadow:0 0 5px #16A34A;
+  width:9px;height:9px;border-radius:50%;
+  background:#16A34A;box-shadow:0 0 6px #16A34A;
   display:inline-block;flex-shrink:0;
   transition:background 0.4s,box-shadow 0.4s;
 }
-.hdr-div{width:1px;background:#221A10;margin:16px 24px;align-self:stretch}
-.hdr-msg{
-  flex:1;text-align:center;padding:0 12px;
-}
+.hdr-div{width:1px;background:#3A2A1A;margin:14px 24px;align-self:stretch}
+.hdr-msg{flex:1;text-align:center;padding:0 16px}
 .hdr-collect{
   font-family:'Playfair Display',serif;
-  font-size:21px;font-weight:700;
-  color:#E8C547;line-height:1.3;
+  font-size:30px;font-weight:700;
+  color:#E8C547;line-height:1.2;
 }
-.hdr-collect-sub{font-size:12px;color:#5A4A3E;margin-top:3px}
-.hdr-clock{text-align:right;min-width:148px;flex-shrink:0}
+.hdr-collect-sub{font-size:17px;color:#8A7A6E;margin-top:5px;font-weight:500}
+.hdr-clock{text-align:right;min-width:160px;flex-shrink:0}
 .hdr-time{
   font-family:'Playfair Display',serif;
-  font-size:34px;font-weight:700;
+  font-size:42px;font-weight:700;
   color:#FAF9F7;letter-spacing:0.04em;line-height:1;
 }
-.hdr-date{font-size:11px;color:#5A4A3E;margin-top:4px}
+.hdr-date{font-size:14px;color:#8A7A6E;margin-top:5px;font-weight:500}
+
+/* Header taller so big text fits */
+.hdr{height:110px !important}
 
 /* ── NOW SERVING ZONE ────────────────────────────────────────────────────── */
 .serving-zone{
   flex:1;
   display:flex;flex-direction:column;
-  padding:14px 20px 6px;
+  padding:18px 22px 10px;
   min-height:0;overflow:hidden;
 }
 .zone-lbl{
-  font-size:11px;font-weight:700;
-  letter-spacing:0.22em;text-transform:uppercase;
-  color:#3A2A1A;
-  margin-bottom:10px;
-  display:flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:700;
+  letter-spacing:0.25em;text-transform:uppercase;
+  color:#8A7A6E;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:10px;
 }
 .lbl-pulse{
-  width:7px;height:7px;border-radius:50%;
+  width:10px;height:10px;border-radius:50%;
   background:#E8C547;
   animation:dotPulse 1.6s ease-in-out infinite;
+  box-shadow:0 0 8px #E8C547;
 }
 @keyframes dotPulse{
   0%,100%{opacity:1;transform:scale(1)}
@@ -97,7 +99,7 @@ body{
 .serving-grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:12px;
+  gap:14px;
   flex:1;align-content:stretch;
 }
 
@@ -105,10 +107,10 @@ body{
 .s-card{
   background:linear-gradient(155deg,#1C1612 0%,#110D09 100%);
   border:2px solid #221A10;
-  border-radius:20px;
+  border-radius:24px;
   display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:16px 12px;
+  padding:20px 8px;
   position:relative;overflow:hidden;
 }
 .s-card.active{
@@ -117,13 +119,20 @@ body{
             borderGlow 3s ease-in-out infinite;
 }
 .s-card.empty{
-  border-color:#141008;opacity:0.18;
+  border:2px dashed #221A10;
+  background:transparent;
+  opacity:0.5;
+}
+.s-card.empty::after{
+  content:"Open";
+  font-size:18px;font-weight:600;letter-spacing:0.2em;
+  color:#3A2A1A;text-transform:uppercase;
 }
 .card-radial{
   position:absolute;top:-70px;left:50%;
   transform:translateX(-50%);
-  width:300px;height:300px;
-  background:radial-gradient(circle,rgba(232,197,71,0.055) 0%,transparent 65%);
+  width:340px;height:340px;
+  background:radial-gradient(circle,rgba(232,197,71,0.07) 0%,transparent 65%);
   border-radius:50%;pointer-events:none;
 }
 @keyframes cardIn{
@@ -132,40 +141,39 @@ body{
 }
 @keyframes borderGlow{
   0%,100%{box-shadow:0 0 0 0 rgba(232,197,71,0)}
-  50%{box-shadow:0 0 32px 3px rgba(232,197,71,0.07),inset 0 0 40px rgba(0,0,0,0.2)}
+  50%{box-shadow:0 0 40px 4px rgba(232,197,71,0.09),inset 0 0 50px rgba(0,0,0,0.2)}
 }
 
 .q-hash{
-  font-size:17px;color:#3A2A1A;font-weight:500;
-  line-height:1;margin-bottom:0;
+  font-size:32px;color:#5A4A3E;font-weight:600;
+  font-family:'Playfair Display',serif;
+  line-height:1;margin-bottom:-8px;
 }
+/* Number is the star — fits inside the card no matter how narrow */
 .q-num{
   font-family:'Playfair Display',serif;
-  font-size:clamp(72px,9vw,130px);
+  font-size:min(38vh, 23vw);
   font-weight:800;
   color:#E8C547;
-  line-height:0.88;
-  letter-spacing:-0.02em;
+  line-height:0.9;
+  letter-spacing:-0.04em;
   animation:shimmer 2.8s ease-in-out infinite;
 }
-.s-card.empty .q-num{
-  color:#201808;font-size:36px;
-  animation:none;letter-spacing:0;
-}
+.s-card.empty .q-num{display:none}
 @keyframes shimmer{
-  0%,100%{text-shadow:0 0 22px rgba(232,197,71,0.22)}
-  50%{text-shadow:0 0 55px rgba(232,197,71,0.72),0 0 90px rgba(232,197,71,0.18)}
+  0%,100%{text-shadow:0 0 25px rgba(232,197,71,0.3),0 0 45px rgba(232,197,71,0.15)}
+  50%{text-shadow:0 0 60px rgba(232,197,71,0.85),0 0 100px rgba(232,197,71,0.3)}
 }
 
 /* ── COUNTDOWN RING ──────────────────────────────────────────────────────── */
 .ring-wrap{
-  position:relative;margin-top:14px;flex-shrink:0;
+  position:relative;margin-top:18px;flex-shrink:0;
 }
-.ring-wrap svg{display:block}
+.ring-wrap svg{display:block;width:90px;height:90px}
 .ring-secs{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
-  font-size:19px;font-weight:700;color:#E8C547;
+  font-size:24px;font-weight:700;color:#E8C547;
   transition:color 0.3s;
 }
 .ring-secs.urgent{
@@ -174,52 +182,56 @@ body{
 }
 @keyframes urgentBlink{0%,100%{opacity:1}50%{opacity:0.25}}
 
-/* ── MISSED ZONE ──────────────────────────────────────────────────────────── */
+/* ── MISSED ZONE — DOUBLE SIZE FOR 3M VIEWING ────────────────────────────── */
 .missed-zone{
-  background:linear-gradient(135deg,#130E06 0%,#0E0A04 100%);
-  border-top:1px solid #1C1408;
-  padding:10px 20px;
-  height:88px;
+  background:linear-gradient(135deg,#1F1408 0%,#170E05 100%);
+  border-top:2px solid #4A2A08;
+  padding:14px 22px;
+  height:140px !important;
   flex-shrink:0;
-  display:flex;align-items:center;gap:18px;
+  display:flex;align-items:center;gap:24px;
   overflow:hidden;
 }
 .missed-lbl{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  width:76px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  width:100px;flex-shrink:0;
 }
-.missed-lbl-icon{font-size:17px}
+.missed-lbl-icon{font-size:34px}
 .missed-lbl-txt{
-  font-size:9px;font-weight:700;letter-spacing:0.18em;
-  text-transform:uppercase;color:#92400E;
+  font-size:13px;font-weight:800;letter-spacing:0.2em;
+  text-transform:uppercase;color:#D97706;
 }
-.missed-chips{display:flex;gap:10px;align-items:center;flex:1;overflow:hidden}
+.missed-chips{display:flex;gap:14px;align-items:center;flex:1;overflow:hidden}
 .m-chip{
-  background:#1A1208;
-  border:2px solid #7C3300;
-  border-radius:12px;
-  padding:8px 20px;
-  display:flex;align-items:center;gap:14px;
+  background:#2A1808;
+  border:3px solid #D97706;
+  border-radius:16px;
+  padding:14px 30px;
+  display:flex;align-items:center;gap:18px;
   flex-shrink:0;
-  animation:chipIn 0.4s ease both;
+  animation:chipIn 0.4s ease both, missedPulse 2s ease-in-out infinite;
 }
-@keyframes chipIn{from{transform:translateX(-18px);opacity:0}to{transform:translateX(0);opacity:1}}
-.m-hash{font-size:12px;color:#5A4A3E;font-weight:500;line-height:1}
+@keyframes chipIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes missedPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,0)}
+  50%{box-shadow:0 0 24px 2px rgba(217,119,6,0.25)}
+}
+.m-hash{font-size:18px;color:#92400E;font-weight:600;line-height:1;font-family:'Playfair Display',serif}
 .m-num{
   font-family:'Playfair Display',serif;
-  font-size:34px;font-weight:700;color:#D97706;
-  line-height:1;
+  font-size:60px;font-weight:800;color:#FB923C;
+  line-height:1;letter-spacing:-0.02em;
 }
-.m-time{font-size:11px;color:#5A4A3E;line-height:1.5}
-.no-missed{font-size:13px;color:#1E1408;font-weight:600}
+.m-time{font-size:14px;color:#92400E;line-height:1.4;font-weight:600}
+.no-missed{font-size:18px;color:#3A2A1A;font-weight:600;letter-spacing:0.05em}
 
 /* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
 .empty-state{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  grid-column:1/-1;height:100%;gap:10px;opacity:0.22;
+  grid-column:1/-1;height:100%;gap:16px;opacity:0.35;
 }
-.empty-icon{font-size:54px}
-.empty-txt{font-size:17px;color:#5A4A3E;font-weight:600}
+.empty-icon{font-size:80px}
+.empty-txt{font-size:24px;color:#8A7A6E;font-weight:600;letter-spacing:0.02em}
 </style>
 </head>
 <body>
@@ -281,6 +293,12 @@ function diag(msg, bg) {
   if (!b) return;
   b.textContent = msg;
   if (bg) b.style.background = bg;
+  // Auto-hide successful Step 4 messages after 3s so customers don't see debug text
+  if (msg.indexOf('Step 4') === 0 && msg.indexOf('serving=') !== -1) {
+    setTimeout(function(){ if(b) b.style.display='none'; }, 3000);
+  } else {
+    b.style.display = 'block';
+  }
 }
 diag('Step 1: JS running...');
 
