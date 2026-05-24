@@ -1418,7 +1418,7 @@ function markReady(id, queueNo){
   updOrder(id, "ready");
   db.ref("queue_display").child(id).set({
     queueNo:  queueNo,
-    calledAt: firebase.database.ServerValue.TIMESTAMP,
+    calledAt: Date.now(),
     status:   "serving"
   });
   toast("📣 Calling #" + String(queueNo).padStart(3,"0") + " to counter", "#16A34A");
@@ -1427,7 +1427,7 @@ function markReady(id, queueNo){
 // Re-call a missed customer — resets timer, TTS fires again on display
 function recallOrder(id, queueNo){
   db.ref("queue_display").child(id).update({
-    calledAt: firebase.database.ServerValue.TIMESTAMP,
+    calledAt: Date.now(),
     status:   "serving"
   });
   toast("🔁 Re-calling #" + String(queueNo).padStart(3,"0"), "#C4572A");
@@ -2958,6 +2958,8 @@ updateKitchenBadge();
     </div>
     <div class="qd-chips" id="qd-chips"><div class="qd-nomiss">— No missed numbers —</div></div>
   </div>
+  <!-- Debug bar: always visible, shows live Firebase state -->
+  <div id="qd-debug-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:6px 16px;font-size:11px;font-family:monospace;color:#E8C547;z-index:99999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
 </div>
 
 <script>
@@ -2987,11 +2989,27 @@ updateKitchenBadge();
   const RING_C     = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 289.03
 
   // ── State ───────────────────────────────────────────────────────────────────
-  let qdEntries   = {};
-  let qdAnnounced = new Set();
-  let qdServerOffset = 0;   // ms difference between Firebase server clock and this device
-  function qdNow(){ return Date.now() + qdServerOffset; }
+  let qdEntries    = {};
+  let qdAnnounced  = new Set();
+  let qdDataReceived = false;
 
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  const qdFmt = n => String(n).padStart(3,'0');
+
+  // NO time filter — show any 'serving' entry the moment it arrives.
+  // qdTick() handles cleanup after 1 min / 10 min.
+  function qdActive(){
+    return Object.entries(qdEntries)
+      .filter(([,e]) => e.status === 'serving')
+      .sort((a,b) => b[1].calledAt - a[1].calledAt)
+      .slice(0, MAX_ACTIVE);
+  }
+  function qdMissed(){
+    return Object.entries(qdEntries)
+      .filter(([,e]) => e.status === 'missed')
+      .sort((a,b) => b[1].calledAt - a[1].calledAt)
+      .slice(0, MAX_MISSED);
+  }
   // ── Clock ───────────────────────────────────────────────────────────────────
   const QD_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const QD_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2999,9 +3017,9 @@ updateKitchenBadge();
     const n=new Date();
     const h=String(n.getHours()).padStart(2,'0');
     const m=String(n.getMinutes()).padStart(2,'0');
-    document.getElementById('qd-clock').textContent=`${h}:${m}`;
+    document.getElementById('qd-clock').textContent=h+':'+m;
     document.getElementById('qd-date').textContent=
-      `${QD_DAYS[n.getDay()]}  ${n.getDate()} ${QD_MON[n.getMonth()]} ${n.getFullYear()}`;
+      QD_DAYS[n.getDay()]+'  '+n.getDate()+' '+QD_MON[n.getMonth()]+' '+n.getFullYear();
   }
   setInterval(qdClock,1000); qdClock();
 
@@ -3014,14 +3032,7 @@ updateKitchenBadge();
   qdWakeLock();
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')qdWakeLock();});
 
-  // ── Server clock offset — keeps display in sync even if device clock is wrong ──
-  // Firebase server is the single source of truth for all timing
-  db.ref('.info/serverTimeOffset').on('value', snap=>{
-    qdServerOffset = snap.val() || 0;
-  });
-
   // ── Connection dot ──────────────────────────────────────────────────────────
-  // db is already initialised by main app above — reuse it
   db.ref('.info/connected').on('value',snap=>{
     const dot=document.getElementById('qd-conn');
     if(!dot) return;
@@ -3030,11 +3041,18 @@ updateKitchenBadge();
     dot.style.boxShadow=ok?'0 0 5px #16A34A':'0 0 5px #DC2626';
   });
 
+  // ── Debug bar helper ─────────────────────────────────────────────────────────
+  function qdDebug(msg,color){
+    const bar=document.getElementById('qd-debug-bar');
+    if(bar){bar.textContent=msg;bar.style.background=color||'#1C1810';bar.style.display='block';}
+  }
+
   // ── TTS ─────────────────────────────────────────────────────────────────────
-  function qdSpeak(queueNo,times=3){
+  function qdSpeak(queueNo,times){
+    times=times||3;
     if(!window.speechSynthesis) return;
     const num=parseInt(queueNo);
-    const text=`Number ${num}, please come to the counter`;
+    const text='Number '+num+', please come to the counter';
     let count=0;
     function go(){
       if(count>=times) return;
@@ -3043,99 +3061,87 @@ updateKitchenBadge();
       const u=new SpeechSynthesisUtterance(text);
       u.lang='en-SG'; u.rate=0.84; u.pitch=0.9; u.volume=1;
       const vs=window.speechSynthesis.getVoices();
-      const v=vs.find(v=>v.lang==='en-SG')
-             ||vs.find(v=>v.lang==='en-IN')
-             ||vs.find(v=>v.lang.startsWith('en')&&v.name.toLowerCase().includes('male'))
-             ||vs.find(v=>v.lang.startsWith('en'));
+      const v=vs.find(function(v){return v.lang==='en-SG';})
+             ||vs.find(function(v){return v.lang==='en-IN';})
+             ||vs.find(function(v){return v.lang.startsWith('en')&&v.name.toLowerCase().includes('male');})
+             ||vs.find(function(v){return v.lang.startsWith('en');});
       if(v) u.voice=v;
-      u.onend=()=>{if(count<times)setTimeout(go,2800);};
-      u.onerror=()=>{if(count<times)setTimeout(go,2800);};
+      u.onend=function(){if(count<times)setTimeout(go,2800);};
+      u.onerror=function(){if(count<times)setTimeout(go,2800);};
       window.speechSynthesis.speak(u);
     }
     setTimeout(go,400);
   }
-  // Keep synth alive on Android
-  setInterval(()=>{if(window.speechSynthesis&&!window.speechSynthesis.speaking)window.speechSynthesis.resume();},5000);
+  setInterval(function(){if(window.speechSynthesis&&!window.speechSynthesis.speaking)window.speechSynthesis.resume();},5000);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  const qdFmt=n=>String(n).padStart(3,'0');
-
-  function qdActive(now){
-    return Object.entries(qdEntries)
-      .filter(([,e])=>e.status==='serving'&&(now-e.calledAt)<SERVE_MS)
-      .sort((a,b)=>b[1].calledAt-a[1].calledAt).slice(0,MAX_ACTIVE);
-  }
-  function qdMissed(now){
-    return Object.entries(qdEntries)
-      .filter(([,e])=>e.status==='missed'&&(now-e.calledAt)<MISSED_MS)
-      .sort((a,b)=>b[1].calledAt-a[1].calledAt).slice(0,MAX_MISSED);
-  }
-
-  // ── Full render (on Firebase change) ────────────────────────────────────────
+  // ── Full render (called on every Firebase snapshot) ──────────────────────────
   function qdRender(){
-    const now=qdNow();
-    const active=qdActive(now);
-    const missed=qdMissed(now);
+    const now=Date.now();
+    // qdActive() and qdMissed() have NO time filter — show any serving/missed entry immediately
+    const active=qdActive();
+    const missed=qdMissed();
 
-    // Serving grid
+    // Debug bar: shows raw Firebase state at all times
+    const statuses=Object.values(qdEntries).map(function(e){return e.status||'?';}).join(', ')||'empty';
+    qdDebug('Firebase '+(qdDataReceived?'OK':'waiting')+' | entries:['+statuses+'] | serving='+active.length+' missed='+missed.length);
+
     const grid=document.getElementById('qd-grid');
     if(!active.length){
-      grid.innerHTML=`<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">Waiting for orders…</div></div>`;
+      grid.innerHTML='<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">'+(qdDataReceived?'Waiting for orders':'Connecting...')+'</div></div>';
     } else {
       let html='';
       for(let i=0;i<MAX_ACTIVE;i++){
         if(i<active.length){
-          const [id,e]=active[i];
-          const elapsed=Math.floor((now-e.calledAt)/1000);
+          const entry=active[i];
+          const id=entry[0]; const e=entry[1];
+          const elapsed=Math.max(0,Math.floor((now-e.calledAt)/1000));
           const remain=Math.max(0,60-elapsed);
           const offset=+(Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2));
           const urgent=remain<=15;
-          html+=`
-            <div class="qd-card qd-active" data-id="${id}">
-              <div class="qd-radial"></div>
-              <div class="qd-hash">#</div>
-              <div class="qd-num">${qdFmt(e.queueNo)}</div>
-              <div class="qd-ring">
-                <svg viewBox="0 0 100 100" width="82" height="82">
-                  <circle cx="50" cy="50" r="${RING_R}" fill="none" stroke="#1C1408" stroke-width="7"/>
-                  <circle class="qd-arc" cx="50" cy="50" r="${RING_R}" fill="none"
-                    stroke="${urgent?'#DC2626':'#E8C547'}" stroke-width="7"
-                    stroke-dasharray="${RING_C}" stroke-dashoffset="${offset}"
-                    stroke-linecap="round" transform="rotate(-90 50 50)"/>
-                </svg>
-                <div class="qd-secs${urgent?' urgent':''}">${remain}</div>
-              </div>
-            </div>`;
+          const sc=urgent?'#DC2626':'#E8C547';
+          html+='<div class="qd-card qd-active" data-id="'+id+'">'
+            +'<div class="qd-radial"></div>'
+            +'<div class="qd-hash">#</div>'
+            +'<div class="qd-num">'+qdFmt(e.queueNo)+'</div>'
+            +'<div class="qd-ring">'
+            +'<svg viewBox="0 0 100 100" width="82" height="82">'
+            +'<circle cx="50" cy="50" r="'+RING_R+'" fill="none" stroke="#1C1408" stroke-width="7"/>'
+            +'<circle class="qd-arc" cx="50" cy="50" r="'+RING_R+'" fill="none"'
+            +' stroke="'+sc+'" stroke-width="7"'
+            +' stroke-dasharray="'+RING_C+'" stroke-dashoffset="'+offset+'"'
+            +' stroke-linecap="round" transform="rotate(-90 50 50)"/>'
+            +'</svg>'
+            +'<div class="qd-secs'+(urgent?' urgent':'')+'">'+remain+'</div>'
+            +'</div></div>';
         } else {
-          html+=`<div class="qd-card qd-empty"><div class="qd-num">—</div></div>`;
+          html+='<div class="qd-card qd-empty"><div class="qd-num">-</div></div>';
         }
       }
       grid.innerHTML=html;
     }
 
-    // Missed chips
     const chips=document.getElementById('qd-chips');
     if(!missed.length){
-      chips.innerHTML=`<div class="qd-nomiss">— No missed numbers —</div>`;
+      chips.innerHTML='<div class="qd-nomiss">No missed numbers</div>';
     } else {
-      chips.innerHTML=missed.map(([id,e])=>{
-        const age=now-e.calledAt;
+      chips.innerHTML=missed.map(function(entry){
+        const id=entry[0]; const e=entry[1];
+        const age=Math.max(0,now-e.calledAt);
         const mins=Math.floor(age/60000);
         const secs=Math.floor((age%60000)/1000);
-        return `<div class="qd-chip" data-id="${id}">
-          <div><div class="qd-mhash">#</div><div class="qd-mnum">${qdFmt(e.queueNo)}</div></div>
-          <div class="qd-mtime">Called<br>${mins>0?`${mins}m ${secs}s`:`${secs}s`} ago</div>
-        </div>`;
+        return '<div class="qd-chip" data-id="'+id+'"><div><div class="qd-mhash">#</div>'
+          +'<div class="qd-mnum">'+qdFmt(e.queueNo)+'</div></div>'
+          +'<div class="qd-mtime">Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago</div></div>';
       }).join('');
     }
   }
 
-  // ── Tick — lightweight per-second update ────────────────────────────────────
+  // ── Tick ─────────────────────────────────────────────────────────────────────
   function qdTick(){
-    const now=qdNow();
+    const now=Date.now();
     let changed=false;
-
-    Object.entries(qdEntries).forEach(([id,e])=>{
+    Object.entries(qdEntries).forEach(function(entry){
+      const id=entry[0]; const e=entry[1];
       const age=now-e.calledAt;
       if(e.status==='serving'&&age>=SERVE_MS){
         db.ref('queue_display').child(id).update({status:'missed'});
@@ -3145,14 +3151,11 @@ updateKitchenBadge();
         delete qdEntries[id]; changed=true;
       }
     });
-
     if(changed){qdRender();return;}
 
-    // In-place ring + timer update
-    document.querySelectorAll('.qd-card.qd-active').forEach(card=>{
-      const id=card.dataset.id;
-      const e=qdEntries[id]; if(!e) return;
-      const elapsed=Math.floor((qdNow()-e.calledAt)/1000);
+    document.querySelectorAll('.qd-card.qd-active').forEach(function(card){
+      const id=card.dataset.id; const e=qdEntries[id]; if(!e) return;
+      const elapsed=Math.max(0,Math.floor((Date.now()-e.calledAt)/1000));
       const remain=Math.max(0,60-elapsed);
       const offset=+(Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2));
       const urgent=remain<=15;
@@ -3161,24 +3164,23 @@ updateKitchenBadge();
       const secEl=card.querySelector('.qd-secs');
       if(secEl){secEl.textContent=remain;secEl.className='qd-secs'+(urgent?' urgent':'');}
     });
-
-    document.querySelectorAll('.qd-chip').forEach(chip=>{
-      const id=chip.dataset.id;
-      const e=qdEntries[id]; if(!e) return;
-      const age=qdNow()-e.calledAt;
-      const mins=Math.floor(age/60000);
-      const secs=Math.floor((age%60000)/1000);
+    document.querySelectorAll('.qd-chip').forEach(function(chip){
+      const id=chip.dataset.id; const e=qdEntries[id]; if(!e) return;
+      const age=Math.max(0,Date.now()-e.calledAt);
+      const mins=Math.floor(age/60000); const secs=Math.floor((age%60000)/1000);
       const t=chip.querySelector('.qd-mtime');
-      if(t) t.innerHTML=`Called<br>${mins>0?`${mins}m ${secs}s`:`${secs}s`} ago`;
+      if(t) t.innerHTML='Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
     });
   }
   setInterval(qdTick,1000);
 
   // ── Firebase listener ────────────────────────────────────────────────────────
-  db.ref('queue_display').on('value',snap=>{
+  db.ref('queue_display').on('value', function(snap){
+    qdDataReceived=true;
     const data=snap.val()||{};
-    Object.entries(data).forEach(([id,e])=>{
-      const key=`${id}_${e.calledAt}`;
+    Object.entries(data).forEach(function(entry){
+      const id=entry[0]; const e=entry[1];
+      const key=id+'_'+e.calledAt;
       if(e.status==='serving'&&!qdAnnounced.has(key)){
         qdAnnounced.add(key);
         qdSpeak(e.queueNo,3);
@@ -3186,6 +3188,8 @@ updateKitchenBadge();
     });
     qdEntries=data;
     qdRender();
+  }, function(err){
+    qdDebug('Firebase read error: '+err.code+' — check Realtime Database Rules','#7F1D1D');
   });
 
 })(); // end IIFE — only runs if ?display=1
