@@ -1418,7 +1418,7 @@ function markReady(id, queueNo){
   updOrder(id, "ready");
   db.ref("queue_display").child(id).set({
     queueNo:  queueNo,
-    calledAt: Date.now(),
+    calledAt: firebase.database.ServerValue.TIMESTAMP,
     status:   "serving"
   });
   toast("📣 Calling #" + String(queueNo).padStart(3,"0") + " to counter", "#16A34A");
@@ -1427,7 +1427,7 @@ function markReady(id, queueNo){
 // Re-call a missed customer — resets timer, TTS fires again on display
 function recallOrder(id, queueNo){
   db.ref("queue_display").child(id).update({
-    calledAt: Date.now(),
+    calledAt: firebase.database.ServerValue.TIMESTAMP,
     status:   "serving"
   });
   toast("🔁 Re-calling #" + String(queueNo).padStart(3,"0"), "#C4572A");
@@ -2958,8 +2958,6 @@ updateKitchenBadge();
     </div>
     <div class="qd-chips" id="qd-chips"><div class="qd-nomiss">— No missed numbers —</div></div>
   </div>
-  <!-- Error / debug banner — hidden by default, shown if Firebase read fails -->
-  <div id="qd-error-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#DC2626;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:10px 16px;z-index:99999" id="qd-error-bar"></div>
 </div>
 
 <script>
@@ -2989,9 +2987,10 @@ updateKitchenBadge();
   const RING_C     = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 289.03
 
   // ── State ───────────────────────────────────────────────────────────────────
-  let qdEntries  = {};
+  let qdEntries   = {};
   let qdAnnounced = new Set();
-  let qdDataReceived = false; // true once Firebase sends first snapshot
+  let qdServerOffset = 0;   // ms difference between Firebase server clock and this device
+  function qdNow(){ return Date.now() + qdServerOffset; }
 
   // ── Clock ───────────────────────────────────────────────────────────────────
   const QD_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -3014,6 +3013,12 @@ updateKitchenBadge();
   }
   qdWakeLock();
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')qdWakeLock();});
+
+  // ── Server clock offset — keeps display in sync even if device clock is wrong ──
+  // Firebase server is the single source of truth for all timing
+  db.ref('.info/serverTimeOffset').on('value', snap=>{
+    qdServerOffset = snap.val() || 0;
+  });
 
   // ── Connection dot ──────────────────────────────────────────────────────────
   // db is already initialised by main app above — reuse it
@@ -3068,20 +3073,14 @@ updateKitchenBadge();
 
   // ── Full render (on Firebase change) ────────────────────────────────────────
   function qdRender(){
-    const now=Date.now();
+    const now=qdNow();
     const active=qdActive(now);
     const missed=qdMissed(now);
 
     // Serving grid
     const grid=document.getElementById('qd-grid');
     if(!active.length){
-      const allCollected = Object.values(qdEntries).every(e=>e.status==='collected');
-      const emptyMsg = !qdDataReceived
-        ? '🔄 Connecting to Firebase…'
-        : allCollected && Object.keys(qdEntries).length > 0
-          ? 'All orders collected ✓'
-          : 'Waiting for orders…';
-      grid.innerHTML=`<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">${emptyMsg}</div></div>`;
+      grid.innerHTML=`<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">Waiting for orders…</div></div>`;
     } else {
       let html='';
       for(let i=0;i<MAX_ACTIVE;i++){
@@ -3133,7 +3132,7 @@ updateKitchenBadge();
 
   // ── Tick — lightweight per-second update ────────────────────────────────────
   function qdTick(){
-    const now=Date.now();
+    const now=qdNow();
     let changed=false;
 
     Object.entries(qdEntries).forEach(([id,e])=>{
@@ -3153,7 +3152,7 @@ updateKitchenBadge();
     document.querySelectorAll('.qd-card.qd-active').forEach(card=>{
       const id=card.dataset.id;
       const e=qdEntries[id]; if(!e) return;
-      const elapsed=Math.floor((Date.now()-e.calledAt)/1000);
+      const elapsed=Math.floor((qdNow()-e.calledAt)/1000);
       const remain=Math.max(0,60-elapsed);
       const offset=+(Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2));
       const urgent=remain<=15;
@@ -3166,7 +3165,7 @@ updateKitchenBadge();
     document.querySelectorAll('.qd-chip').forEach(chip=>{
       const id=chip.dataset.id;
       const e=qdEntries[id]; if(!e) return;
-      const age=Date.now()-e.calledAt;
+      const age=qdNow()-e.calledAt;
       const mins=Math.floor(age/60000);
       const secs=Math.floor((age%60000)/1000);
       const t=chip.querySelector('.qd-mtime');
@@ -3176,18 +3175,7 @@ updateKitchenBadge();
   setInterval(qdTick,1000);
 
   // ── Firebase listener ────────────────────────────────────────────────────────
-  function qdShowError(msg){
-    const bar=document.getElementById('qd-error-bar');
-    if(bar){bar.textContent=msg;bar.style.display='block';}
-  }
-  function qdHideError(){
-    const bar=document.getElementById('qd-error-bar');
-    if(bar) bar.style.display='none';
-  }
-
-  db.ref('queue_display').on('value', snap=>{
-    qdDataReceived = true;
-    qdHideError();
+  db.ref('queue_display').on('value',snap=>{
     const data=snap.val()||{};
     Object.entries(data).forEach(([id,e])=>{
       const key=`${id}_${e.calledAt}`;
@@ -3198,10 +3186,6 @@ updateKitchenBadge();
     });
     qdEntries=data;
     qdRender();
-  }, err=>{
-    // This fires if Firebase Rules block the read — the most common cause of blank display
-    qdShowError('🔴 Firebase read blocked — add queue_display rule in Firebase Console → Rules');
-    console.error('queue_display read error:', err);
   });
 
 })(); // end IIFE — only runs if ?display=1
