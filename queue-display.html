@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Queue Display — OLIYVE Western Cuisine</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden}
@@ -295,12 +295,16 @@ var FB = {
   appId:             "1:1015464203400:web:fe788848e3b0da2b403b3d"
 };
 var db;
-try {
-  firebase.initializeApp(FB);
-  db = firebase.database();
-  diag('Step 2: Firebase OK. Connecting...');
-} catch(e) {
-  diag('ERROR at Step 2: ' + e.message, '#7F1D1D');
+if (typeof firebase === 'undefined') {
+  diag('ERROR: Firebase SDK did not load (network blocked CDN). Tap "Cached images and files" → Clear, then reload.', '#7F1D1D');
+} else {
+  try {
+    firebase.initializeApp(FB);
+    db = firebase.database();
+    diag('Step 2: Firebase OK. Connecting...');
+  } catch(e) {
+    diag('ERROR at Step 2: ' + e.message, '#7F1D1D');
+  }
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
