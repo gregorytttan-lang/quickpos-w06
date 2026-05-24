@@ -2958,6 +2958,8 @@ updateKitchenBadge();
     </div>
     <div class="qd-chips" id="qd-chips"><div class="qd-nomiss">— No missed numbers —</div></div>
   </div>
+  <!-- Error / debug banner — hidden by default, shown if Firebase read fails -->
+  <div id="qd-error-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#DC2626;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:10px 16px;z-index:99999" id="qd-error-bar"></div>
 </div>
 
 <script>
@@ -2989,6 +2991,7 @@ updateKitchenBadge();
   // ── State ───────────────────────────────────────────────────────────────────
   let qdEntries  = {};
   let qdAnnounced = new Set();
+  let qdDataReceived = false; // true once Firebase sends first snapshot
 
   // ── Clock ───────────────────────────────────────────────────────────────────
   const QD_DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -3072,7 +3075,13 @@ updateKitchenBadge();
     // Serving grid
     const grid=document.getElementById('qd-grid');
     if(!active.length){
-      grid.innerHTML=`<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">Waiting for orders…</div></div>`;
+      const allCollected = Object.values(qdEntries).every(e=>e.status==='collected');
+      const emptyMsg = !qdDataReceived
+        ? '🔄 Connecting to Firebase…'
+        : allCollected && Object.keys(qdEntries).length > 0
+          ? 'All orders collected ✓'
+          : 'Waiting for orders…';
+      grid.innerHTML=`<div class="qd-empty-state"><div class="qd-empty-icon">🍽️</div><div class="qd-empty-txt">${emptyMsg}</div></div>`;
     } else {
       let html='';
       for(let i=0;i<MAX_ACTIVE;i++){
@@ -3167,7 +3176,18 @@ updateKitchenBadge();
   setInterval(qdTick,1000);
 
   // ── Firebase listener ────────────────────────────────────────────────────────
-  db.ref('queue_display').on('value',snap=>{
+  function qdShowError(msg){
+    const bar=document.getElementById('qd-error-bar');
+    if(bar){bar.textContent=msg;bar.style.display='block';}
+  }
+  function qdHideError(){
+    const bar=document.getElementById('qd-error-bar');
+    if(bar) bar.style.display='none';
+  }
+
+  db.ref('queue_display').on('value', snap=>{
+    qdDataReceived = true;
+    qdHideError();
     const data=snap.val()||{};
     Object.entries(data).forEach(([id,e])=>{
       const key=`${id}_${e.calledAt}`;
@@ -3178,6 +3198,10 @@ updateKitchenBadge();
     });
     qdEntries=data;
     qdRender();
+  }, err=>{
+    // This fires if Firebase Rules block the read — the most common cause of blank display
+    qdShowError('🔴 Firebase read blocked — add queue_display rule in Firebase Console → Rules');
+    console.error('queue_display read error:', err);
   });
 
 })(); // end IIFE — only runs if ?display=1
