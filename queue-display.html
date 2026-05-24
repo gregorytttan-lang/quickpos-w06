@@ -1,279 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Queue Display — OLIYVE Western Cuisine</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;overflow:hidden}
-body{
-  background:#0A0908;
-  font-family:'DM Sans',sans-serif;
-  color:#FAF9F7;
-  display:flex;
-  flex-direction:column;
-  height:100dvh;
-  -webkit-user-select:none;
-  user-select:none;
-}
-
-/* ── HEADER ───────────────────────────────────────────────────────────────── */
-.hdr{
-  background:linear-gradient(135deg,#1C1410 0%,#0F0D0B 100%);
-  border-bottom:2px solid #C4572A;
-  padding:0 28px;
-  height:88px;
-  flex-shrink:0;
-  display:flex;
-  align-items:center;
-}
-.hdr-logo{
-  display:flex;flex-direction:column;gap:4px;
-  min-width:230px;flex-shrink:0;
-}
-.hdr-brand{
-  font-family:'Playfair Display',serif;
-  font-size:23px;font-weight:800;
-  color:#FAF9F7;letter-spacing:0.02em;white-space:nowrap;
-}
-.hdr-brand .accent{color:#C4572A}
-.hdr-stall{
-  font-size:11px;color:#5A4A3E;font-weight:500;
-  display:flex;align-items:center;gap:6px;
-}
-.conn-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:#16A34A;box-shadow:0 0 5px #16A34A;
-  display:inline-block;flex-shrink:0;
-  transition:background 0.4s,box-shadow 0.4s;
-}
-.hdr-div{width:1px;background:#221A10;margin:16px 24px;align-self:stretch}
-.hdr-msg{
-  flex:1;text-align:center;padding:0 12px;
-}
-.hdr-collect{
-  font-family:'Playfair Display',serif;
-  font-size:21px;font-weight:700;
-  color:#E8C547;line-height:1.3;
-}
-.hdr-collect-sub{font-size:12px;color:#5A4A3E;margin-top:3px}
-.hdr-clock{text-align:right;min-width:148px;flex-shrink:0}
-.hdr-time{
-  font-family:'Playfair Display',serif;
-  font-size:34px;font-weight:700;
-  color:#FAF9F7;letter-spacing:0.04em;line-height:1;
-}
-.hdr-date{font-size:11px;color:#5A4A3E;margin-top:4px}
-
-/* ── NOW SERVING ZONE ────────────────────────────────────────────────────── */
-.serving-zone{
-  flex:1;
-  display:flex;flex-direction:column;
-  padding:14px 20px 6px;
-  min-height:0;overflow:hidden;
-}
-.zone-lbl{
-  font-size:11px;font-weight:700;
-  letter-spacing:0.22em;text-transform:uppercase;
-  color:#3A2A1A;
-  margin-bottom:10px;
-  display:flex;align-items:center;gap:8px;
-}
-.lbl-pulse{
-  width:7px;height:7px;border-radius:50%;
-  background:#E8C547;
-  animation:dotPulse 1.6s ease-in-out infinite;
-}
-@keyframes dotPulse{
-  0%,100%{opacity:1;transform:scale(1)}
-  50%{opacity:0.35;transform:scale(0.65)}
-}
-
-.serving-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-  flex:1;align-content:stretch;
-}
-
-/* ── SERVING CARD ─────────────────────────────────────────────────────────── */
-.s-card{
-  background:linear-gradient(155deg,#1C1612 0%,#110D09 100%);
-  border:2px solid #221A10;
-  border-radius:20px;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:16px 12px;
-  position:relative;overflow:hidden;
-}
-.s-card.active{
-  border-color:#352618;
-  animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both,
-            borderGlow 3s ease-in-out infinite;
-}
-.s-card.empty{
-  border-color:#141008;opacity:0.18;
-}
-.card-radial{
-  position:absolute;top:-70px;left:50%;
-  transform:translateX(-50%);
-  width:300px;height:300px;
-  background:radial-gradient(circle,rgba(232,197,71,0.055) 0%,transparent 65%);
-  border-radius:50%;pointer-events:none;
-}
-@keyframes cardIn{
-  from{transform:scale(0.72) translateY(-18px);opacity:0}
-  to{transform:scale(1) translateY(0);opacity:1}
-}
-@keyframes borderGlow{
-  0%,100%{box-shadow:0 0 0 0 rgba(232,197,71,0)}
-  50%{box-shadow:0 0 32px 3px rgba(232,197,71,0.07),inset 0 0 40px rgba(0,0,0,0.2)}
-}
-
-.q-hash{
-  font-size:17px;color:#3A2A1A;font-weight:500;
-  line-height:1;margin-bottom:0;
-}
-.q-num{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(72px,9vw,130px);
-  font-weight:800;
-  color:#E8C547;
-  line-height:0.88;
-  letter-spacing:-0.02em;
-  animation:shimmer 2.8s ease-in-out infinite;
-}
-.s-card.empty .q-num{
-  color:#201808;font-size:36px;
-  animation:none;letter-spacing:0;
-}
-@keyframes shimmer{
-  0%,100%{text-shadow:0 0 22px rgba(232,197,71,0.22)}
-  50%{text-shadow:0 0 55px rgba(232,197,71,0.72),0 0 90px rgba(232,197,71,0.18)}
-}
-
-/* ── COUNTDOWN RING ──────────────────────────────────────────────────────── */
-.ring-wrap{
-  position:relative;margin-top:14px;flex-shrink:0;
-}
-.ring-wrap svg{display:block}
-.ring-secs{
-  position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:19px;font-weight:700;color:#E8C547;
-  transition:color 0.3s;
-}
-.ring-secs.urgent{
-  color:#DC2626;
-  animation:urgentBlink 0.55s ease-in-out infinite;
-}
-@keyframes urgentBlink{0%,100%{opacity:1}50%{opacity:0.25}}
-
-/* ── MISSED ZONE ──────────────────────────────────────────────────────────── */
-.missed-zone{
-  background:linear-gradient(135deg,#130E06 0%,#0E0A04 100%);
-  border-top:1px solid #1C1408;
-  padding:10px 20px;
-  height:88px;
-  flex-shrink:0;
-  display:flex;align-items:center;gap:18px;
-  overflow:hidden;
-}
-.missed-lbl{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  width:76px;flex-shrink:0;
-}
-.missed-lbl-icon{font-size:17px}
-.missed-lbl-txt{
-  font-size:9px;font-weight:700;letter-spacing:0.18em;
-  text-transform:uppercase;color:#92400E;
-}
-.missed-chips{display:flex;gap:10px;align-items:center;flex:1;overflow:hidden}
-.m-chip{
-  background:#1A1208;
-  border:2px solid #7C3300;
-  border-radius:12px;
-  padding:8px 20px;
-  display:flex;align-items:center;gap:14px;
-  flex-shrink:0;
-  animation:chipIn 0.4s ease both;
-}
-@keyframes chipIn{from{transform:translateX(-18px);opacity:0}to{transform:translateX(0);opacity:1}}
-.m-hash{font-size:12px;color:#5A4A3E;font-weight:500;line-height:1}
-.m-num{
-  font-family:'Playfair Display',serif;
-  font-size:34px;font-weight:700;color:#D97706;
-  line-height:1;
-}
-.m-time{font-size:11px;color:#5A4A3E;line-height:1.5}
-.no-missed{font-size:13px;color:#1E1408;font-weight:600}
-
-/* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
-.empty-state{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  grid-column:1/-1;height:100%;gap:10px;opacity:0.22;
-}
-.empty-icon{font-size:54px}
-.empty-txt{font-size:17px;color:#5A4A3E;font-weight:600}
-</style>
-</head>
-<body>
-
-<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
-<div class="hdr">
-  <div class="hdr-logo">
-    <div class="hdr-brand">🥩 <span class="accent">OLIYVE</span> WESTERN</div>
-    <div class="hdr-stall">
-      <span class="conn-dot" id="conn-dot"></span>
-      Flavours Foodcourt · Stall #06 · Temasek Poly
-    </div>
-  </div>
-
-  <div class="hdr-div"></div>
-
-  <div class="hdr-msg">
-    <div class="hdr-collect">Please collect your food at the counter</div>
-    <div class="hdr-collect-sub">Watch for your queue number below · 请到柜台领取您的食物</div>
-  </div>
-
-  <div class="hdr-div"></div>
-
-  <div class="hdr-clock">
-    <div class="hdr-time" id="clock">--:--</div>
-    <div class="hdr-date" id="clock-date"></div>
-  </div>
-</div>
-
-<!-- ── NOW SERVING ────────────────────────────────────────────────────────── -->
-<div class="serving-zone">
-  <div class="zone-lbl">
-    <div class="lbl-pulse"></div>
-    NOW SERVING
-  </div>
-  <div class="serving-grid" id="serving-grid">
-    <!-- Rendered by JS -->
-  </div>
-</div>
-
-<!-- ── MISSED ─────────────────────────────────────────────────────────────── -->
-<div class="missed-zone">
-  <div class="missed-lbl">
-    <div class="missed-lbl-icon">⚠️</div>
-    <div class="missed-lbl-txt">MISSED</div>
-  </div>
-  <div class="missed-chips" id="missed-chips">
-    <div class="no-missed">— No missed numbers —</div>
-  </div>
-</div>
+<!-- Diagnostic bar: in DOM before script, always visible -->
+<div id="diag-bar" style="position:fixed;top:0;left:0;right:0;z-index:999999;background:#1C1A08;color:#E8C547;font-size:12px;font-family:monospace;font-weight:bold;padding:7px 16px;border-bottom:1px solid #3A3010;white-space:nowrap;overflow:hidden">Loading...</div>
 
 <script>
-// ─── FIREBASE CONFIG (same project as QuickPOS W06) ──────────────────────────
-const FB_CONFIG = {
+// ── Diagnostic helper ─────────────────────────────────────────────────────────
+function diag(msg, bg) {
+  var b = document.getElementById('diag-bar');
+  if (!b) return;
+  b.textContent = msg;
+  if (bg) b.style.background = bg;
+}
+diag('JS running - Firebase loading...');
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+var FB_CONFIG = {
   apiKey:            "AIzaSyAYKFXAcIAR6iJ29RkimJSy3vzka0gsdTs",
   authDomain:        "quickpos-w06.firebaseapp.com",
   databaseURL:       "https://quickpos-w06-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -282,285 +21,225 @@ const FB_CONFIG = {
   messagingSenderId: "1015464203400",
   appId:             "1:1015464203400:web:fe788848e3b0da2b403b3d"
 };
-firebase.initializeApp(FB_CONFIG);
-const db = firebase.database();
-diag('v' + VERSION + ' · Firebase initialised · Connecting...');
-
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const SERVE_MS   = 60_000;        // 1 min active countdown before → MISSED
-const MISSED_MS  = 10 * 60_000;   // 10 min then auto-clear from MISSED
-const MAX_ACTIVE = 4;
-const MAX_MISSED = 2;
-const RING_R     = 46;
-const RING_C     = +(2 * Math.PI * RING_R).toFixed(2); // ≈ 289.03
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
-
-// ─── DIAGNOSTIC — runs immediately, visible before Firebase ──────────────────
-const VERSION = '2026-05-24-v1';
-const diagBar = document.getElementById('diag-bar');
-function diag(msg, color) {
-  if (!diagBar) return;
-  diagBar.textContent = msg;
-  diagBar.style.background = color || '#1A1A0A';
-  diagBar.style.display = 'block';
+var db;
+try {
+  firebase.initializeApp(FB_CONFIG);
+  db = firebase.database();
+  diag('Firebase OK - connecting to database...');
+} catch(e) {
+  diag('Firebase INIT ERROR: ' + e.message, '#7F1D1D');
 }
-diag('v' + VERSION + ' · JS running · Firebase loading...');
-// ─────────────────────────────────────────────────────────────────────────────
-const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+var SERVE_MS   = 60000;
+var MISSED_MS  = 600000;
+var MAX_ACTIVE = 4;
+var MAX_MISSED = 2;
+var RING_R     = 46;
+var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var entries      = {};
+var announced    = {};
+var dataReceived = false;
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+var DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function updateClock() {
-  const n = new Date();
-  const h = String(n.getHours()).padStart(2,'0');
-  const m = String(n.getMinutes()).padStart(2,'0');
-  document.getElementById('clock').textContent = `${h}:${m}`;
-  document.getElementById('clock-date').textContent =
-    `${DAYS[n.getDay()]}  ${n.getDate()} ${MONTHS[n.getMonth()]} ${n.getFullYear()}`;
+  var n = new Date();
+  var h = String(n.getHours()).padStart(2,'0');
+  var m = String(n.getMinutes()).padStart(2,'0');
+  var clk = document.getElementById('clock');
+  var dat = document.getElementById('clock-date');
+  if (clk) clk.textContent = h + ':' + m;
+  if (dat) dat.textContent = DAYS[n.getDay()] + '  ' + n.getDate() + ' ' + MONTHS[n.getMonth()] + ' ' + n.getFullYear();
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ─── WAKE LOCK ────────────────────────────────────────────────────────────────
-let _wl = null;
-async function reqWakeLock() {
-  try {
-    if ('wakeLock' in navigator) _wl = await navigator.wakeLock.request('screen');
-  } catch(e) { console.log('WakeLock:', e.message); }
+// ── Wake Lock ─────────────────────────────────────────────────────────────────
+function reqWakeLock() {
+  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(function(){});
 }
 reqWakeLock();
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') reqWakeLock();
 });
 
-// ─── CONNECTION STATUS ────────────────────────────────────────────────────────
-db.ref('.info/connected').on('value', snap => {
-  const dot = document.getElementById('conn-dot');
-  if (!dot) return;
-  const ok = snap.val();
-  dot.style.background   = ok ? '#16A34A' : '#DC2626';
-  dot.style.boxShadow    = ok ? '0 0 5px #16A34A' : '0 0 5px #DC2626';
-});
+// ── Connection dot ────────────────────────────────────────────────────────────
+if (db) {
+  db.ref('.info/connected').on('value', function(snap) {
+    var dot = document.getElementById('conn-dot');
+    var ok  = snap.val();
+    if (dot) {
+      dot.style.background = ok ? '#16A34A' : '#DC2626';
+      dot.style.boxShadow  = ok ? '0 0 5px #16A34A' : '0 0 5px #DC2626';
+    }
+    if (!dataReceived) {
+      diag(ok ? 'Firebase CONNECTED - tap Call Customer on KDS to test' : 'Firebase DISCONNECTED - check WiFi', ok ? '#0A200A' : '#7F1D1D');
+    }
+  });
+}
 
-// ─── TTS — "Number 47, please come to the counter" × 3 ───────────────────────
-function speakNumber(queueNo, times = 3) {
+// ── TTS ───────────────────────────────────────────────────────────────────────
+function speakNumber(queueNo, times) {
   if (!window.speechSynthesis) return;
-  const num  = parseInt(queueNo);
-  const text = `Number ${num}, please come to the counter`;
-  let count  = 0;
-
+  times = times || 3;
+  var text = 'Number ' + parseInt(queueNo) + ', please come to the counter';
+  var count = 0;
   function go() {
     if (count >= times) return;
     count++;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang   = 'en-SG';
-    u.rate   = 0.84;
-    u.pitch  = 0.9;
-    u.volume = 1;
-    const voices = window.speechSynthesis.getVoices();
-    const v = voices.find(v => v.lang === 'en-SG')
-           || voices.find(v => v.lang === 'en-IN')
-           || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))
-           || voices.find(v => v.lang.startsWith('en'));
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-SG'; u.rate = 0.84; u.pitch = 0.9; u.volume = 1;
+    var vs = window.speechSynthesis.getVoices();
+    var v = null;
+    for (var i = 0; i < vs.length; i++) {
+      if (vs[i].lang === 'en-SG' || vs[i].lang === 'en-IN') { v = vs[i]; break; }
+    }
+    if (!v) for (var i = 0; i < vs.length; i++) {
+      if (vs[i].lang.indexOf('en') === 0) { v = vs[i]; break; }
+    }
     if (v) u.voice = v;
-    u.onend  = () => { if (count < times) setTimeout(go, 2800); };
-    u.onerror= () => { if (count < times) setTimeout(go, 2800); };
+    u.onend  = function() { if (count < times) setTimeout(go, 2800); };
+    u.onerror = function() { if (count < times) setTimeout(go, 2800); };
     window.speechSynthesis.speak(u);
   }
-  setTimeout(go, 400); // small delay so Firebase write has settled
+  setTimeout(go, 400);
 }
-
-// Keep speech synthesis alive on Android (it dies after ~30s idle)
-setInterval(() => {
-  if (window.speechSynthesis && !window.speechSynthesis.speaking)
-    window.speechSynthesis.resume();
+setInterval(function() {
+  if (window.speechSynthesis && !window.speechSynthesis.speaking) window.speechSynthesis.resume();
 }, 5000);
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-const fmtQ = n => String(n).padStart(3, '0');
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtQ(n) { return String(n).padStart(3,'0'); }
 
-// NO time filter — show any 'serving' entry immediately.
-// tick() handles the serving→missed→removed transitions.
 function getActive() {
   return Object.entries(entries)
-    .filter(([,e]) => e.status === 'serving')
-    .sort((a, b) => b[1].calledAt - a[1].calledAt)
+    .filter(function(kv) { return kv[1].status === 'serving'; })
+    .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
     .slice(0, MAX_ACTIVE);
 }
 function getMissed() {
   return Object.entries(entries)
-    .filter(([,e]) => e.status === 'missed')
-    .sort((a, b) => b[1].calledAt - a[1].calledAt)
+    .filter(function(kv) { return kv[1].status === 'missed'; })
+    .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
     .slice(0, MAX_MISSED);
 }
 
-// ─── FULL RENDER — called on Firebase data change ────────────────────────────
-// Uses animation for card entry. Tick() handles lightweight second-by-second updates.
+// ── Render ────────────────────────────────────────────────────────────────────
 function renderDisplay() {
-  const now    = Date.now();
-  const active = getActive();
-  const missed = getMissed();
+  var now    = Date.now();
+  var active = getActive();
+  var missed = getMissed();
+  var total  = Object.keys(entries).length;
+  var sl     = Object.values(entries).map(function(e){return e.status;}).join(',') || 'none';
+  diag('FB:' + (dataReceived?'OK':'wait') + ' entries=' + total + '[' + sl + '] serving=' + active.length + ' missed=' + missed.length);
 
-  // Debug bar
-  const statuses = Object.values(entries).map(e=>e.status).join(', ') || 'empty';
-  const bar = document.getElementById('debug-bar');
-  if (bar) { bar.textContent = `FB:${dataReceived?'OK':'wait'} entries:[${statuses}] serving=${active.length} missed=${missed.length}`; bar.style.display='block'; }
-
-  // ── Serving grid ──────────────────────────────────────────────────────────
-  const grid = document.getElementById('serving-grid');
+  var grid = document.getElementById('serving-grid');
+  if (!grid) return;
 
   if (!active.length) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🍽️</div>
-        <div class="empty-txt">Waiting for orders…</div>
-      </div>`;
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F37D;&#xFE0F;</div>'
+      + '<div class="empty-txt">' + (dataReceived ? 'Waiting for orders' : 'Connecting...') + '</div></div>';
   } else {
-    let html = '';
-    for (let i = 0; i < MAX_ACTIVE; i++) {
+    var html = '';
+    for (var i = 0; i < MAX_ACTIVE; i++) {
       if (i < active.length) {
-        const [id, e] = active[i];
-        const elapsed = Math.floor((now - e.calledAt) / 1000);
-        const remain  = Math.max(0, 60 - elapsed);
-        const offset  = +(Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2));
-        const urgent  = remain <= 15;
-        html += `
-          <div class="s-card active" data-id="${id}">
-            <div class="card-radial"></div>
-            <div class="q-hash">#</div>
-            <div class="q-num">${fmtQ(e.queueNo)}</div>
-            <div class="ring-wrap">
-              <svg viewBox="0 0 100 100" width="82" height="82">
-                <circle cx="50" cy="50" r="${RING_R}" fill="none"
-                  stroke="#1C1408" stroke-width="7"/>
-                <circle class="ring-arc" cx="50" cy="50" r="${RING_R}" fill="none"
-                  stroke="${urgent ? '#DC2626' : '#E8C547'}" stroke-width="7"
-                  stroke-dasharray="${RING_C}" stroke-dashoffset="${offset}"
-                  stroke-linecap="round" transform="rotate(-90 50 50)"/>
-              </svg>
-              <div class="ring-secs${urgent ? ' urgent' : ''}">${remain}</div>
-            </div>
-          </div>`;
+        var id = active[i][0]; var e = active[i][1];
+        var elapsed = Math.max(0, Math.floor((now - e.calledAt) / 1000));
+        var remain  = Math.max(0, 60 - elapsed);
+        var offset  = Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2);
+        var urgent  = remain <= 15;
+        var sc      = urgent ? '#DC2626' : '#E8C547';
+        html += '<div class="s-card active" data-id="' + id + '">'
+              + '<div class="card-radial"></div><div class="q-hash">#</div>'
+              + '<div class="q-num">' + fmtQ(e.queueNo) + '</div>'
+              + '<div class="ring-wrap"><svg viewBox="0 0 100 100" width="82" height="82">'
+              + '<circle cx="50" cy="50" r="' + RING_R + '" fill="none" stroke="#1C1408" stroke-width="7"/>'
+              + '<circle class="ring-arc" cx="50" cy="50" r="' + RING_R + '" fill="none" stroke="' + sc + '" stroke-width="7"'
+              + ' stroke-dasharray="' + RING_C + '" stroke-dashoffset="' + offset + '"'
+              + ' stroke-linecap="round" transform="rotate(-90 50 50)"/></svg>'
+              + '<div class="ring-secs' + (urgent ? ' urgent' : '') + '">' + remain + '</div>'
+              + '</div></div>';
       } else {
-        // Empty placeholder slot for visual consistency
-        html += `<div class="s-card empty"><div class="q-num">—</div></div>`;
+        html += '<div class="s-card empty"><div class="q-num">-</div></div>';
       }
     }
     grid.innerHTML = html;
   }
 
-  // ── Missed chips ──────────────────────────────────────────────────────────
-  const chipsEl = document.getElementById('missed-chips');
-  if (!missed.length) {
-    chipsEl.innerHTML = `<div class="no-missed">— No missed numbers —</div>`;
-  } else {
-    chipsEl.innerHTML = missed.map(([id, e]) => {
-      const age  = now - e.calledAt;
-      const mins = Math.floor(age / 60_000);
-      const secs = Math.floor((age % 60_000) / 1000);
-      const ago  = mins > 0 ? `${mins}m ${secs}s ago` : `${secs}s ago`;
-      return `
-        <div class="m-chip" data-id="${id}">
-          <div>
-            <div class="m-hash">#</div>
-            <div class="m-num">${fmtQ(e.queueNo)}</div>
-          </div>
-          <div class="m-time">Called<br>${ago}</div>
-        </div>`;
-    }).join('');
+  var chipsEl = document.getElementById('missed-chips');
+  if (chipsEl) {
+    if (!missed.length) {
+      chipsEl.innerHTML = '<div class="no-missed">-- No missed numbers --</div>';
+    } else {
+      chipsEl.innerHTML = missed.map(function(kv) {
+        var id = kv[0]; var e = kv[1];
+        var age  = Math.max(0, now - e.calledAt);
+        var mins = Math.floor(age/60000); var secs = Math.floor((age%60000)/1000);
+        return '<div class="m-chip" data-id="' + id + '"><div><div class="m-hash">#</div>'
+             + '<div class="m-num">' + fmtQ(e.queueNo) + '</div></div>'
+             + '<div class="m-time">Called<br>' + (mins>0?mins+'m '+secs+'s':secs+'s') + ' ago</div></div>';
+      }).join('');
+    }
   }
 }
 
-// ─── TICK — every second, lightweight DOM update only ────────────────────────
+// ── Tick ──────────────────────────────────────────────────────────────────────
 function tick() {
-  const now  = Date.now();
-  let changed = false;
-
-  // Check state transitions
-  Object.entries(entries).forEach(([id, e]) => {
-    const age = now - e.calledAt;
+  var now = Date.now(); var changed = false;
+  Object.keys(entries).forEach(function(id) {
+    var e = entries[id]; var age = now - e.calledAt;
     if (e.status === 'serving' && age >= SERVE_MS) {
-      // Serving timeout → downgrade to MISSED
-      db.ref('queue_display').child(id).update({ status: 'missed' });
-      entries[id].status = 'missed';
-      changed = true;
+      if (db) db.ref('queue_display').child(id).update({status:'missed'});
+      entries[id].status = 'missed'; changed = true;
     } else if (e.status === 'missed' && age >= MISSED_MS) {
-      // Missed timeout → auto-clear
-      db.ref('queue_display').child(id).remove();
-      delete entries[id];
-      changed = true;
+      if (db) db.ref('queue_display').child(id).remove();
+      delete entries[id]; changed = true;
     }
   });
-
-  // If state changed, do a full re-render and stop here
   if (changed) { renderDisplay(); return; }
 
-  // Otherwise: update rings and timers in-place (no DOM re-render)
-  document.querySelectorAll('.s-card.active').forEach(card => {
-    const id = card.dataset.id;
-    const e  = entries[id];
-    if (!e) return;
-    const elapsed = Math.floor((now - e.calledAt) / 1000);
-    const remain  = Math.max(0, 60 - elapsed);
-    const offset  = +(Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2));
-    const urgent  = remain <= 15;
-
-    const arc = card.querySelector('.ring-arc');
-    if (arc) {
-      arc.setAttribute('stroke-dashoffset', offset);
-      arc.setAttribute('stroke', urgent ? '#DC2626' : '#E8C547');
-    }
-    const secEl = card.querySelector('.ring-secs');
-    if (secEl) {
-      secEl.textContent = remain;
-      secEl.className   = 'ring-secs' + (urgent ? ' urgent' : '');
-    }
+  document.querySelectorAll('.s-card.active').forEach(function(card) {
+    var id=card.dataset.id; var e=entries[id]; if (!e) return;
+    var elapsed=Math.max(0,Math.floor((Date.now()-e.calledAt)/1000));
+    var remain=Math.max(0,60-elapsed);
+    var offset=Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2);
+    var urgent=remain<=15;
+    var arc=card.querySelector('.ring-arc');
+    if (arc){arc.setAttribute('stroke-dashoffset',offset);arc.setAttribute('stroke',urgent?'#DC2626':'#E8C547');}
+    var sec=card.querySelector('.ring-secs');
+    if (sec){sec.textContent=remain;sec.className='ring-secs'+(urgent?' urgent':'');}
   });
-
-  // Update missed chip timestamps
-  document.querySelectorAll('.m-chip').forEach(chip => {
-    const id = chip.dataset.id;
-    const e  = entries[id];
-    if (!e) return;
-    const age  = now - e.calledAt;
-    const mins = Math.floor(age / 60_000);
-    const secs = Math.floor((age % 60_000) / 1000);
-    const t = chip.querySelector('.m-time');
-    if (t) t.innerHTML = `Called<br>${mins > 0 ? `${mins}m ${secs}s ago` : `${secs}s ago`}`;
+  document.querySelectorAll('.m-chip').forEach(function(chip) {
+    var id=chip.dataset.id; var e=entries[id]; if (!e) return;
+    var age=Math.max(0,Date.now()-e.calledAt);
+    var mins=Math.floor(age/60000); var secs=Math.floor((age%60000)/1000);
+    var t=chip.querySelector('.m-time');
+    if (t) t.innerHTML='Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
   });
 }
 setInterval(tick, 1000);
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let entries   = {};
-let announced = new Set();
-let dataReceived = false;
-
-// ─── FIREBASE REALTIME LISTENER ───────────────────────────────────────────────
-db.ref('queue_display').on('value', snap => {
-  dataReceived = true;
-  const data = snap.val() || {};
-  const count = Object.keys(data).length;
-  const statuses = Object.values(data).map(e=>e.status).join(',') || 'empty';
-  diag('v' + VERSION + ' · DATA RECEIVED · ' + count + ' entries [' + statuses + ']', '#0A200A');
-
-  Object.entries(data).forEach(([id, e]) => {
-    const key = `${id}_${e.calledAt}`;
-    if (e.status === 'serving' && !announced.has(key)) {
-      announced.add(key);
-      speakNumber(e.queueNo, 3);
-    }
+// ── Firebase listener ─────────────────────────────────────────────────────────
+if (db) {
+  db.ref('queue_display').on('value', function(snap) {
+    dataReceived = true;
+    var data = snap.val() || {};
+    Object.keys(data).forEach(function(id) {
+      var e = data[id]; var key = id + '_' + e.calledAt;
+      if (e.status === 'serving' && !announced[key]) {
+        announced[key] = true;
+        speakNumber(e.queueNo, 3);
+      }
+    });
+    entries = data;
+    renderDisplay();
+  }, function(err) {
+    diag('READ ERROR: ' + err.code + ' -- Firebase Console > Realtime Database > Rules -- add: "queue_display":{".read":true,".write":true}', '#7F1D1D');
   });
-
-  entries = data;
-  renderDisplay();
-}, err => {
-  diag('READ ERROR: ' + err.code + ' — go to Firebase Console → Realtime Database → Rules and add: "queue_display":{".read":true,".write":true}', '#7F1D1D');
-});
+}
 </script>
-<!-- Diagnostic bar: ALWAYS VISIBLE — shows version + Firebase status -->
-<div id="diag-bar" style="position:fixed;top:0;left:0;right:0;background:#1A1A0A;color:#E8C547;font-size:13px;font-family:monospace;font-weight:bold;padding:8px 16px;z-index:999999;white-space:nowrap;overflow:hidden;border-bottom:1px solid #3A3010"></div>
-
-</body>
-</html>
