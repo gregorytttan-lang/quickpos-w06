@@ -107,12 +107,14 @@ body{
 }
 .serving-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(2,1fr);
+  grid-template-rows:repeat(2,1fr);
   gap:18px;
   flex:1;align-content:stretch;
 }
-.serving-grid.has-1{grid-template-columns:1fr}
-.serving-grid.has-2{grid-template-columns:repeat(2,1fr)}
+.serving-grid.has-1{grid-template-columns:1fr;grid-template-rows:1fr}
+.serving-grid.has-2{grid-template-columns:repeat(2,1fr);grid-template-rows:1fr}
+.serving-grid.has-3{grid-template-rows:auto auto}
 
 /* ── SERVING CARD ─────────────────────────────────────────────────────────── */
 .s-card{
@@ -156,7 +158,7 @@ body{
 }
 
 .q-hash{
-  font-size:32px;color:#5A4A3E;font-weight:600;
+  font-size:32px;color:#2D5A3E;font-weight:600;
   font-family:'Playfair Display',serif;
   line-height:1;margin-bottom:-8px;
 }
@@ -165,15 +167,15 @@ body{
   font-family:'Playfair Display',serif;
   font-size:min(38vh, 23vw);
   font-weight:800;
-  color:#E8C547;
+  color:#4ADE80;
   line-height:0.9;
   letter-spacing:-0.04em;
-  animation:shimmer 2.8s ease-in-out infinite;
+  animation:shimmerGreen 2.8s ease-in-out infinite;
 }
 .s-card.empty .q-num{display:none}
-@keyframes shimmer{
-  0%,100%{text-shadow:0 0 25px rgba(232,197,71,0.3),0 0 45px rgba(232,197,71,0.15)}
-  50%{text-shadow:0 0 60px rgba(232,197,71,0.85),0 0 100px rgba(232,197,71,0.3)}
+@keyframes shimmerGreen{
+  0%,100%{text-shadow:0 0 25px rgba(74,222,128,0.4),0 0 50px rgba(74,222,128,0.2)}
+  50%{text-shadow:0 0 60px rgba(74,222,128,0.9),0 0 110px rgba(74,222,128,0.35)}
 }
 
 /* ── COUNTDOWN RING ──────────────────────────────────────────────────────── */
@@ -184,7 +186,7 @@ body{
 .ring-secs{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
-  font-size:24px;font-weight:700;color:#E8C547;
+  font-size:24px;font-weight:700;color:#4ADE80;
   transition:color 0.3s;
 }
 .ring-secs.urgent{
@@ -196,8 +198,8 @@ body{
 /* ── MISSED ZONE — LEFT 1/4 SIDEBAR ──────────────────────────────────────── */
 .missed-zone{
   flex:0 0 25%;
-  background:linear-gradient(180deg,#1F1408 0%,#170E05 100%);
-  border-right:3px solid #B45309;
+  background:linear-gradient(180deg,#0F0A06 0%,#0A0705 100%);
+  border-right:3px solid #DC2626;
   padding:22px 22px;
   display:flex;
   flex-direction:column;
@@ -208,38 +210,38 @@ body{
   display:flex;flex-direction:row;align-items:center;justify-content:center;gap:14px;
   flex-shrink:0;padding-bottom:14px;border-bottom:1px solid #4A2A08;
 }
-.missed-lbl-icon{font-size:54px}
+.missed-lbl-icon{font-size:42px}
 .missed-lbl-txt{
-  font-size:32px;font-weight:800;letter-spacing:0.22em;
-  text-transform:uppercase;color:#D97706;
+  font-size:28px;font-weight:800;letter-spacing:0.18em;
+  text-transform:uppercase;color:#DC2626;line-height:1;text-align:center;
 }
 .missed-chips{
   display:flex;flex-direction:column;gap:18px;
   flex:1;overflow:hidden;
 }
 .m-chip{
-  background:#2A1808;
-  border:4px solid #D97706;
-  border-radius:24px;
-  padding:18px 16px;
+  background:#0A1F0A;
+  border:4px solid #DC2626;
+  border-radius:20px;
+  padding:12px 14px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
   flex:1;min-height:0;
   animation:chipIn 0.4s ease both, missedPulse 2s ease-in-out infinite;
 }
 @keyframes chipIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes missedPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,0)}
-  50%{box-shadow:0 0 32px 3px rgba(217,119,6,0.3)}
+  0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}
+  50%{box-shadow:0 0 28px 3px rgba(220,38,38,0.35)}
 }
-.m-hash{font-size:38px;color:#92400E;font-weight:600;line-height:1;font-family:'Playfair Display',serif;margin-bottom:-6px}
+.m-hash{font-size:38px;color:#2D5A3E;font-weight:600;line-height:1;font-family:'Playfair Display',serif;margin-bottom:-6px}
 .m-num{
   font-family:'Playfair Display',serif;
-  font-size:clamp(120px, 12vw, 220px);
-  font-weight:800;color:#FB923C;
+  font-size:clamp(110px, 11vw, 200px);
+  font-weight:800;color:#4ADE80;
   line-height:0.95;letter-spacing:-0.03em;
-  text-shadow:0 0 30px rgba(251,146,60,0.45);
+  text-shadow:0 0 30px rgba(74,222,128,0.45);
 }
-.m-time{font-size:18px;color:#D97706;line-height:1.3;font-weight:600;text-align:center;margin-top:8px}
+.m-time{font-size:15px;color:#92400E;line-height:1.3;font-weight:600;text-align:center;margin-top:4px}
 .no-missed{font-size:22px;color:#3A2A1A;font-weight:600;text-align:center;padding:40px 10px;letter-spacing:0.04em}
 
 /* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
@@ -350,8 +352,8 @@ if (typeof firebase === 'undefined') {
 // ── Constants ─────────────────────────────────────────────────────────────────
 var SERVE_MS   = 60000;
 var MISSED_MS  = 600000;
-var MAX_ACTIVE = 3;
-var MAX_MISSED = 2;
+var MAX_ACTIVE = 4;
+var MAX_MISSED = 3;
 var RING_R     = 46;
 var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
 
@@ -431,7 +433,7 @@ function renderDisplay(){
       var elapsed=Math.max(0,Math.floor((now-e.calledAt)/1000));
       var remain=Math.max(0,60-elapsed);
       var offset=Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2);
-      var urgent=remain<=15, sc=urgent?'#DC2626':'#E8C547';
+      var urgent=remain<=15, sc=urgent?'#DC2626':'#4ADE80';
       html+='<div class="s-card active" data-id="'+id+'"><div class="card-radial"></div>'
            +'<div class="q-hash">#</div><div class="q-num">'+fmtQ(e.queueNo)+'</div>'
            +'<div class="ring-wrap"><svg viewBox="0 0 100 100" width="82" height="82">'
@@ -473,7 +475,7 @@ function tick(){
     var id=card.dataset.id,e=entries[id];if(!e)return;
     var elapsed=Math.max(0,Math.floor((Date.now()-e.calledAt)/1000));
     var remain=Math.max(0,60-elapsed),offset=Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2),urgent=remain<=15;
-    var arc=card.querySelector('.ring-arc');if(arc){arc.setAttribute('stroke-dashoffset',offset);arc.setAttribute('stroke',urgent?'#DC2626':'#E8C547');}
+    var arc=card.querySelector('.ring-arc');if(arc){arc.setAttribute('stroke-dashoffset',offset);arc.setAttribute('stroke',urgent?'#DC2626':'#4ADE80');}
     var sec=card.querySelector('.ring-secs');if(sec){sec.textContent=remain;sec.className='ring-secs'+(urgent?' urgent':'');}
   });
   document.querySelectorAll('.m-chip').forEach(function(chip){
