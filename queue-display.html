@@ -71,40 +71,48 @@ body{
 /* Header taller so big text fits */
 .hdr{height:160px !important;padding:0 36px !important}
 
-/* ── NOW SERVING ZONE ────────────────────────────────────────────────────── */
+/* ── MAIN ROW: missed sidebar + serving zone side by side ────────────────── */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:row;
+  min-height:0;
+  overflow:hidden;
+}
+
+
+/* ── NOW SERVING — RIGHT 3/4 ──────────────────────────────────────────────── */
 .serving-zone{
   flex:1;
   display:flex;flex-direction:column;
-  padding:18px 22px 10px;
+  padding:18px 26px 18px;
   min-height:0;overflow:hidden;
 }
 .zone-lbl{
-  font-size:15px;font-weight:700;
+  font-size:18px;font-weight:700;
   letter-spacing:0.25em;text-transform:uppercase;
   color:#8A7A6E;
-  margin-bottom:14px;
-  display:flex;align-items:center;gap:10px;
+  margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
 }
 .lbl-pulse{
-  width:10px;height:10px;border-radius:50%;
+  width:12px;height:12px;border-radius:50%;
   background:#E8C547;
   animation:dotPulse 1.6s ease-in-out infinite;
-  box-shadow:0 0 8px #E8C547;
+  box-shadow:0 0 10px #E8C547;
 }
 @keyframes dotPulse{
   0%,100%{opacity:1;transform:scale(1)}
   50%{opacity:0.35;transform:scale(0.65)}
 }
-
 .serving-grid{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
   flex:1;align-content:stretch;
 }
 .serving-grid.has-1{grid-template-columns:1fr}
 .serving-grid.has-2{grid-template-columns:repeat(2,1fr)}
-.serving-grid.has-3{grid-template-columns:repeat(3,1fr)}
 
 /* ── SERVING CARD ─────────────────────────────────────────────────────────── */
 .s-card{
@@ -185,49 +193,54 @@ body{
 }
 @keyframes urgentBlink{0%,100%{opacity:1}50%{opacity:0.25}}
 
-/* ── MISSED ZONE — DOUBLE SIZE FOR 3M VIEWING ────────────────────────────── */
+/* ── MISSED ZONE — LEFT 1/4 SIDEBAR ──────────────────────────────────────── */
 .missed-zone{
-  background:linear-gradient(135deg,#1F1408 0%,#170E05 100%);
-  border-top:3px solid #B45309;
-  padding:24px 32px;
-  height:280px !important;
-  flex-shrink:0;
-  display:flex;align-items:center;gap:24px;
+  flex:0 0 25%;
+  background:linear-gradient(180deg,#1F1408 0%,#170E05 100%);
+  border-right:3px solid #B45309;
+  padding:22px 22px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
   overflow:hidden;
 }
 .missed-lbl{
-  display:flex;flex-direction:column;align-items:center;gap:10px;
-  width:160px;flex-shrink:0;
+  display:flex;flex-direction:row;align-items:center;justify-content:center;gap:14px;
+  flex-shrink:0;padding-bottom:14px;border-bottom:1px solid #4A2A08;
 }
-.missed-lbl-icon{font-size:72px}
+.missed-lbl-icon{font-size:54px}
 .missed-lbl-txt{
-  font-size:24px;font-weight:800;letter-spacing:0.2em;
+  font-size:32px;font-weight:800;letter-spacing:0.22em;
   text-transform:uppercase;color:#D97706;
 }
-.missed-chips{display:flex;gap:24px;align-items:center;flex:1;overflow:hidden;height:100%}
+.missed-chips{
+  display:flex;flex-direction:column;gap:18px;
+  flex:1;overflow:hidden;
+}
 .m-chip{
   background:#2A1808;
   border:4px solid #D97706;
   border-radius:24px;
-  padding:22px 50px;
-  display:flex;align-items:center;gap:30px;height:100%;
-  flex-shrink:0;
+  padding:18px 16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  flex:1;min-height:0;
   animation:chipIn 0.4s ease both, missedPulse 2s ease-in-out infinite;
 }
 @keyframes chipIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes missedPulse{
   0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,0)}
-  50%{box-shadow:0 0 24px 2px rgba(217,119,6,0.25)}
+  50%{box-shadow:0 0 32px 3px rgba(217,119,6,0.3)}
 }
-.m-hash{font-size:38px;color:#92400E;font-weight:600;line-height:1;font-family:'Playfair Display',serif}
+.m-hash{font-size:38px;color:#92400E;font-weight:600;line-height:1;font-family:'Playfair Display',serif;margin-bottom:-6px}
 .m-num{
   font-family:'Playfair Display',serif;
-  font-size:160px;font-weight:800;color:#FB923C;
-  line-height:1;letter-spacing:-0.02em;
-  text-shadow:0 0 30px rgba(251,146,60,0.4);
+  font-size:clamp(120px, 12vw, 220px);
+  font-weight:800;color:#FB923C;
+  line-height:0.95;letter-spacing:-0.03em;
+  text-shadow:0 0 30px rgba(251,146,60,0.45);
 }
-.m-time{font-size:22px;color:#D97706;line-height:1.3;font-weight:600}
-.no-missed{font-size:32px;color:#3A2A1A;font-weight:600;letter-spacing:0.05em}
+.m-time{font-size:18px;color:#D97706;line-height:1.3;font-weight:600;text-align:center;margin-top:8px}
+.no-missed{font-size:22px;color:#3A2A1A;font-weight:600;text-align:center;padding:40px 10px;letter-spacing:0.04em}
 
 /* ── EMPTY STATE ─────────────────────────────────────────────────────────── */
 .empty-state{
@@ -265,26 +278,31 @@ body{
   </div>
 </div>
 
-<!-- ── NOW SERVING ────────────────────────────────────────────────────────── -->
-<div class="serving-zone">
-  <div class="zone-lbl">
-    <div class="lbl-pulse"></div>
-    NOW SERVING
-  </div>
-  <div class="serving-grid" id="serving-grid">
-    <!-- Rendered by JS -->
-  </div>
-</div>
+<!-- ── MAIN: missed sidebar (left 1/4) + serving (right 3/4) ────────────────── -->
+<div class="main">
 
-<!-- ── MISSED ─────────────────────────────────────────────────────────────── -->
-<div class="missed-zone">
-  <div class="missed-lbl">
-    <div class="missed-lbl-icon">⚠️</div>
-    <div class="missed-lbl-txt">MISSED</div>
+  <!-- MISSED — LEFT SIDEBAR -->
+  <div class="missed-zone">
+    <div class="missed-lbl">
+      <div class="missed-lbl-icon">⚠️</div>
+      <div class="missed-lbl-txt">MISSED</div>
+    </div>
+    <div class="missed-chips" id="missed-chips">
+      <div class="no-missed">No missed numbers</div>
+    </div>
   </div>
-  <div class="missed-chips" id="missed-chips">
-    <div class="no-missed">— No missed numbers —</div>
+
+  <!-- NOW SERVING — RIGHT 3/4 -->
+  <div class="serving-zone">
+    <div class="zone-lbl">
+      <div class="lbl-pulse"></div>
+      NOW SERVING
+    </div>
+    <div class="serving-grid" id="serving-grid">
+      <!-- Rendered by JS -->
+    </div>
   </div>
+
 </div>
 
 <!-- Diagnostic bar: in DOM before script so getElementById works immediately -->
@@ -332,7 +350,7 @@ if (typeof firebase === 'undefined') {
 // ── Constants ─────────────────────────────────────────────────────────────────
 var SERVE_MS   = 60000;
 var MISSED_MS  = 600000;
-var MAX_ACTIVE = 4;
+var MAX_ACTIVE = 3;
 var MAX_MISSED = 2;
 var RING_R     = 46;
 var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
@@ -433,7 +451,11 @@ function renderDisplay(){
     chips.innerHTML=missed.map(function(kv){
       var id=kv[0],e=kv[1],age=Math.max(0,now-e.calledAt);
       var mins=Math.floor(age/60000),secs=Math.floor((age%60000)/1000);
-      return '<div class="m-chip" data-id="'+id+'"><div><div class="m-hash">#</div><div class="m-num">'+fmtQ(e.queueNo)+'</div></div><div class="m-time">Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago</div></div>';
+      return '<div class="m-chip" data-id="'+id+'">'
+           + '<div class="m-hash">#</div>'
+           + '<div class="m-num">'+fmtQ(e.queueNo)+'</div>'
+           + '<div class="m-time">Called '+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago</div>'
+           + '</div>';
     }).join('');
   }
 }
@@ -457,7 +479,8 @@ function tick(){
   document.querySelectorAll('.m-chip').forEach(function(chip){
     var id=chip.dataset.id,e=entries[id];if(!e)return;
     var age=Math.max(0,Date.now()-e.calledAt),mins=Math.floor(age/60000),secs=Math.floor((age%60000)/1000);
-    var t=chip.querySelector('.m-time');if(t)t.innerHTML='Called<br>'+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
+    var t=chip.querySelector('.m-time');
+    if(t)t.textContent='Called '+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
   });
 }
 setInterval(tick,1000);
