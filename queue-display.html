@@ -387,17 +387,70 @@ if(db){
   });
 }
 
-// ── Audio announcement (uses media stream → Bluetooth works) ──────────────────
-// Instead of Web Speech API (which Android routes to notification stream, NOT Bluetooth),
-// we play real MP3 audio from Google Translate TTS. Audio elements use the media
-// stream — same as YouTube — so Bluetooth speakers receive it correctly.
+// AUDIO SYSTEM: chime + TTS, with audio unlock for Chrome Android
+var audioUnlocked = false;
+var audioCtx = null;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    var buf = audioCtx.createBuffer(1, 1, 22050);
+    var src = audioCtx.createBufferSource();
+    src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
+    audioUnlocked = true;
+    diag('Step 5: Audio UNLOCKED. Bluetooth ready.', '#0A200A');
+    setTimeout(function(){var b=document.getElementById('diag-bar');if(b)b.style.display='none';}, 3000);
+  } catch(e) {
+    diag('Audio unlock failed: ' + e.message, '#7F1D1D');
+  }
+}
+
+(function() {
+  var overlay = document.createElement('div');
+  overlay.id = 'audio-unlock';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,9,8,0.96);z-index:9999998;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:30px';
+  overlay.innerHTML = '<div style="font-size:140px;animation:pulseUnlock 1.5s ease-in-out infinite">\uD83D\uDD0A</div>'
+    + '<div style="font-family:Playfair Display,serif;font-size:56px;font-weight:700;color:#E8C547;text-align:center;padding:0 40px">Tap anywhere to enable sound</div>'
+    + '<div style="font-size:22px;color:#8A7A6E;text-align:center;max-width:600px;line-height:1.5;padding:0 40px">Make sure Bluetooth speaker is connected and tablet volume is up</div>'
+    + '<style>@keyframes pulseUnlock{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:0.7}}</style>';
+  document.body.appendChild(overlay);
+  function unlock() {
+    unlockAudio();
+    playChime();
+    setTimeout(function(){ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 800);
+  }
+  overlay.addEventListener('click', unlock);
+  overlay.addEventListener('touchstart', unlock);
+})();
+
+// CHIME: 3-note bell via Web Audio API (always uses MEDIA stream)
+function playChime() {
+  if (!audioCtx) return;
+  try {
+    var notes = [880, 1108, 1318];
+    notes.forEach(function(freq, i) {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      var t0 = audioCtx.currentTime + i * 0.15;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.5, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
+      osc.start(t0); osc.stop(t0 + 0.7);
+    });
+  } catch(e) { console.log('Chime failed:', e); }
+}
+
 function speakNumber(queueNo, times) {
   if (!queueNo && queueNo !== 0) return;
   times = times || 3;
   var num = parseInt(queueNo);
   var text = 'Number ' + num + ', please come to the counter';
+  playChime();
   var count = 0;
-
   function fallbackSpeech(onDone) {
     if (!window.speechSynthesis) { onDone(); return; }
     window.speechSynthesis.cancel();
@@ -406,30 +459,20 @@ function speakNumber(queueNo, times) {
     u.onend = onDone; u.onerror = onDone;
     window.speechSynthesis.speak(u);
   }
-
   function playOnce() {
     if (count >= times) return;
     count++;
-    var nextCall = function() { if (count < times) setTimeout(playOnce, 1500); };
-
-    // Primary: real MP3 audio via media stream (routes to Bluetooth)
-    var url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q='
-            + encodeURIComponent(text);
+    var nextCall = function() { if (count < times) setTimeout(playOnce, 1800); };
+    var url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=' + encodeURIComponent(text);
     var audio = new Audio(url);
     audio.volume = 1.0;
     audio.addEventListener('ended', nextCall);
-    audio.addEventListener('error', function() {
-      // Network or service blocked — fall back to Web Speech (no Bluetooth, but at least sound)
-      fallbackSpeech(nextCall);
-    });
+    audio.addEventListener('error', function(){ fallbackSpeech(nextCall); });
     var p = audio.play();
-    if (p && p.catch) {
-      p.catch(function() { fallbackSpeech(nextCall); });
-    }
+    if (p && p.catch) p.catch(function(){ fallbackSpeech(nextCall); });
   }
-  setTimeout(playOnce, 300);
+  setTimeout(playOnce, 800);
 }
-// Keep Web Speech alive too as a safety net
 setInterval(function(){if(window.speechSynthesis&&!window.speechSynthesis.speaking)window.speechSynthesis.resume();},5000);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
