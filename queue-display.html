@@ -387,26 +387,49 @@ if(db){
   });
 }
 
-// ── TTS ───────────────────────────────────────────────────────────────────────
+// ── Audio announcement (uses media stream → Bluetooth works) ──────────────────
+// Instead of Web Speech API (which Android routes to notification stream, NOT Bluetooth),
+// we play real MP3 audio from Google Translate TTS. Audio elements use the media
+// stream — same as YouTube — so Bluetooth speakers receive it correctly.
 function speakNumber(queueNo, times) {
-  if(!window.speechSynthesis) return;
-  times=times||3;
-  var text='Number '+parseInt(queueNo)+', please come to the counter', count=0;
-  function go(){
-    if(count>=times) return; count++;
+  if (!queueNo && queueNo !== 0) return;
+  times = times || 3;
+  var num = parseInt(queueNo);
+  var text = 'Number ' + num + ', please come to the counter';
+  var count = 0;
+
+  function fallbackSpeech(onDone) {
+    if (!window.speechSynthesis) { onDone(); return; }
     window.speechSynthesis.cancel();
-    var u=new SpeechSynthesisUtterance(text);
-    u.lang='en-SG'; u.rate=0.84; u.pitch=0.9; u.volume=1;
-    var vs=window.speechSynthesis.getVoices(), v=null;
-    for(var i=0;i<vs.length;i++){if(vs[i].lang==='en-SG'||vs[i].lang==='en-IN'){v=vs[i];break;}}
-    if(!v)for(var i=0;i<vs.length;i++){if(vs[i].lang.indexOf('en')===0){v=vs[i];break;}}
-    if(v) u.voice=v;
-    u.onend=function(){if(count<times)setTimeout(go,2800);};
-    u.onerror=function(){if(count<times)setTimeout(go,2800);};
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-SG'; u.rate = 0.85; u.pitch = 0.9; u.volume = 1;
+    u.onend = onDone; u.onerror = onDone;
     window.speechSynthesis.speak(u);
   }
-  setTimeout(go,400);
+
+  function playOnce() {
+    if (count >= times) return;
+    count++;
+    var nextCall = function() { if (count < times) setTimeout(playOnce, 1500); };
+
+    // Primary: real MP3 audio via media stream (routes to Bluetooth)
+    var url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q='
+            + encodeURIComponent(text);
+    var audio = new Audio(url);
+    audio.volume = 1.0;
+    audio.addEventListener('ended', nextCall);
+    audio.addEventListener('error', function() {
+      // Network or service blocked — fall back to Web Speech (no Bluetooth, but at least sound)
+      fallbackSpeech(nextCall);
+    });
+    var p = audio.play();
+    if (p && p.catch) {
+      p.catch(function() { fallbackSpeech(nextCall); });
+    }
+  }
+  setTimeout(playOnce, 300);
 }
+// Keep Web Speech alive too as a safety net
 setInterval(function(){if(window.speechSynthesis&&!window.speechSynthesis.speaking)window.speechSynthesis.resume();},5000);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
