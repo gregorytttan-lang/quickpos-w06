@@ -446,7 +446,7 @@ function playChime() {
 
 function speakNumber(queueNo, times) {
   if (!queueNo && queueNo !== 0) return;
-  times = times || 3;
+  times = times || 2;
   var num = parseInt(queueNo);
   var text = 'Number ' + num + ', please come to the counter';
   playChime();
@@ -462,7 +462,7 @@ function speakNumber(queueNo, times) {
   function playOnce() {
     if (count >= times) return;
     count++;
-    var nextCall = function() { if (count < times) setTimeout(playOnce, 1800); };
+    var nextCall = function() { if (count < times) setTimeout(playOnce, 1000); };
     var url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=' + encodeURIComponent(text);
     var audio = new Audio(url);
     audio.volume = 1.0;
@@ -560,7 +560,7 @@ if(db){
     var data=snap.val()||{};
     Object.keys(data).forEach(function(id){
       var e=data[id],key=id+'_'+e.calledAt;
-      if(e.status==='serving'&&!announced[key]){announced[key]=true;speakNumber(e.queueNo,3);}
+      if(e.status==='serving'&&!announced[key]){announced[key]=true;speakNumber(e.queueNo,2);}
     });
     entries=data;
     renderDisplay();
