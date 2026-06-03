@@ -23,63 +23,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 .overlay{position:fixed;inset:0;z-index:500;overflow-y:auto}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)}70%{box-shadow:0 0 0 10px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
 @keyframes flaggedPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.35)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
-
-/* ── QUEUE DISPLAY MODE (?display=1) ─────────────────────────────────────── */
-#view-qdisplay{display:none;flex-direction:column;position:fixed;inset:0;z-index:99990;background:#0A0908;font-family:'DM Sans',sans-serif;color:#FAF9F7;overflow:hidden}
-#view-qdisplay.active{display:flex}
-/* header */
-.qd-hdr{background:linear-gradient(135deg,#1C1410 0%,#0F0D0B 100%);border-bottom:2px solid #C4572A;padding:0 28px;height:88px;flex-shrink:0;display:flex;align-items:center}
-.qd-logo{display:flex;flex-direction:column;gap:4px;min-width:230px;flex-shrink:0}
-.qd-brand{font-family:'Playfair Display',serif;font-size:23px;font-weight:800;color:#FAF9F7;letter-spacing:0.02em;white-space:nowrap}
-.qd-brand .accent{color:#C4572A}
-.qd-stall{font-size:11px;color:#5A4A3E;font-weight:500;display:flex;align-items:center;gap:6px}
-.qd-conn{width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 5px #16A34A;display:inline-block;flex-shrink:0;transition:background 0.4s,box-shadow 0.4s}
-.qd-div{width:1px;background:#221A10;margin:16px 24px;align-self:stretch}
-.qd-msg{flex:1;text-align:center;padding:0 12px}
-.qd-collect{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#E8C547;line-height:1.3}
-.qd-collect-sub{font-size:12px;color:#5A4A3E;margin-top:3px}
-.qd-clock-wrap{text-align:right;min-width:148px;flex-shrink:0}
-.qd-time{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:#FAF9F7;letter-spacing:0.04em;line-height:1}
-.qd-date{font-size:11px;color:#5A4A3E;margin-top:4px}
-/* serving zone */
-.qd-serving{flex:1;display:flex;flex-direction:column;padding:14px 20px 6px;min-height:0;overflow:hidden}
-.qd-zone-lbl{font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#3A2A1A;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.qd-lbl-pulse{width:7px;height:7px;border-radius:50%;background:#E8C547;animation:qdDotPulse 1.6s ease-in-out infinite}
-@keyframes qdDotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.35;transform:scale(0.65)}}
-.qd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:1;align-content:stretch}
-/* cards */
-.qd-card{background:linear-gradient(155deg,#1C1612 0%,#110D09 100%);border:2px solid #221A10;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 12px;position:relative;overflow:hidden}
-.qd-card.qd-active{border-color:#352618;animation:qdCardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both,qdBorderGlow 3s ease-in-out infinite}
-.qd-card.qd-empty{border-color:#141008;opacity:0.18}
-.qd-radial{position:absolute;top:-70px;left:50%;transform:translateX(-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(232,197,71,0.055) 0%,transparent 65%);border-radius:50%;pointer-events:none}
-@keyframes qdCardIn{from{transform:scale(0.72) translateY(-18px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-@keyframes qdBorderGlow{0%,100%{box-shadow:0 0 0 0 rgba(232,197,71,0)}50%{box-shadow:0 0 32px 3px rgba(232,197,71,0.07)}}
-.qd-hash{font-size:17px;color:#3A2A1A;font-weight:500;line-height:1;margin-bottom:0}
-.qd-num{font-family:'Playfair Display',serif;font-size:clamp(72px,9vw,130px);font-weight:800;color:#E8C547;line-height:0.88;letter-spacing:-0.02em;animation:qdShimmer 2.8s ease-in-out infinite}
-.qd-card.qd-empty .qd-num{color:#201808;font-size:36px;animation:none;letter-spacing:0}
-@keyframes qdShimmer{0%,100%{text-shadow:0 0 22px rgba(232,197,71,0.22)}50%{text-shadow:0 0 55px rgba(232,197,71,0.72),0 0 90px rgba(232,197,71,0.18)}}
-/* ring */
-.qd-ring{position:relative;margin-top:14px;flex-shrink:0}
-.qd-ring svg{display:block}
-.qd-secs{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:#E8C547;transition:color 0.3s}
-.qd-secs.urgent{color:#DC2626;animation:qdUrgent 0.55s ease-in-out infinite}
-@keyframes qdUrgent{0%,100%{opacity:1}50%{opacity:0.25}}
-/* missed */
-.qd-missed{background:linear-gradient(135deg,#130E06 0%,#0E0A04 100%);border-top:1px solid #1C1408;padding:10px 20px;height:88px;flex-shrink:0;display:flex;align-items:center;gap:18px;overflow:hidden}
-.qd-mlbl{display:flex;flex-direction:column;align-items:center;gap:3px;width:76px;flex-shrink:0}
-.qd-micon{font-size:17px}
-.qd-mtxt{font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#92400E}
-.qd-chips{display:flex;gap:10px;align-items:center;flex:1;overflow:hidden}
-.qd-chip{background:#1A1208;border:2px solid #7C3300;border-radius:12px;padding:8px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0;animation:qdChipIn 0.4s ease both}
-@keyframes qdChipIn{from{transform:translateX(-18px);opacity:0}to{transform:translateX(0);opacity:1}}
-.qd-mhash{font-size:12px;color:#5A4A3E;font-weight:500;line-height:1}
-.qd-mnum{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:#D97706;line-height:1}
-.qd-mtime{font-size:11px;color:#5A4A3E;line-height:1.5}
-.qd-nomiss{font-size:13px;color:#1E1408;font-weight:600}
-/* empty state */
-.qd-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;grid-column:1/-1;height:100%;gap:10px;opacity:0.22}
-.qd-empty-icon{font-size:54px}
-.qd-empty-txt{font-size:17px;color:#5A4A3E;font-weight:600}
+@keyframes specialPulse{0%,100%{box-shadow:0 2px 12px rgba(220,38,38,0.25)}50%{box-shadow:0 4px 20px rgba(220,38,38,0.45)}}
 </style>
 </head>
 <body>
@@ -121,6 +65,22 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     </div>
     <div id="cat-tabs" style="display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px"></div>
   </div>
+  <!-- 🔥 Today's Special banner (appears at very top, persistent across category switches) -->
+  <div id="special-banner" class="hidden" onclick="addSpecialToCart()" style="background:linear-gradient(135deg,#DC2626 0%,#B91C1C 100%);padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:3px solid #FBBF24;box-shadow:0 2px 12px rgba(220,38,38,0.25);animation:specialPulse 2.5s ease-in-out infinite">
+    <div id="special-banner-image-wrap" style="flex-shrink:0;width:74px;height:74px;border-radius:14px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.4);overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.2)">
+      <img id="special-banner-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+      <span id="special-banner-emoji" style="font-size:36px">🔥</span>
+    </div>
+    <div style="flex:1;color:#fff;min-width:0">
+      <div style="font-size:9px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;opacity:0.95;margin-bottom:2px">⭐ TODAY'S SPECIAL ⭐</div>
+      <div id="special-banner-name" style="font-size:17px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="special-banner-detail" style="font-size:11px;opacity:0.95;margin-top:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    </div>
+    <div style="text-align:right;color:#fff;flex-shrink:0">
+      <div id="special-banner-price" style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;line-height:1"></div>
+      <div style="font-size:10px;font-weight:700;margin-top:5px;background:rgba(255,255,255,0.22);padding:4px 10px;border-radius:14px;display:inline-block">+ ADD</div>
+    </div>
+  </div>
   <!-- Recovery banner -->
   <div id="recovery-banner" class="hidden" style="background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="showRecoveredOrder()">
     <div style="font-size:28px">📋</div>
@@ -159,11 +119,13 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="stall-status-bar" style="border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px"></div>
   <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
     <button onclick="adminTab('menu-mgmt')" id="atab-menu-mgmt" style="background:#C4572A;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600">📋 Menu</button>
+    <button onclick="adminTab('special')" id="atab-special" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:400">🔥 Special</button>
     <button onclick="adminTab('reports')" id="atab-reports" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:400">📊 Reports</button>
     <button onclick="adminTab('printer')" id="atab-printer" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:400">🖨️ Printer</button>
     <button onclick="if(confirm('Reset menu?'))resetMenu()" style="margin-left:auto;background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 12px;font-size:12px">Reset</button>
   </div>
   <div id="admin-menu-mgmt"></div>
+  <div id="admin-special" class="hidden"></div>
   <div id="admin-reports" class="hidden"></div>
   <div id="admin-printer" class="hidden">
     <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:12px">
@@ -388,7 +350,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-05-21-v2"; // fix: checkbox stale ref bug in payment gate modal
+const APP_VERSION = "2026-05-21-v4"; // feat: photo support for Today's Special banner
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -558,6 +520,7 @@ const DEFAULT_MENU = [
     {id:"sn10",name:"Cheesy Fries",price:3.00,desc:"Golden crispy fries smothered in rich cheese sauce — Ready immediately!"},
     {id:"sn15",name:"Crispy Chicken Stick",price:3.50,desc:"Tender chicken strips with a super crispy coating — Ready immediately!"},
     {id:"sn18",name:"New Fish Pop — Crispy",price:3.50,desc:"Bite-sized crispy fish pops — golden, crunchy and packed with flavour. Ready immediately!"},
+    {id:"sn99",name:"Chicken Kebab",price:4.50,desc:"🔥 NEW! Tender marinated chicken kebab grilled to perfection • Served with garden salad • Ready immediately!"},
   ]},
   {id:"c5",name:"Add-ons",emoji:"➕",items:[
     {id:"ss1",name:"Cream of Mushroom Soup",price:2.50,desc:"Warm & comforting creamy mushroom soup — Perfect with any main!"},
@@ -574,7 +537,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v7", DEFAULT_MENU);
+let menu    = ls("menu_w06_v8", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -583,7 +546,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v7", menu); }
+function saveMenu()  { lss("menu_w06_v8", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -636,6 +599,8 @@ function renderMenu(){
   const avail = menu.map(c=>({...c,items:c.items.filter(i=>i.avail!==false)})).filter(c=>c.items.length);
   // Show recovery banner if customer has a recent order (within 2 hours)
   renderRecoveryBanner();
+  // Show today's special banner (persistent across category switches)
+  renderSpecialBanner();
   // Tabs
   const tabs = document.getElementById("cat-tabs");
   tabs.innerHTML = avail.map((c,i)=>`
@@ -735,6 +700,80 @@ function showRecoveredOrder(){
 
 function closeRecoveryList(){
   closeModal("recovery-list-modal");
+}
+
+// ── 🔥 TODAY'S SPECIAL ──────────────────────────────────────────────────────
+let todaySpecial = null;  // { active, itemId, itemName, price, qtyTotal, qtyRemaining, tagline }
+
+function renderSpecialBanner(){
+  const banner = document.getElementById("special-banner");
+  if(!banner) return;
+  const s = todaySpecial;
+  // Hide if: no special set, inactive, sold out, or item doesn't exist in menu
+  if(!s || !s.active || !s.itemId || (s.qtyRemaining!=null && s.qtyRemaining <= 0)){
+    banner.classList.add("hidden");
+    return;
+  }
+  const item = getItem(s.itemId);
+  if(!item || item.avail === false){
+    banner.classList.add("hidden");
+    return;
+  }
+  banner.classList.remove("hidden");
+  document.getElementById("special-banner-name").textContent = s.itemName || item.name;
+  const tagline = s.tagline || "Chef's pick — Tap to add!";
+  const stockTxt = (s.qtyRemaining != null) ? ` · Only ${s.qtyRemaining} left!` : "";
+  document.getElementById("special-banner-detail").textContent = tagline + stockTxt;
+  const price = (s.price != null) ? s.price : item.price;
+  document.getElementById("special-banner-price").textContent = fmtS(price);
+  // Image handling — show photo if set, otherwise fall back to emoji
+  const imgEl = document.getElementById("special-banner-img");
+  const emojiEl = document.getElementById("special-banner-emoji");
+  if(s.imageUrl){
+    imgEl.onload = ()=>{ imgEl.style.display="block"; emojiEl.style.display="none"; };
+    imgEl.onerror = ()=>{ imgEl.style.display="none"; emojiEl.style.display="block"; };
+    if(imgEl.src !== s.imageUrl) imgEl.src = s.imageUrl;
+    else if(imgEl.complete && imgEl.naturalWidth>0){ imgEl.style.display="block"; emojiEl.style.display="none"; }
+  } else {
+    imgEl.style.display="none";
+    imgEl.src="";
+    emojiEl.style.display="block";
+  }
+}
+
+function addSpecialToCart(){
+  const s = todaySpecial;
+  if(!s || !s.active || !s.itemId) return;
+  if(s.qtyRemaining != null && s.qtyRemaining <= 0){
+    toast("😔 Sold out!","#DC2626"); return;
+  }
+  const item = getItem(s.itemId);
+  if(!item){ toast("Item unavailable","#DC2626"); return; }
+  if(item.avail === false){ toast("Item sold out","#DC2626"); return; }
+  // Use the standard add flow (handles modifiers if any)
+  handleAdd(s.itemId);
+  toast("🔥 Special added to cart!","#DC2626");
+}
+
+// Decrement special stock when an order containing the special is paid.
+// Uses Firebase transaction to avoid race conditions across devices.
+function decrementSpecialStock(orderItems){
+  if(!todaySpecial || !todaySpecial.active || !todaySpecial.itemId) return;
+  if(todaySpecial.qtyRemaining == null) return; // unlimited mode
+  const specialId = todaySpecial.itemId;
+  let qtyOrdered = 0;
+  (orderItems||[]).forEach(it=>{ if(it && it.id === specialId) qtyOrdered += (it.qty||0); });
+  if(qtyOrdered <= 0) return;
+  db.ref("today_special/qtyRemaining").transaction(curr=>{
+    if(curr == null) return curr;
+    const next = Math.max(0, curr - qtyOrdered);
+    return next;
+  }).then(res=>{
+    // If stock hit zero, auto-deactivate
+    if(res.committed && res.snapshot.val() === 0){
+      db.ref("today_special/active").set(false);
+    }
+  }).catch(err=>console.warn("Special stock decrement failed:",err));
 }
 
 function showSingleOrder(orderData){
@@ -1273,9 +1312,11 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
   const _flagEntry = (_suspicious && paymentMethod==="paynow")
     ? {paymentFlag:"UNVERIFIED", paymentElapsedSecs: _elapsedSecs}
     : {};
-  const o = {...pendingOrder, queueNo, status: needsKitchen ? (paymentMethod==="cash" ? "unpaid" : "paid") : "collected", paymentMethod, paidAt:Date.now(), needsKitchen, ..._flagEntry};
+  const o = {...pendingOrder, queueNo, status: needsKitchen ? "paid" : "collected", paymentMethod, paidAt:Date.now(), needsKitchen, ..._flagEntry};
   orders.push(o);
   saveOrderToFB(o);
+  // 🔥 Decrement today's special stock if order contained it
+  decrementSpecialStock(o.items);
   // Save to active orders for recovery (only kitchen orders need recovery)
   if(needsKitchen){
     const active = ls("active_orders_w06", []);
@@ -1310,7 +1351,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
         <div style="font-size:12px;color:#78716C">Your snacks are ready — please collect at the counter</div>
       </div>`;
   } else {
-    updateStatusUI(o.status);
+    updateStatusUI("paid");
     startTrackingOrder(o.id);
   }
 
@@ -1383,7 +1424,6 @@ function closeQueue(){
 
 // ── KITCHEN ──────────────────────────────────────────────────────────────────
 const STATUS = {
-  unpaid:    {color:"#DC2626",label:"Awaiting Payment",bg:"#FEF2F2"},
   paid:      {color:"#2563EB",label:"Queue",    bg:"#EFF6FF"},
   preparing: {color:"#7C3AED",label:"Preparing",bg:"#F5F3FF"},
   ready:     {color:"#16A34A",label:"Ready",    bg:"#F0FDF4"},
@@ -1399,54 +1439,19 @@ function cancelOrder(id){
   toast("Order voided","#78716C");
 }
 
-// Mark a cash order as paid — moves it from "Awaiting Payment" into the kitchen queue
-function markPaid(id){
-  const o=orders.find(x=>x.id===id); if(!o) return;
-  o.status="paid";
-  o.paidAt=Date.now();
-  o.cashConfirmed=true;
-  db.ref("orders").child(id).update({status:"paid",paidAt:Date.now(),cashConfirmed:true});
-  renderKitchen(); updateKitchenBadge();
-  toast("✓ Payment received — order #"+fmtQ(o.queueNo)+" sent to kitchen","#16A34A");
-}
-
 function updOrder(id, status){
   const o = orders.find(x=>x.id===id);
   if(o){
     o.status=status;
-    if(status==="collected"){
-      o.collectedAt=Date.now();
-      db.ref("queue_display").child(id).update({status:"collected"});
-    }
+    if(status==="collected") o.collectedAt=Date.now();
     updOrderFB(id, status);
     renderKitchen();
     updateKitchenBadge();
   }
 }
 
-// ── QUEUE DISPLAY — KDS triggers ─────────────────────────────────────────────
-// Called when chef taps "Call Customer" — marks order ready & fires display
-function markReady(id, queueNo){
-  updOrder(id, "ready");
-  db.ref("queue_display").child(id).set({
-    queueNo:  queueNo,
-    calledAt: Date.now(),
-    status:   "serving"
-  });
-  toast("📣 Calling #" + String(queueNo).padStart(3,"0") + " to counter", "#16A34A");
-}
-
-// Re-call a missed customer — resets timer, TTS fires again on display
-function recallOrder(id, queueNo){
-  db.ref("queue_display").child(id).update({
-    calledAt: Date.now(),
-    status:   "serving"
-  });
-  toast("🔁 Re-calling #" + String(queueNo).padStart(3,"0"), "#C4572A");
-}
-
 function updateKitchenBadge(){
-  const n = orders.filter(o=>(o.status==="unpaid"||o.status==="paid"||o.status==="preparing") && o.needsKitchen!==false).length;
+  const n = orders.filter(o=>(o.status==="paid"||o.status==="preparing") && o.needsKitchen!==false).length;
   const b = document.getElementById("kitchen-badge");
   if(n>0){ b.classList.remove("hidden"); b.style.display="flex"; b.textContent=n; }
   else { b.classList.add("hidden"); }
@@ -1461,59 +1466,20 @@ function renderKitchen(){
     // For old orders without needsKitchen flag — check items
     return (o.items||[]).some(i => i && !snackIds.includes(i.id));
   };
-  const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && o.status!=="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-  const awaiting = orders.filter(o=>o && o.status==="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const tags  = document.getElementById("kitchen-tags");
-  const n0 = awaiting.length;
   const n1 = orders.filter(o=>o.status==="paid").length;
   const n2 = orders.filter(o=>o.status==="preparing").length;
   tags.innerHTML = [
-    n0>0?`<span style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n0} Awaiting Pay</span>`:"",
     n1>0?`<span style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n1} Queue</span>`:"",
     n2>0?`<span style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n2} Preparing</span>`:"",
   ].join("");
-
-  // ── AWAITING PAYMENT SECTION (cash orders not yet confirmed) ──────────────────
-  const awaitingHtml = awaiting.map(order=>{
-    const age = Math.floor((Date.now()-order.createdAt)/60000);
-    const isTakeAway = order.dining==="takeaway";
-    const itemsHtml = (order.items||[]).filter(i=>i && i.name).map(item=>{
-      const ad = getAddons(item);
-      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0">
-        <div style="flex:1"><div style="font-size:20px;font-weight:700;color:#1C1917">${item.name}</div>
-        ${ad.length?`<div style="font-size:14px;color:#7C3AED;margin-top:2px">${ad.map(c=>typeof c==="object"?c.name:c).join(", ")}</div>`:""}</div>
-        <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:22px;margin-left:12px">×${item.qty}</span>
-      </div>`;
-    }).join("");
-    return `<div style="background:#fff;border:3px solid #DC2626;border-radius:14px;overflow:hidden;animation:flaggedPulse 1.8s ease-in-out infinite">
-      <div style="background:#FEF2F2;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#DC2626;line-height:1">${fmtQ(order.queueNo)}</div>
-            <div style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:800">💵 CASH — NOT PAID</div>
-          </div>
-          <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
-          <div style="margin-top:6px;display:inline-block;background:${isTakeAway?"#D97706":"#16A34A"};color:#fff;border-radius:10px;padding:4px 12px;font-size:13px;font-weight:700">${isTakeAway?"🥡 TAKE AWAY":"🍽️ DINE IN"}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:14px;font-weight:700;color:#DC2626">${age}m ago</div>
-          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#C4572A;margin-top:4px">${fmtS(order.total||0)}</div>
-        </div>
-      </div>
-      <div style="padding:10px 16px">${itemsHtml}</div>
-      <div style="padding:0 14px 14px;display:flex;gap:8px">
-        <button onclick="markPaid('${order.id}')" style="flex:1;padding:14px;font-size:16px;font-weight:700;background:#16A34A;color:#fff;border:none;border-radius:10px">✓ Mark Paid — Collected $${(order.total||0).toFixed(2)}</button>
-        <button onclick="cancelOrder('${order.id}')" style="padding:14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px">✕ Void</button>
-      </div>
-    </div>`;
-  }).join("");
-
-  if(!queue.length && !awaiting.length){
+  if(!queue.length){
     document.getElementById("kitchen-orders").innerHTML=`<div style="text-align:center;padding:80px 20px;color:#78716C;grid-column:1/-1"><div style="font-size:48px;margin-bottom:16px">✅</div><div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px">All Clear!</div><div style="font-size:13px">No pending orders</div></div>`;
     return;
   }
   const addons = getAddons;
-  document.getElementById("kitchen-orders").innerHTML = awaitingHtml + queue.map(order=>{
+  document.getElementById("kitchen-orders").innerHTML = queue.map(order=>{
     const st = STATUS[order.status]||STATUS.paid;
     const age = Math.floor((Date.now()-order.createdAt)/60000);
     const ageCol = age<5?"#16A34A":age<10?"#CA8A04":"#DC2626";
@@ -1528,7 +1494,6 @@ function renderKitchen(){
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${isTakeAway?"#B45309":st.color};line-height:1">${fmtQ(order.queueNo)}</div>
             ${order.paymentMethod==="cash"?`<div style="background:#EFF6FF;color:#1E40AF;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:700">💵 CASH</div>`:""}
-            ${order.paymentMethod==="cash"&&order.cashConfirmed?`<div style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:800">✅ PAID</div>`:""}
           </div>
           <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
           ${isTakeAway
@@ -1565,9 +1530,8 @@ function renderKitchen(){
         }).join("")}
       </div>
       <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">
-        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="markReady('${order.id}',${order.queueNo})" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">🔔 Call Customer</button>`:""}
+        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
-        ${order.status==="ready"?`<button onclick="recallOrder('${order.id}',${order.queueNo})" title="Re-call missed customer" style="padding:11px 14px;font-size:18px;background:#FFF7ED;color:#C4572A;border:1px solid #FED7AA;border-radius:9px">🔁</button>`:""}
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
         <button onclick="cancelOrder('${order.id}')" style="padding:11px 14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:9px">✕ Void</button>
       </div>
@@ -1581,15 +1545,17 @@ function renderKitchen(){
 
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 function adminTab(t){
-  ["menu-mgmt","reports","printer"].forEach(x=>{
+  ["menu-mgmt","special","reports","printer"].forEach(x=>{
     document.getElementById("admin-"+x).classList.toggle("hidden",x!==t);
     const b = document.getElementById("atab-"+x);
+    if(!b) return;
     b.style.background = x===t?"#C4572A":"transparent";
     b.style.color = x===t?"#fff":"#78716C";
     b.style.border = x===t?"none":"1px solid #E5E0D8";
     b.style.fontWeight = x===t?"600":"400";
   });
   if(t==="menu-mgmt") renderAdminMenu();
+  if(t==="special") renderSpecialAdmin();
   if(t==="reports"){ 
     document.getElementById("admin-reports").classList.remove("hidden");
     renderReports();
@@ -1597,6 +1563,150 @@ function adminTab(t){
 }
 
 function renderAdmin(){ adminTab("menu-mgmt"); renderStallStatus(); }
+
+// ── 🔥 ADMIN: Today's Special management ───────────────────────────────────
+function renderSpecialAdmin(){
+  const panel = document.getElementById("admin-special");
+  if(!panel) return;
+  const s = todaySpecial || {};
+  const isActive = !!s.active && s.itemId;
+
+  // Build item dropdown — all menu items, grouped by category
+  const itemOpts = menu.map(cat=>{
+    const opts = cat.items.map(i=>{
+      const sel = (s.itemId===i.id) ? "selected" : "";
+      return `<option value="${i.id}" ${sel}>${i.name} — $${i.price.toFixed(2)}</option>`;
+    }).join("");
+    return `<optgroup label="${cat.emoji||""} ${cat.name}">${opts}</optgroup>`;
+  }).join("");
+
+  // Current status display
+  const statusBox = isActive ? `
+    <div style="background:linear-gradient(135deg,#DC2626 0%,#B91C1C 100%);color:#fff;border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.1em;opacity:0.9;margin-bottom:6px">🔥 CURRENTLY LIVE</div>
+      <div style="font-size:18px;font-weight:700">${s.itemName||""}</div>
+      <div style="font-size:13px;margin-top:4px;opacity:0.95">
+        ${s.tagline||""}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.25)">
+        <div>
+          <div style="font-size:10px;opacity:0.8">PRICE</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700">$${(s.price||0).toFixed(2)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;opacity:0.8">STOCK LEFT</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700">${s.qtyRemaining!=null?s.qtyRemaining:"∞"} / ${s.qtyTotal||"∞"}</div>
+        </div>
+      </div>
+    </div>
+  ` : `
+    <div style="background:#F5F3F0;border:1px dashed #D4CFC8;color:#78716C;border-radius:12px;padding:16px;margin-bottom:14px;text-align:center">
+      <div style="font-size:32px;margin-bottom:6px">💤</div>
+      <div style="font-size:13px;font-weight:600">No special active right now</div>
+      <div style="font-size:11px;margin-top:2px">Set one below to highlight an item on the menu</div>
+    </div>
+  `;
+
+  panel.innerHTML = `
+    ${statusBox}
+    <div style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:16px;margin-bottom:14px">
+      <div class="serif" style="font-size:15px;font-weight:700;margin-bottom:14px">📝 Set Today's Special</div>
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Pick an item</label>
+      <select id="sp-item" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;background:#fff;margin-bottom:14px">
+        ${itemOpts}
+      </select>
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Special price ($)</label>
+      <input id="sp-price" type="number" step="0.10" min="0" value="${s.price!=null?s.price:""}" placeholder="e.g. 4.50" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;margin-bottom:14px">
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Daily stock limit (portions)</label>
+      <input id="sp-qty" type="number" min="1" step="1" value="${s.qtyTotal||30}" placeholder="e.g. 30" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;margin-bottom:14px">
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Tagline (optional)</label>
+      <input id="sp-tagline" type="text" maxlength="60" value="${(s.tagline||'').replace(/"/g,'&quot;')}" placeholder="e.g. Chef's pick — limited stock!" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;margin-bottom:14px">
+
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Photo URL (optional)</label>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px">
+        <input id="sp-imgurl" type="text" value="${(s.imageUrl||'').replace(/"/g,'&quot;')}" placeholder="e.g. ./kebab-special.jpg" oninput="previewSpecialImg()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:13px">
+        <div style="flex-shrink:0;width:58px;height:58px;border-radius:10px;background:#F5F3F0;border:1px solid #E5E0D8;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          <img id="sp-img-preview" src="${s.imageUrl||''}" alt="" style="width:100%;height:100%;object-fit:cover;display:${s.imageUrl?'block':'none'}">
+          <span id="sp-img-fallback" style="font-size:22px;color:#D4CFC8;display:${s.imageUrl?'none':'block'}">📷</span>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#78716C;margin-bottom:18px;line-height:1.5">
+        Upload <code style="background:#F5F3F0;padding:1px 4px;border-radius:3px">kebab-special.jpg</code> to your repo, then type <code style="background:#F5F3F0;padding:1px 4px;border-radius:3px">./kebab-special.jpg</code> here. Leave blank for emoji.
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="saveSpecial(true)" style="flex:1;min-width:140px;background:#DC2626;color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer">🔥 ${isActive?"Update & Keep Live":"Save & Go Live"}</button>
+        ${isActive?`<button onclick="resetSpecialStock()" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;font-size:13px;font-weight:600;cursor:pointer">🔄 Reset Stock</button>`:""}
+        ${isActive?`<button onclick="endSpecial()" style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px;padding:14px 18px;font-size:13px;font-weight:600;cursor:pointer">⛔ End Special</button>`:""}
+      </div>
+    </div>
+
+    <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6">
+      💡 <strong>How it works:</strong> Banner appears at the top of the customer menu the moment you save. Stock counts down automatically as customers order. When stock hits zero, the special auto-ends.
+    </div>
+  `;
+}
+
+function saveSpecial(goLive){
+  const itemId = document.getElementById("sp-item").value;
+  const price  = parseFloat(document.getElementById("sp-price").value);
+  const qty    = parseInt(document.getElementById("sp-qty").value, 10);
+  const tagline = (document.getElementById("sp-tagline").value || "").trim();
+  const imageUrl = (document.getElementById("sp-imgurl").value || "").trim();
+  if(!itemId){ alert("Please pick an item"); return; }
+  if(isNaN(price) || price < 0){ alert("Please enter a valid price"); return; }
+  if(isNaN(qty) || qty < 1){ alert("Please enter stock quantity (1 or more)"); return; }
+  const item = getItem(itemId);
+  if(!item){ alert("Item not found in menu"); return; }
+  // If updating same item and only stock didn't change, preserve remaining count
+  let qtyRemaining = qty;
+  if(todaySpecial && todaySpecial.itemId === itemId && todaySpecial.qtyTotal === qty && todaySpecial.qtyRemaining != null){
+    qtyRemaining = todaySpecial.qtyRemaining;
+  }
+  const payload = {
+    active: !!goLive,
+    itemId: itemId,
+    itemName: item.name,
+    price: price,
+    qtyTotal: qty,
+    qtyRemaining: qtyRemaining,
+    tagline: tagline,
+    imageUrl: imageUrl,
+    setAt: Date.now()
+  };
+  db.ref("today_special").set(payload).then(()=>{
+    toast("🔥 Special saved!","#DC2626");
+  }).catch(err=>{ alert("Save failed: " + err.message); });
+}
+
+function previewSpecialImg(){
+  const url = (document.getElementById("sp-imgurl").value || "").trim();
+  const img = document.getElementById("sp-img-preview");
+  const fb  = document.getElementById("sp-img-fallback");
+  if(!url){ img.style.display="none"; img.src=""; fb.style.display="block"; return; }
+  img.onload  = ()=>{ img.style.display="block"; fb.style.display="none"; };
+  img.onerror = ()=>{ img.style.display="none";  fb.style.display="block"; };
+  img.src = url;
+}
+
+function resetSpecialStock(){
+  if(!todaySpecial || !todaySpecial.qtyTotal) return;
+  if(!confirm("Reset stock back to " + todaySpecial.qtyTotal + " portions?")) return;
+  db.ref("today_special").update({ qtyRemaining: todaySpecial.qtyTotal, active: true }).then(()=>{
+    toast("🔄 Stock reset","#16A34A");
+  });
+}
+
+function endSpecial(){
+  if(!confirm("End today's special? Banner will be hidden immediately.")) return;
+  db.ref("today_special/active").set(false).then(()=>{
+    toast("⛔ Special ended","#78716C");
+  });
+}
 
 function renderAdminMenu(){
   const sideOn = ls("mod_side_w06", true);
@@ -2008,7 +2118,6 @@ let lastTrackedStatus = null;
 
 function updateStatusUI(status){
   const configs = {
-    "unpaid":    {received:"#DC2626", preparing:"#E5E0D8", ready:"#E5E0D8", rcvTxt:"Pay at\nCounter 💵", prepTxt:"Chef is\nCooking", rdyTxt:"Ready for\nPickup!", rcvClr:"#DC2626", prepClr:"#D4CFC8", rdyClr:"#D4CFC8"},
     "paid":      {received:"#16A34A", preparing:"#E5E0D8", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#D4CFC8", rdyClr:"#D4CFC8"},
     "preparing": {received:"#16A34A", preparing:"#C4572A", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking 🔄", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#C4572A", rdyClr:"#D4CFC8"},
     "ready":     {received:"#16A34A", preparing:"#16A34A", ready:"#16A34A", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking ✅", rdyTxt:"Ready for\nPickup! 🔔", rcvClr:"#16A34A", prepClr:"#16A34A", rdyClr:"#16A34A"},
@@ -2707,6 +2816,14 @@ db.ref("availability").on("value", snap=>{
   renderMenu();
 });
 
+// 🔥 Listen for today's special — syncs banner across all devices in real time
+db.ref("today_special").on("value", snap=>{
+  todaySpecial = snap.val() || null;
+  renderSpecialBanner();
+  // Also re-render admin special panel if it's currently visible
+  if(typeof renderSpecialAdmin === "function") renderSpecialAdmin();
+});
+
 // Listen for modifier toggle changes (soup/side on-off from admin)
 db.ref("settings").on("value", snap=>{
   const data = snap.val();
@@ -2978,339 +3095,6 @@ updateKitchenBadge();
     <div style="margin-top:14px;font-size:11px;color:#D4CFC8;line-height:1.5">All orders are logged. Do not confirm if payment was unsuccessful.</div>
   </div>
 </div>
-
-<!-- ── QUEUE DISPLAY VIEW (?display=1) ──────────────────────────────────── -->
-<div id="view-qdisplay">
-  <!-- Header -->
-  <div class="qd-hdr">
-    <div class="qd-logo">
-      <div class="qd-brand">🥩 <span class="accent">OLIYVE</span> WESTERN</div>
-      <div class="qd-stall"><span class="qd-conn" id="qd-conn"></span>Flavours Foodcourt · Stall #06 · Temasek Poly</div>
-    </div>
-    <div class="qd-div"></div>
-    <div class="qd-msg">
-      <div class="qd-collect">Please collect your food at the counter</div>
-      <div class="qd-collect-sub">Watch for your queue number below · 请到柜台领取您的食物</div>
-    </div>
-    <div class="qd-div"></div>
-    <div class="qd-clock-wrap">
-      <div class="qd-time" id="qd-clock">--:--</div>
-      <div class="qd-date" id="qd-date"></div>
-    </div>
-  </div>
-  <!-- Now Serving -->
-  <div class="qd-serving">
-    <div class="qd-zone-lbl"><div class="qd-lbl-pulse"></div>NOW SERVING</div>
-    <div class="qd-grid" id="qd-grid"></div>
-  </div>
-  <!-- Missed -->
-  <div class="qd-missed">
-    <div class="qd-mlbl">
-      <div class="qd-micon">⚠️</div>
-      <div class="qd-mtxt">MISSED</div>
-    </div>
-    <div class="qd-chips" id="qd-chips"><div class="qd-nomiss">— No missed numbers —</div></div>
-  </div>
-  <!-- Debug bar: always on, shows live Firebase state in small text at bottom -->
-  <div id="qd-debug-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0A0908;color:#E8C547;font-size:11px;font-family:monospace;padding:5px 14px;z-index:99999;white-space:nowrap;overflow:hidden"></div>
-</div>
-
-<script>
-// ── QUEUE DISPLAY SYSTEM ──────────────────────────────────────────────────────
-// Self-contained: initialises its own Firebase connection.
-// Activated by ?display=1 in the URL.
-(function() {
-  'use strict';
-
-  var IS_DISPLAY = new URLSearchParams(location.search).get('display') === '1';
-  if (!IS_DISPLAY) return;
-
-  // ── Show display view, hide everything else ─────────────────────────────────
-  var qdView = document.getElementById('view-qdisplay');
-  if (qdView) qdView.classList.add('active');
-  var nav = document.getElementById('nav');
-  if (nav) nav.style.display = 'none';
-  ['view-menu','view-kitchen','view-admin'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
-  });
-  document.title = 'Queue Display — OLIYVE';
-
-  // ── Constants ────────────────────────────────────────────────────────────────
-  var SERVE_MS   = 60000;
-  var MISSED_MS  = 600000;
-  var MAX_ACTIVE = 4;
-  var MAX_MISSED = 2;
-  var RING_R     = 46;
-  var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
-
-  // ── State ────────────────────────────────────────────────────────────────────
-  var qdEntries     = {};
-  var qdAnnounced   = {};
-  var qdDataReceived = false;
-
-  // ── Debug bar ────────────────────────────────────────────────────────────────
-  function qdDebug(msg, color) {
-    var bar = document.getElementById('qd-debug-bar');
-    if (!bar) return;
-    bar.textContent = msg;
-    bar.style.background = color || '#1C1408';
-    bar.style.display = 'block';
-  }
-  // Show immediately so user knows IIFE ran
-  qdDebug('Queue Display starting...');
-
-  // ── Self-contained Firebase init ─────────────────────────────────────────────
-  // Uses a named app 'qd' so it never conflicts with the main app instance
-  var QD_FB_CONFIG = {
-    apiKey:            "AIzaSyAYKFXAcIAR6iJ29RkimJSy3vzka0gsdTs",
-    authDomain:        "quickpos-w06.firebaseapp.com",
-    databaseURL:       "https://quickpos-w06-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId:         "quickpos-w06",
-    storageBucket:     "quickpos-w06.firebasestorage.app",
-    messagingSenderId: "1015464203400",
-    appId:             "1:1015464203400:web:fe788848e3b0da2b403b3d"
-  };
-  var qdApp = null;
-  try {
-    // Reuse if already initialised (e.g. after hot reload)
-    qdApp = firebase.apps.find(function(a) { return a.name === 'qd'; })
-         || firebase.initializeApp(QD_FB_CONFIG, 'qd');
-  } catch(e) {
-    qdDebug('Firebase init error: ' + e.message, '#7F1D1D');
-    return;
-  }
-  var qdDb = qdApp.database();
-  qdDebug('Firebase initialised — connecting...');
-
-  // ── Clock ────────────────────────────────────────────────────────────────────
-  var QD_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var QD_MON  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function qdClock() {
-    var n = new Date();
-    var h = String(n.getHours()).padStart(2,'0');
-    var m = String(n.getMinutes()).padStart(2,'0');
-    var clk = document.getElementById('qd-clock');
-    var dat = document.getElementById('qd-date');
-    if (clk) clk.textContent = h + ':' + m;
-    if (dat) dat.textContent = QD_DAYS[n.getDay()] + '  ' + n.getDate() + ' ' + QD_MON[n.getMonth()] + ' ' + n.getFullYear();
-  }
-  setInterval(qdClock, 1000);
-  qdClock();
-
-  // ── Wake Lock ─────────────────────────────────────────────────────────────────
-  var _qdWl = null;
-  function qdWakeLock() {
-    if ('wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').then(function(wl) { _qdWl = wl; }).catch(function(){});
-    }
-  }
-  qdWakeLock();
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') qdWakeLock();
-  });
-
-  // ── Connection dot ────────────────────────────────────────────────────────────
-  qdDb.ref('.info/connected').on('value', function(snap) {
-    var dot = document.getElementById('qd-conn');
-    if (!dot) return;
-    var ok = snap.val();
-    dot.style.background  = ok ? '#16A34A' : '#DC2626';
-    dot.style.boxShadow   = ok ? '0 0 5px #16A34A' : '0 0 5px #DC2626';
-    qdDebug(ok ? 'Firebase connected OK' : 'Firebase disconnected — check WiFi');
-  });
-
-  // ── TTS ───────────────────────────────────────────────────────────────────────
-  function qdSpeak(queueNo, times) {
-    if (!window.speechSynthesis) return;
-    times = times || 3;
-    var num  = parseInt(queueNo);
-    var text = 'Number ' + num + ', please come to the counter';
-    var count = 0;
-    function go() {
-      if (count >= times) return;
-      count++;
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-SG'; u.rate = 0.84; u.pitch = 0.9; u.volume = 1;
-      var vs = window.speechSynthesis.getVoices();
-      var v = null;
-      for (var i = 0; i < vs.length; i++) {
-        if (vs[i].lang === 'en-SG') { v = vs[i]; break; }
-      }
-      if (!v) for (var i = 0; i < vs.length; i++) {
-        if (vs[i].lang === 'en-IN') { v = vs[i]; break; }
-      }
-      if (!v) for (var i = 0; i < vs.length; i++) {
-        if (vs[i].lang.indexOf('en') === 0) { v = vs[i]; break; }
-      }
-      if (v) u.voice = v;
-      u.onend  = function() { if (count < times) setTimeout(go, 2800); };
-      u.onerror = function() { if (count < times) setTimeout(go, 2800); };
-      window.speechSynthesis.speak(u);
-    }
-    setTimeout(go, 400);
-  }
-  setInterval(function() {
-    if (window.speechSynthesis && !window.speechSynthesis.speaking) {
-      window.speechSynthesis.resume();
-    }
-  }, 5000);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────────
-  function qdFmt(n) { return String(n).padStart(3, '0'); }
-
-  // No time filter — show ANY serving/missed entry as soon as it arrives
-  function qdActive() {
-    return Object.entries(qdEntries)
-      .filter(function(kv) { return kv[1].status === 'serving'; })
-      .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
-      .slice(0, MAX_ACTIVE);
-  }
-  function qdMissed() {
-    return Object.entries(qdEntries)
-      .filter(function(kv) { return kv[1].status === 'missed'; })
-      .sort(function(a,b) { return b[1].calledAt - a[1].calledAt; })
-      .slice(0, MAX_MISSED);
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────────
-  function qdRender() {
-    var now    = Date.now();
-    var active = qdActive();
-    var missed = qdMissed();
-    var total  = Object.keys(qdEntries).length;
-    var statusList = Object.values(qdEntries).map(function(e) { return e.status; }).join(',') || 'empty';
-
-    qdDebug('FB:' + (qdDataReceived ? 'OK' : 'wait') + ' entries:' + total + '[' + statusList + '] serving=' + active.length + ' missed=' + missed.length);
-
-    var grid = document.getElementById('qd-grid');
-    if (!grid) return;
-
-    if (!active.length) {
-      grid.innerHTML = '<div class="qd-empty-state"><div class="qd-empty-icon">&#x1F37D;&#xFE0F;</div><div class="qd-empty-txt">' + (qdDataReceived ? 'Waiting for orders' : 'Connecting...') + '</div></div>';
-    } else {
-      var html = '';
-      for (var i = 0; i < MAX_ACTIVE; i++) {
-        if (i < active.length) {
-          var id = active[i][0];
-          var e  = active[i][1];
-          var elapsed = Math.max(0, Math.floor((now - e.calledAt) / 1000));
-          var remain  = Math.max(0, 60 - elapsed);
-          var offset  = Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2);
-          var urgent  = remain <= 15;
-          var sc      = urgent ? '#DC2626' : '#E8C547';
-          html += '<div class="qd-card qd-active" data-id="' + id + '">'
-                + '<div class="qd-radial"></div>'
-                + '<div class="qd-hash">#</div>'
-                + '<div class="qd-num">' + qdFmt(e.queueNo) + '</div>'
-                + '<div class="qd-ring">'
-                + '<svg viewBox="0 0 100 100" width="82" height="82">'
-                + '<circle cx="50" cy="50" r="' + RING_R + '" fill="none" stroke="#1C1408" stroke-width="7"/>'
-                + '<circle class="qd-arc" cx="50" cy="50" r="' + RING_R + '" fill="none"'
-                + ' stroke="' + sc + '" stroke-width="7"'
-                + ' stroke-dasharray="' + RING_C + '" stroke-dashoffset="' + offset + '"'
-                + ' stroke-linecap="round" transform="rotate(-90 50 50)"/>'
-                + '</svg>'
-                + '<div class="qd-secs' + (urgent ? ' urgent' : '') + '">' + remain + '</div>'
-                + '</div></div>';
-        } else {
-          html += '<div class="qd-card qd-empty"><div class="qd-num">-</div></div>';
-        }
-      }
-      grid.innerHTML = html;
-    }
-
-    var chips = document.getElementById('qd-chips');
-    if (!chips) return;
-    if (!missed.length) {
-      chips.innerHTML = '<div class="qd-nomiss">No missed numbers</div>';
-    } else {
-      chips.innerHTML = missed.map(function(kv) {
-        var id  = kv[0]; var e = kv[1];
-        var age  = Math.max(0, now - e.calledAt);
-        var mins = Math.floor(age / 60000);
-        var secs = Math.floor((age % 60000) / 1000);
-        return '<div class="qd-chip" data-id="' + id + '">'
-             + '<div><div class="qd-mhash">#</div><div class="qd-mnum">' + qdFmt(e.queueNo) + '</div></div>'
-             + '<div class="qd-mtime">Called<br>' + (mins > 0 ? mins + 'm ' + secs + 's' : secs + 's') + ' ago</div>'
-             + '</div>';
-      }).join('');
-    }
-  }
-
-  // ── Tick (1s) — transitions + in-place ring update ────────────────────────────
-  function qdTick() {
-    var now = Date.now();
-    var changed = false;
-    Object.keys(qdEntries).forEach(function(id) {
-      var e   = qdEntries[id];
-      var age = now - e.calledAt;
-      if (e.status === 'serving' && age >= SERVE_MS) {
-        qdDb.ref('queue_display').child(id).update({ status: 'missed' });
-        qdEntries[id].status = 'missed';
-        changed = true;
-      } else if (e.status === 'missed' && age >= MISSED_MS) {
-        qdDb.ref('queue_display').child(id).remove();
-        delete qdEntries[id];
-        changed = true;
-      }
-    });
-    if (changed) { qdRender(); return; }
-
-    document.querySelectorAll('.qd-card.qd-active').forEach(function(card) {
-      var id = card.dataset.id;
-      var e  = qdEntries[id];
-      if (!e) return;
-      var elapsed = Math.max(0, Math.floor((Date.now() - e.calledAt) / 1000));
-      var remain  = Math.max(0, 60 - elapsed);
-      var offset  = Math.min(RING_C, (elapsed / 60) * RING_C).toFixed(2);
-      var urgent  = remain <= 15;
-      var arc = card.querySelector('.qd-arc');
-      if (arc) {
-        arc.setAttribute('stroke-dashoffset', offset);
-        arc.setAttribute('stroke', urgent ? '#DC2626' : '#E8C547');
-      }
-      var secEl = card.querySelector('.qd-secs');
-      if (secEl) {
-        secEl.textContent  = remain;
-        secEl.className    = 'qd-secs' + (urgent ? ' urgent' : '');
-      }
-    });
-
-    document.querySelectorAll('.qd-chip').forEach(function(chip) {
-      var id = chip.dataset.id;
-      var e  = qdEntries[id];
-      if (!e) return;
-      var age  = Math.max(0, Date.now() - e.calledAt);
-      var mins = Math.floor(age / 60000);
-      var secs = Math.floor((age % 60000) / 1000);
-      var t = chip.querySelector('.qd-mtime');
-      if (t) t.innerHTML = 'Called<br>' + (mins > 0 ? mins + 'm ' + secs + 's' : secs + 's') + ' ago';
-    });
-  }
-  setInterval(qdTick, 1000);
-
-  // ── Firebase realtime listener ────────────────────────────────────────────────
-  qdDb.ref('queue_display').on('value', function(snap) {
-    qdDataReceived = true;
-    var data = snap.val() || {};
-    Object.keys(data).forEach(function(id) {
-      var e   = data[id];
-      var key = id + '_' + e.calledAt;
-      if (e.status === 'serving' && !qdAnnounced[key]) {
-        qdAnnounced[key] = true;
-        qdSpeak(e.queueNo, 3);
-      }
-    });
-    qdEntries = data;
-    qdRender();
-  }, function(err) {
-    qdDebug('READ ERROR: ' + err.code + ' — add queue_display rule in Firebase Console Rules', '#7F1D1D');
-  });
-
-})(); // end IIFE — only runs if ?display=1
-</script>
 
 </body>
 </html>
