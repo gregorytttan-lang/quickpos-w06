@@ -1312,7 +1312,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
   const _flagEntry = (_suspicious && paymentMethod==="paynow")
     ? {paymentFlag:"UNVERIFIED", paymentElapsedSecs: _elapsedSecs}
     : {};
-  const o = {...pendingOrder, queueNo, status: needsKitchen ? "paid" : "collected", paymentMethod, paidAt:Date.now(), needsKitchen, ..._flagEntry};
+  const o = {...pendingOrder, queueNo, status: needsKitchen ? (paymentMethod==="cash" ? "unpaid" : "paid") : "collected", paymentMethod, paidAt:Date.now(), needsKitchen, ..._flagEntry};
   orders.push(o);
   saveOrderToFB(o);
   // 🔥 Decrement today's special stock if order contained it
@@ -1351,7 +1351,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
         <div style="font-size:12px;color:#78716C">Your snacks are ready — please collect at the counter</div>
       </div>`;
   } else {
-    updateStatusUI("paid");
+    updateStatusUI(o.status);
     startTrackingOrder(o.id);
   }
 
@@ -1424,6 +1424,7 @@ function closeQueue(){
 
 // ── KITCHEN ──────────────────────────────────────────────────────────────────
 const STATUS = {
+  unpaid:    {color:"#DC2626",label:"Awaiting Payment",bg:"#FEF2F2"},
   paid:      {color:"#2563EB",label:"Queue",    bg:"#EFF6FF"},
   preparing: {color:"#7C3AED",label:"Preparing",bg:"#F5F3FF"},
   ready:     {color:"#16A34A",label:"Ready",    bg:"#F0FDF4"},
@@ -1443,15 +1444,48 @@ function updOrder(id, status){
   const o = orders.find(x=>x.id===id);
   if(o){
     o.status=status;
-    if(status==="collected") o.collectedAt=Date.now();
+    if(status==="collected"){
+      o.collectedAt=Date.now();
+      db.ref("queue_display").child(id).update({status:"collected"});
+    }
     updOrderFB(id, status);
     renderKitchen();
     updateKitchenBadge();
   }
 }
 
+// ── QUEUE DISPLAY — KDS triggers ─────────────────────────────────────────────
+function markReady(id, queueNo){
+  updOrder(id, "ready");
+  db.ref("queue_display").child(id).set({
+    queueNo:  queueNo,
+    calledAt: Date.now(),
+    status:   "serving"
+  });
+  toast("📣 Calling #" + String(queueNo).padStart(3,"0") + " to counter", "#16A34A");
+}
+
+function recallOrder(id, queueNo){
+  db.ref("queue_display").child(id).update({
+    calledAt: Date.now(),
+    status:   "serving"
+  });
+  toast("🔁 Re-calling #" + String(queueNo).padStart(3,"0"), "#C4572A");
+}
+
+// ── CASH PAYMENT — mark a cash order as paid, move into kitchen ──────────────
+function markPaid(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  o.status="paid";
+  o.paidAt=Date.now();
+  o.cashConfirmed=true;
+  db.ref("orders").child(id).update({status:"paid",paidAt:Date.now(),cashConfirmed:true});
+  renderKitchen(); updateKitchenBadge();
+  toast("✓ Payment received — order #"+fmtQ(o.queueNo)+" sent to kitchen","#16A34A");
+}
+
 function updateKitchenBadge(){
-  const n = orders.filter(o=>(o.status==="paid"||o.status==="preparing") && o.needsKitchen!==false).length;
+  const n = orders.filter(o=>(o.status==="unpaid"||o.status==="paid"||o.status==="preparing") && o.needsKitchen!==false).length;
   const b = document.getElementById("kitchen-badge");
   if(n>0){ b.classList.remove("hidden"); b.style.display="flex"; b.textContent=n; }
   else { b.classList.add("hidden"); }
@@ -1466,20 +1500,59 @@ function renderKitchen(){
     // For old orders without needsKitchen flag — check items
     return (o.items||[]).some(i => i && !snackIds.includes(i.id));
   };
-  const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && o.status!=="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const awaiting = orders.filter(o=>o && o.status==="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const tags  = document.getElementById("kitchen-tags");
+  const n0 = awaiting.length;
   const n1 = orders.filter(o=>o.status==="paid").length;
   const n2 = orders.filter(o=>o.status==="preparing").length;
   tags.innerHTML = [
+    n0>0?`<span style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n0} Awaiting Pay</span>`:"",
     n1>0?`<span style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n1} Queue</span>`:"",
     n2>0?`<span style="background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;text-transform:uppercase">${n2} Preparing</span>`:"",
   ].join("");
-  if(!queue.length){
+
+  // ── AWAITING PAYMENT (cash orders not yet confirmed) ──────────────────────────
+  const awaitingHtml = awaiting.map(order=>{
+    const age = Math.floor((Date.now()-order.createdAt)/60000);
+    const isTakeAway = order.dining==="takeaway";
+    const itemsHtml = (order.items||[]).filter(i=>i && i.name).map(item=>{
+      const ad = getAddons(item);
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0">
+        <div style="flex:1"><div style="font-size:20px;font-weight:700;color:#1C1917">${item.name}</div>
+        ${ad.length?`<div style="font-size:14px;color:#7C3AED;margin-top:2px">${ad.map(c=>typeof c==="object"?c.name:c).join(", ")}</div>`:""}</div>
+        <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:22px;margin-left:12px">×${item.qty}</span>
+      </div>`;
+    }).join("");
+    return `<div style="background:#fff;border:3px solid #DC2626;border-radius:14px;overflow:hidden;animation:flaggedPulse 1.8s ease-in-out infinite">
+      <div style="background:#FEF2F2;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#DC2626;line-height:1">${fmtQ(order.queueNo)}</div>
+            <div style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:800">💵 CASH — NOT PAID</div>
+          </div>
+          <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
+          <div style="margin-top:6px;display:inline-block;background:${isTakeAway?"#D97706":"#16A34A"};color:#fff;border-radius:10px;padding:4px 12px;font-size:13px;font-weight:700">${isTakeAway?"🥡 TAKE AWAY":"🍽️ DINE IN"}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:700;color:#DC2626">${age}m ago</div>
+          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#C4572A;margin-top:4px">${fmtS(order.total||0)}</div>
+        </div>
+      </div>
+      <div style="padding:10px 16px">${itemsHtml}</div>
+      <div style="padding:0 14px 14px;display:flex;gap:8px">
+        <button onclick="markPaid('${order.id}')" style="flex:1;padding:14px;font-size:16px;font-weight:700;background:#16A34A;color:#fff;border:none;border-radius:10px">✓ Mark Paid — Collected $${(order.total||0).toFixed(2)}</button>
+        <button onclick="cancelOrder('${order.id}')" style="padding:14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px">✕ Void</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  if(!queue.length && !awaiting.length){
     document.getElementById("kitchen-orders").innerHTML=`<div style="text-align:center;padding:80px 20px;color:#78716C;grid-column:1/-1"><div style="font-size:48px;margin-bottom:16px">✅</div><div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px">All Clear!</div><div style="font-size:13px">No pending orders</div></div>`;
     return;
   }
   const addons = getAddons;
-  document.getElementById("kitchen-orders").innerHTML = queue.map(order=>{
+  document.getElementById("kitchen-orders").innerHTML = awaitingHtml + queue.map(order=>{
     const st = STATUS[order.status]||STATUS.paid;
     const age = Math.floor((Date.now()-order.createdAt)/60000);
     const ageCol = age<5?"#16A34A":age<10?"#CA8A04":"#DC2626";
@@ -1494,6 +1567,7 @@ function renderKitchen(){
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:${isTakeAway?"#B45309":st.color};line-height:1">${fmtQ(order.queueNo)}</div>
             ${order.paymentMethod==="cash"?`<div style="background:#EFF6FF;color:#1E40AF;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:700">💵 CASH</div>`:""}
+            ${order.paymentMethod==="cash"&&order.cashConfirmed?`<div style="background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:800">✅ PAID</div>`:""}
           </div>
           <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
           ${isTakeAway
@@ -1530,8 +1604,9 @@ function renderKitchen(){
         }).join("")}
       </div>
       <div style="padding:0 14px 12px;display:flex;gap:8px;flex-wrap:wrap">
-        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="updOrder('${order.id}','ready')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">✓ Done</button>`:""}
+        ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="markReady('${order.id}',${order.queueNo})" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">🔔 Call Customer</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
+        ${order.status==="ready"?`<button onclick="recallOrder('${order.id}',${order.queueNo})" title="Re-call missed customer" style="padding:11px 14px;font-size:18px;background:#FFF7ED;color:#C4572A;border:1px solid #FED7AA;border-radius:9px">🔁</button>`:""}
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
         <button onclick="cancelOrder('${order.id}')" style="padding:11px 14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:9px">✕ Void</button>
       </div>
@@ -2118,6 +2193,7 @@ let lastTrackedStatus = null;
 
 function updateStatusUI(status){
   const configs = {
+    "unpaid":    {received:"#DC2626", preparing:"#E5E0D8", ready:"#E5E0D8", rcvTxt:"Pay at\nCounter 💵", prepTxt:"Chef is\nCooking", rdyTxt:"Ready for\nPickup!", rcvClr:"#DC2626", prepClr:"#D4CFC8", rdyClr:"#D4CFC8"},
     "paid":      {received:"#16A34A", preparing:"#E5E0D8", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#D4CFC8", rdyClr:"#D4CFC8"},
     "preparing": {received:"#16A34A", preparing:"#C4572A", ready:"#E5E0D8", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking 🔄", rdyTxt:"Ready for\nPickup!", rcvClr:"#16A34A", prepClr:"#C4572A", rdyClr:"#D4CFC8"},
     "ready":     {received:"#16A34A", preparing:"#16A34A", ready:"#16A34A", rcvTxt:"Order\nReceived", prepTxt:"Chef is\nCooking ✅", rdyTxt:"Ready for\nPickup! 🔔", rcvClr:"#16A34A", prepClr:"#16A34A", rdyClr:"#16A34A"},
