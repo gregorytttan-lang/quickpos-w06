@@ -265,7 +265,7 @@ body{
 }
 @keyframes promoIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
 .sp-ribbon{
-  font-size:24px;font-weight:800;letter-spacing:0.18em;
+  font-size:clamp(38px,5vw,68px);font-weight:800;letter-spacing:0.12em;
   color:#FBBF24;text-transform:uppercase;
   animation:ribbonGlow 2.4s ease-in-out infinite;
 }
@@ -412,6 +412,10 @@ var entries   = {};
 var announced = {};
 var gotData   = false;
 var todaySpecial = null;
+var seenAt = {};        // display's LOCAL clock when each entry's calledAt was first seen
+var lastCalledAt = {};  // tracks calledAt to detect re-calls (resets the local timer)
+// Returns the display-local reference time for an entry (immune to KDS clock skew)
+function refTime(id, e){ return (seenAt[id]!=null) ? seenAt[id] : (e && e.calledAt) || Date.now(); }
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 var QD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -572,7 +576,7 @@ function renderDisplay(){
     var html='';
     for(var i=0;i<active.length;i++){
       var id=active[i][0],e=active[i][1];
-      var elapsed=Math.max(0,Math.floor((now-e.calledAt)/1000));
+      var elapsed=Math.max(0,Math.floor((now-refTime(id,e))/1000));
       var remain=Math.max(0,60-elapsed);
       var offset=Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2);
       var urgent=remain<=15, sc=urgent?'#DC2626':'#4ADE80';
@@ -593,7 +597,7 @@ function renderDisplay(){
     chips.innerHTML='<div class="no-missed">-- No missed numbers --</div>';
   } else {
     chips.innerHTML=missed.map(function(kv){
-      var id=kv[0],e=kv[1],age=Math.max(0,now-e.calledAt);
+      var id=kv[0],e=kv[1],age=Math.max(0,now-refTime(id,e));
       var mins=Math.floor(age/60000),secs=Math.floor((age%60000)/1000);
       return '<div class="m-chip" data-id="'+id+'">'
            + '<div class="m-hash">#</div>'
@@ -608,21 +612,21 @@ function renderDisplay(){
 function tick(){
   var now=Date.now(),changed=false;
   Object.keys(entries).forEach(function(id){
-    var e=entries[id],age=now-e.calledAt;
+    var e=entries[id],age=now-refTime(id,e);
     if(e.status==='serving'&&age>=SERVE_MS){if(db)db.ref('queue_display').child(id).update({status:'missed'});entries[id].status='missed';changed=true;}
-    else if(e.status==='missed'&&age>=MISSED_MS){if(db)db.ref('queue_display').child(id).remove();delete entries[id];changed=true;}
+    else if(e.status==='missed'&&age>=MISSED_MS){if(db)db.ref('queue_display').child(id).remove();delete entries[id];delete seenAt[id];delete lastCalledAt[id];changed=true;}
   });
   if(changed){renderDisplay();return;}
   document.querySelectorAll('.s-card.active').forEach(function(card){
     var id=card.dataset.id,e=entries[id];if(!e)return;
-    var elapsed=Math.max(0,Math.floor((Date.now()-e.calledAt)/1000));
+    var elapsed=Math.max(0,Math.floor((Date.now()-refTime(id,e))/1000));
     var remain=Math.max(0,60-elapsed),offset=Math.min(RING_C,(elapsed/60)*RING_C).toFixed(2),urgent=remain<=15;
     var arc=card.querySelector('.ring-arc');if(arc){arc.setAttribute('stroke-dashoffset',offset);arc.setAttribute('stroke',urgent?'#DC2626':'#4ADE80');}
     var sec=card.querySelector('.ring-secs');if(sec){sec.textContent=remain;sec.className='ring-secs'+(urgent?' urgent':'');}
   });
   document.querySelectorAll('.m-chip').forEach(function(chip){
     var id=chip.dataset.id,e=entries[id];if(!e)return;
-    var age=Math.max(0,Date.now()-e.calledAt),mins=Math.floor(age/60000),secs=Math.floor((age%60000)/1000);
+    var age=Math.max(0,Date.now()-refTime(id,e)),mins=Math.floor(age/60000),secs=Math.floor((age%60000)/1000);
     var t=chip.querySelector('.m-time');
     if(t)t.textContent='Called '+(mins>0?mins+'m '+secs+'s':secs+'s')+' ago';
   });
@@ -635,9 +639,17 @@ if(db){
     gotData=true;
     var data=snap.val()||{};
     Object.keys(data).forEach(function(id){
-      var e=data[id],key=id+'_'+e.calledAt;
+      var e=data[id];
+      // Stamp local time when first seen OR when re-called (calledAt changed) — immune to clock skew
+      if(seenAt[id]==null || lastCalledAt[id]!==e.calledAt){
+        seenAt[id]=Date.now();
+        lastCalledAt[id]=e.calledAt;
+      }
+      var key=id+'_'+e.calledAt;
       if(e.status==='serving'&&!announced[key]){announced[key]=true;speakNumber(e.queueNo,2);}
     });
+    // Clean up entries that no longer exist
+    Object.keys(seenAt).forEach(function(id){ if(!data[id]){ delete seenAt[id]; delete lastCalledAt[id]; } });
     entries=data;
     renderDisplay();
   }, function(err){
