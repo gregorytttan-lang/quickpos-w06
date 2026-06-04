@@ -251,6 +251,56 @@ body{
 }
 .empty-icon{font-size:80px}
 .empty-txt{font-size:24px;color:#8A7A6E;font-weight:600;letter-spacing:0.02em}
+
+/* ── TODAY'S SPECIAL — idle promo poster ─────────────────────────────────── */
+.special-promo{
+  grid-column:1/-1;
+  height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;
+  padding:20px;
+  text-align:center;
+  background:radial-gradient(ellipse at center,rgba(220,38,38,0.10) 0%,transparent 70%);
+  animation:promoIn 0.6s ease both;
+}
+@keyframes promoIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
+.sp-ribbon{
+  font-size:24px;font-weight:800;letter-spacing:0.18em;
+  color:#FBBF24;text-transform:uppercase;
+  animation:ribbonGlow 2.4s ease-in-out infinite;
+}
+@keyframes ribbonGlow{0%,100%{opacity:0.85;text-shadow:0 0 12px rgba(251,191,36,0.4)}50%{opacity:1;text-shadow:0 0 28px rgba(251,191,36,0.8)}}
+.sp-img-wrap{
+  width:min(40vh,340px);height:min(40vh,340px);
+  border-radius:28px;overflow:hidden;
+  background:rgba(255,255,255,0.06);
+  border:4px solid rgba(251,191,36,0.5);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 50px rgba(0,0,0,0.4),0 0 40px rgba(220,38,38,0.2);
+}
+.sp-img{width:100%;height:100%;object-fit:cover;display:block}
+.sp-name{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(40px,6vw,84px);font-weight:800;
+  color:#FAF9F7;line-height:1.05;letter-spacing:-0.01em;
+  text-shadow:0 2px 20px rgba(0,0,0,0.5);
+}
+.sp-tagline{font-size:clamp(18px,2.4vw,30px);color:#E8C547;font-weight:600;max-width:90%}
+.sp-price{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(56px,9vw,130px);font-weight:800;
+  color:#4ADE80;line-height:1;letter-spacing:-0.02em;
+  text-shadow:0 0 40px rgba(74,222,128,0.5);
+}
+.sp-stock{
+  font-size:clamp(20px,2.6vw,34px);font-weight:800;
+  color:#fff;background:#DC2626;
+  padding:10px 32px;border-radius:50px;
+  letter-spacing:0.04em;
+  animation:stockPulse 1.6s ease-in-out infinite;
+  box-shadow:0 6px 24px rgba(220,38,38,0.45);
+}
+@keyframes stockPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 </style>
 </head>
 <body>
@@ -361,6 +411,7 @@ var RING_C     = parseFloat((2 * Math.PI * RING_R).toFixed(2));
 var entries   = {};
 var announced = {};
 var gotData   = false;
+var todaySpecial = null;
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
 var QD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -481,6 +532,30 @@ function getActive(){return Object.entries(entries).filter(function(kv){return k
 function getMissed(){return Object.entries(entries).filter(function(kv){return kv[1].status==='missed';}).sort(function(a,b){return b[1].calledAt-a[1].calledAt;}).slice(0,MAX_MISSED);}
 
 // ── Render ────────────────────────────────────────────────────────────────────
+// Builds the idle-screen content: Today's Special poster if active, else waiting message
+function idleScreenHtml(){
+  var s = todaySpecial;
+  var hasSpecial = s && s.active && s.itemId && (s.qtyRemaining==null || s.qtyRemaining>0);
+  if(!hasSpecial){
+    return '<div class="empty-state"><div class="empty-icon">&#x1F37D;&#xFE0F;</div><div class="empty-txt">'+(gotData?'Waiting for orders':'Connecting...')+'</div></div>';
+  }
+  var name  = s.itemName || '';
+  var price = (s.price!=null) ? ('$'+Number(s.price).toFixed(2)) : '';
+  var tagline = s.tagline || '';
+  var stock = (s.qtyRemaining!=null) ? ('Only '+s.qtyRemaining+' left today!') : '';
+  var imgHtml = s.imageUrl
+    ? '<div class="sp-img-wrap"><img class="sp-img" src="'+s.imageUrl+'" alt="" onerror="this.parentNode.innerHTML=\'&#x1F525;\'"></div>'
+    : '<div class="sp-img-wrap"><span style="font-size:140px">&#x1F525;</span></div>';
+  return '<div class="special-promo">'
+    + '<div class="sp-ribbon">&#x2B50; TODAY\u2019S SPECIAL &#x2B50;</div>'
+    + imgHtml
+    + '<div class="sp-name">'+name+'</div>'
+    + (tagline ? '<div class="sp-tagline">'+tagline+'</div>' : '')
+    + '<div class="sp-price">'+price+'</div>'
+    + (stock ? '<div class="sp-stock">'+stock+'</div>' : '')
+    + '</div>';
+}
+
 function renderDisplay(){
   var now=Date.now(), active=getActive(), missed=getMissed();
   var sl=Object.values(entries).map(function(e){return e.status;}).join(',')||'none';
@@ -491,7 +566,8 @@ function renderDisplay(){
   // Adjust grid columns to match number of active cards — 1 number = full width
   grid.className = 'serving-grid' + (active.length>0 && active.length<4 ? ' has-'+active.length : '');
   if(!active.length){
-    grid.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F37D;&#xFE0F;</div><div class="empty-txt">'+(gotData?'Waiting for orders':'Connecting...')+'</div></div>';
+    grid.className = 'serving-grid';
+    grid.innerHTML = idleScreenHtml();
   } else {
     var html='';
     for(var i=0;i<active.length;i++){
@@ -566,6 +642,12 @@ if(db){
     renderDisplay();
   }, function(err){
     diag('READ ERROR: '+err.code+' -- Firebase Console > Rules > add "queue_display":{".read":true,".write":true}','#7F1D1D');
+  });
+
+  // Today's Special — for idle-screen promo
+  db.ref('today_special').on('value', function(snap){
+    todaySpecial = snap.val() || null;
+    renderDisplay();
   });
 }
 </script>
