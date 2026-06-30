@@ -382,7 +382,7 @@ body{
 </div><!-- /scale-host -->
 
 <!-- Diagnostic bar: in DOM before script so getElementById works immediately -->
-<div id="diag-bar" style="position:fixed;top:0;left:0;right:0;z-index:999999;background:#1C1A08;color:#E8C547;font-size:12px;font-family:monospace;font-weight:bold;padding:7px 16px;border-bottom:2px solid #E8C547;white-space:nowrap;overflow:hidden">Loading...</div>
+<div id="diag-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#1C1A08;color:#E8C547;font-size:12px;font-family:monospace;font-weight:bold;padding:7px 16px;border-top:2px solid #E8C547;white-space:nowrap;overflow:hidden">Loading...</div>
 
 <script>
 // ── AUTO-SCALE: fit the 1280×800 canvas into any screen, no cut-off ──────────
@@ -390,7 +390,8 @@ function fitCanvas(){
   var canvas = document.getElementById('canvas');
   if(!canvas) return;
   var sw = window.innerWidth, sh = window.innerHeight;
-  var scale = Math.min(sw/1280, sh/800);
+  // 0.985 leaves a hair of margin so nothing clips from browser chrome / rounding
+  var scale = Math.min(sw/1280, sh/800) * 0.985;
   canvas.style.transform = 'scale(' + scale + ')';
 }
 window.addEventListener('resize', fitCanvas);
