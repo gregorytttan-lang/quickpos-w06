@@ -15,35 +15,52 @@ body{
   background:#0A0908;
   font-family:'DM Sans',sans-serif;
   color:#FAF9F7;
-  display:flex;
-  flex-direction:column;
-  height:100dvh;
   -webkit-user-select:none;
   user-select:none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   AUTO-SCALE CANVAS
+   The whole display is built at a fixed 1280×800 "design size", then scaled
+   by JS to fit whatever screen it's on — no cut-off on any tablet or TV.
+   ────────────────────────────────────────────────────────────────────────── */
+#scale-host{
+  position:fixed;inset:0;
+  background:#0A0908;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+#canvas{
+  width:1280px;height:800px;
+  flex-shrink:0;
+  transform-origin:center center;
+  display:flex;flex-direction:column;
+  background:#0A0908;
+  overflow:hidden;
 }
 
 /* ── HEADER ───────────────────────────────────────────────────────────────── */
 .hdr{
   background:linear-gradient(135deg,#1C1410 0%,#0F0D0B 100%);
   border-bottom:2px solid #C4572A;
-  padding:0 28px;
-  height:88px;
+  padding:0 36px;
+  height:150px;
   flex-shrink:0;
   display:flex;
   align-items:center;
 }
 .hdr-logo{
   display:flex;flex-direction:column;gap:6px;
-  min-width:380px;flex-shrink:0;
+  min-width:340px;flex-shrink:0;
 }
 .hdr-brand{
   font-family:'Playfair Display',serif;
-  font-size:54px;font-weight:800;
+  font-size:48px;font-weight:800;
   color:#FAF9F7;letter-spacing:0.02em;white-space:nowrap;
 }
 .hdr-brand .accent{color:#C4572A}
 .hdr-stall{
-  font-size:20px;color:#8A7A6E;font-weight:500;
+  font-size:18px;color:#8A7A6E;font-weight:500;
   display:flex;align-items:center;gap:8px;
 }
 .conn-dot{
@@ -56,20 +73,17 @@ body{
 .hdr-msg{flex:1;text-align:center;padding:0 16px}
 .hdr-collect{
   font-family:'Playfair Display',serif;
-  font-size:48px;font-weight:700;
+  font-size:42px;font-weight:700;
   color:#E8C547;line-height:1.15;
 }
-.hdr-collect-sub{font-size:22px;color:#8A7A6E;margin-top:5px;font-weight:500}
-.hdr-clock{text-align:right;min-width:220px;flex-shrink:0}
+.hdr-collect-sub{font-size:20px;color:#8A7A6E;margin-top:5px;font-weight:500}
+.hdr-clock{text-align:right;min-width:210px;flex-shrink:0}
 .hdr-time{
   font-family:'Playfair Display',serif;
-  font-size:60px;font-weight:700;
+  font-size:56px;font-weight:700;
   color:#FAF9F7;letter-spacing:0.04em;line-height:1;
 }
-.hdr-date{font-size:18px;color:#8A7A6E;margin-top:5px;font-weight:500}
-
-/* Header taller so big text fits */
-.hdr{height:160px !important;padding:0 36px !important}
+.hdr-date{font-size:17px;color:#8A7A6E;margin-top:5px;font-weight:500}
 
 /* ── MAIN ROW: missed sidebar + serving zone side by side ────────────────── */
 .main{
@@ -79,7 +93,6 @@ body{
   min-height:0;
   overflow:hidden;
 }
-
 
 /* ── NOW SERVING — RIGHT 3/4 ──────────────────────────────────────────────── */
 .serving-zone{
@@ -162,16 +175,18 @@ body{
   font-family:'Playfair Display',serif;
   line-height:1;margin-bottom:-8px;
 }
-/* Number is the star — fits inside the card no matter how narrow */
+/* Number is the star — sized to the fixed canvas so it always fits */
 .q-num{
   font-family:'Playfair Display',serif;
-  font-size:min(38vh, 23vw);
+  font-size:230px;
   font-weight:800;
   color:#4ADE80;
   line-height:0.9;
   letter-spacing:-0.04em;
   animation:shimmerGreen 2.8s ease-in-out infinite;
 }
+.serving-grid.has-1 .q-num{font-size:340px;}
+.serving-grid.has-2 .q-num{font-size:280px;}
 .s-card.empty .q-num{display:none}
 @keyframes shimmerGreen{
   0%,100%{text-shadow:0 0 25px rgba(74,222,128,0.4),0 0 50px rgba(74,222,128,0.2)}
@@ -182,7 +197,7 @@ body{
 .ring-wrap{
   position:relative;margin-top:18px;flex-shrink:0;
 }
-.ring-wrap svg{display:block;width:90px;height:90px}
+.ring-wrap svg{display:block;width:82px;height:82px}
 .ring-secs{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -233,10 +248,10 @@ body{
   0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}
   50%{box-shadow:0 0 28px 3px rgba(220,38,38,0.35)}
 }
-.m-hash{font-size:38px;color:#2D5A3E;font-weight:600;line-height:1;font-family:'Playfair Display',serif;margin-bottom:-6px}
+.m-hash{font-size:34px;color:#2D5A3E;font-weight:600;line-height:1;font-family:'Playfair Display',serif;margin-bottom:-6px}
 .m-num{
   font-family:'Playfair Display',serif;
-  font-size:clamp(110px, 11vw, 200px);
+  font-size:130px;
   font-weight:800;color:#4ADE80;
   line-height:0.95;letter-spacing:-0.03em;
   text-shadow:0 0 30px rgba(74,222,128,0.45);
@@ -265,13 +280,13 @@ body{
 }
 @keyframes promoIn{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
 .sp-ribbon{
-  font-size:clamp(38px,5vw,68px);font-weight:800;letter-spacing:0.12em;
+  font-size:52px;font-weight:800;letter-spacing:0.12em;
   color:#FBBF24;text-transform:uppercase;
   animation:ribbonGlow 2.4s ease-in-out infinite;
 }
 @keyframes ribbonGlow{0%,100%{opacity:0.85;text-shadow:0 0 12px rgba(251,191,36,0.4)}50%{opacity:1;text-shadow:0 0 28px rgba(251,191,36,0.8)}}
 .sp-img-wrap{
-  width:min(40vh,340px);height:min(40vh,340px);
+  width:300px;height:300px;
   border-radius:28px;overflow:hidden;
   background:rgba(255,255,255,0.06);
   border:4px solid rgba(251,191,36,0.5);
@@ -281,19 +296,19 @@ body{
 .sp-img{width:100%;height:100%;object-fit:cover;display:block}
 .sp-name{
   font-family:'Playfair Display',serif;
-  font-size:clamp(40px,6vw,84px);font-weight:800;
+  font-size:68px;font-weight:800;
   color:#FAF9F7;line-height:1.05;letter-spacing:-0.01em;
   text-shadow:0 2px 20px rgba(0,0,0,0.5);
 }
-.sp-tagline{font-size:clamp(18px,2.4vw,30px);color:#E8C547;font-weight:600;max-width:90%}
+.sp-tagline{font-size:26px;color:#E8C547;font-weight:600;max-width:90%}
 .sp-price{
   font-family:'Playfair Display',serif;
-  font-size:clamp(40px,6vw,88px);font-weight:800;
+  font-size:72px;font-weight:800;
   color:#4ADE80;line-height:1.15;letter-spacing:-0.01em;
   text-shadow:0 0 40px rgba(74,222,128,0.5);
 }
 .sp-stock{
-  font-size:clamp(20px,2.6vw,34px);font-weight:800;
+  font-size:28px;font-weight:800;
   color:#fff;background:#DC2626;
   padding:10px 32px;border-radius:50px;
   letter-spacing:0.04em;
@@ -304,6 +319,12 @@ body{
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCALE HOST → CANVAS (1280×800 fixed design, auto-scaled to screen)
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div id="scale-host">
+<div id="canvas">
 
 <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
 <div class="hdr">
@@ -357,10 +378,25 @@ body{
 
 </div>
 
+</div><!-- /canvas -->
+</div><!-- /scale-host -->
+
 <!-- Diagnostic bar: in DOM before script so getElementById works immediately -->
 <div id="diag-bar" style="position:fixed;top:0;left:0;right:0;z-index:999999;background:#1C1A08;color:#E8C547;font-size:12px;font-family:monospace;font-weight:bold;padding:7px 16px;border-bottom:2px solid #E8C547;white-space:nowrap;overflow:hidden">Loading...</div>
 
 <script>
+// ── AUTO-SCALE: fit the 1280×800 canvas into any screen, no cut-off ──────────
+function fitCanvas(){
+  var canvas = document.getElementById('canvas');
+  if(!canvas) return;
+  var sw = window.innerWidth, sh = window.innerHeight;
+  var scale = Math.min(sw/1280, sh/800);
+  canvas.style.transform = 'scale(' + scale + ')';
+}
+window.addEventListener('resize', fitCanvas);
+window.addEventListener('orientationchange', function(){ setTimeout(fitCanvas, 150); });
+fitCanvas();
+
 // ── Diagnostic helper ─────────────────────────────────────────────────────────
 function diag(msg, bg) {
   var b = document.getElementById('diag-bar');
