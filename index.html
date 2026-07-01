@@ -350,7 +350,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-01-v7"; // feat: menu item photos + Buttermilk photo
+const APP_VERSION = "2026-07-01-v8"; // fix: load payouts from Firebase (cache-clear safe)
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -2821,6 +2821,18 @@ const FB_CONFIG = {
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 const ordersRef = db.ref("orders");
+
+// ── PAYOUTS: load from Firebase (source of truth) so clearing the tablet cache
+//    never hides records. Merges cloud payouts into local storage, then re-renders.
+db.ref("payouts").on("value", snap=>{
+  const fb = snap.val() || {};
+  const byId = {};
+  ls("payouts_w06", []).forEach(p=>{ if(p && p.id) byId[p.id]=p; });   // keep any local/offline ones
+  Object.values(fb).forEach(p=>{ if(p && p.id) byId[p.id]=p; });        // cloud copy wins/restores
+  lss("payouts_w06", Object.values(byId));
+  const listEl = document.getElementById("payout-list");
+  if(listEl) renderPayouts();
+});
 
 // Listen for stall status changes — syncs open/close to all devices
 db.ref("stall_status").on("value", snap=>{
