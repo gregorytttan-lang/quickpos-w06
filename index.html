@@ -350,7 +350,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-01-v8"; // fix: load payouts from Firebase (cache-clear safe)
+const APP_VERSION = "2026-07-01-v9"; // feat: add Sweet & Sour Cocktail Fish Set
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -503,6 +503,7 @@ const DEFAULT_MENU = [
     {id:"f6",name:"Grilled Fish Cheesy Fries",price:6.30,desc:"Tender grilled fish fillet • Golden cheesy fries • Fresh garden salad • Zesty black pepper sauce — Indulgent & satisfying!",modifiers:[SIDE,SOUP]},
     {id:"f7",name:"Mexican Fish Cutlet",price:6.00,desc:"Golden crispy fish cutlet with bold Mexican seasoning • Served with crispy fries & fresh garden salad",modifiers:[SIDE,SOUP]},
     {id:"f8",name:"Flame-Grilled Sambal Fish",price:6.50,desc:"🌶️ Local Favourite • Flaky white fish fillet grilled to perfection and coated in a spicy, savory sambal paste • Served with steamed rice and a crisp seasonal salad",modifiers:[SIDE,SOUP]},
+    {id:"f9",name:"Sweet & Sour Cocktail Fish Set",price:5.50,desc:"Crunchy breadcrumb-fried fish • Our special sweet & sour cocktail sauce • Served with hot crispy fries & fresh garden salad",modifiers:[SIDE,SOUP]},
   ]},
   {id:"c3",name:"French Tacos & Spaghetti",emoji:"🌮",items:[
     {id:"t1",name:"Taco — Chicken",price:6.80,desc:"Soft flour tortilla filled with seasoned chicken • Melted cheese • Served with crispy fries",modifiers:[CHEESE_FRIES]},
@@ -538,7 +539,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v10", DEFAULT_MENU);
+let menu    = ls("menu_w06_v11", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -547,7 +548,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v10", menu); }
+function saveMenu()  { lss("menu_w06_v11", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
