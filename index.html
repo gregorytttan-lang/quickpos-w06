@@ -350,7 +350,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-06-30-v5"; // feat: offline-first auto-sync for sales & payouts
+const APP_VERSION = "2026-07-01-v6"; // feat: add Buttermilk Fried Chicken Set to menu
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -491,6 +491,7 @@ const DEFAULT_MENU = [
     {id:"m9",name:"Grilled Boneless Chicken Leg with Salad",price:5.30,desc:"Light & healthy • Tender grilled boneless chicken leg • Fresh garden salad — Great for a lighter meal!",modifiers:[SIDE,SOUP]},
     {id:"m10",name:"Sambal Glazed Chicken Chop",price:6.00,desc:"🌶️ Local Favourite • Tender juicy chicken chop topped with rich and aromatic sambal chili • Paired with fluffy butter rice and garden greens — Perfect local kick!",modifiers:[SIDE,SOUP]},
     {id:"m11",name:"Salted Egg Chicken Cutlet",price:6.20,desc:"Golden Salted Egg Chicken Cutlet • Crispy golden-brown chicken cutlet drizzled with rich creamy salted egg yolk sauce • Served with crunchy golden fries & refreshing side salad",modifiers:[SIDE,SOUP]},
+    {id:"m12",name:"Buttermilk Fried Chicken Set",price:5.80,desc:"Golden fried chicken smothered in creamy buttermilk sauce • Served with crispy fries & fresh garden salad",modifiers:[SIDE,SOUP]},
     {id:"v1",name:"Value Chicken Sausage Butter Rice Set",price:3.00,desc:"Great value! • Fragrant butter rice • 2 juicy chicken sausages • Sunny side up egg — Perfect quick meal!"},
     {id:"v2",name:"Value Chicken Sausage Spaghetti Set",price:3.00,desc:"Great value! • Al dente spaghetti in black pepper sauce • 2 juicy chicken sausages — Quick & filling!"},
   ]},
@@ -537,7 +538,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v8", DEFAULT_MENU);
+let menu    = ls("menu_w06_v9", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -546,7 +547,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v8", menu); }
+function saveMenu()  { lss("menu_w06_v9", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
