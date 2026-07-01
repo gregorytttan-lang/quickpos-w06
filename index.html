@@ -66,21 +66,24 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div id="cat-tabs" style="display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px"></div>
   </div>
   <!-- 🔥 Today's Special banner (appears at very top, persistent across category switches) -->
-  <div id="special-banner" class="hidden" onclick="addSpecialToCart()" style="background:linear-gradient(135deg,#DC2626 0%,#B91C1C 100%);padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:3px solid #FBBF24;box-shadow:0 2px 12px rgba(220,38,38,0.25);animation:specialPulse 2.5s ease-in-out infinite">
-    <div id="special-banner-image-wrap" style="flex-shrink:0;width:74px;height:74px;border-radius:14px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.4);overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.2)">
+  <div id="special-banner" class="hidden" onclick="addSpecialToCart()" style="position:relative;background:linear-gradient(135deg,#DC2626 0%,#B91C1C 100%);cursor:pointer;border-bottom:3px solid #FBBF24;box-shadow:0 2px 12px rgba(220,38,38,0.25);animation:specialPulse 2.5s ease-in-out infinite;overflow:hidden">
+    <div style="position:absolute;top:12px;left:0;z-index:2;background:#FBBF24;color:#7C2D12;font-size:14px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:7px 18px 7px 14px;border-radius:0 20px 20px 0;box-shadow:0 2px 8px rgba(0,0,0,0.3)">⭐ Today’s Special</div>
+    <div style="position:relative;width:100%;height:190px;background:rgba(0,0,0,0.15)">
       <img id="special-banner-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
-      <span id="special-banner-emoji" style="font-size:36px">🔥</span>
+      <span id="special-banner-emoji" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:72px">🔥</span>
     </div>
-    <div style="flex:1;color:#fff;min-width:0">
-      <div style="font-size:9px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;opacity:0.95;margin-bottom:2px">⭐ TODAY'S SPECIAL ⭐</div>
-      <div id="special-banner-name" style="font-size:17px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="special-banner-detail" style="font-size:11px;opacity:0.95;margin-top:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-    </div>
-    <div style="text-align:right;color:#fff;flex-shrink:0">
-      <div id="special-banner-price" style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;line-height:1"></div>
-      <div style="font-size:10px;font-weight:700;margin-top:5px;background:rgba(255,255,255,0.22);padding:4px 10px;border-radius:14px;display:inline-block">+ ADD</div>
+    <div style="padding:14px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;color:#fff">
+      <div style="flex:1;min-width:0">
+        <div id="special-banner-name" style="font-size:20px;font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="special-banner-detail" style="font-size:12px;opacity:0.95;margin-top:4px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div id="special-banner-price" style="font-family:'Playfair Display',serif;font-size:30px;font-weight:700;line-height:1"></div>
+        <div style="font-size:11px;font-weight:800;margin-top:6px;background:rgba(255,255,255,0.22);padding:6px 14px;border-radius:16px;display:inline-block">+ ADD</div>
+      </div>
     </div>
   </div>
+
   <!-- Recovery banner -->
   <div id="recovery-banner" class="hidden" style="background:linear-gradient(135deg,#16A34A 0%,#15803D 100%);padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="showRecoveredOrder()">
     <div style="font-size:28px">📋</div>
@@ -350,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-01-v9"; // feat: add Sweet & Sour Cocktail Fish Set
+const APP_VERSION = "2026-07-02-v11"; // tweak: larger Today special ribbon text
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
