@@ -350,7 +350,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-05-21-v4"; // feat: photo support for Today's Special banner
+const APP_VERSION = "2026-06-30-v5"; // feat: offline-first auto-sync for sales & payouts
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -2261,74 +2261,30 @@ function saveFloat(val){
 }
 
 function saveDailyToSheets(){
+  // OFFLINE-FIRST: queue today's summary + today's payouts; they sync now if online, else on reconnect.
   const todayStr = today();
-  const todayOrders = orders.filter(o=>new Date(o.createdAt).toDateString()===todayStr);
+  const todayOrders = orders.filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
   if(!todayOrders.length){ toast("No orders today to save.","#78716C"); return; }
-
-  // Disable button and show loading
   const btn = document.querySelector("button[onclick='saveDailyToSheets()']");
-  if(btn){ btn.disabled=true; btn.textContent="⏳ Saving..."; btn.style.background="#78716C"; }
+  if(btn){ btn.disabled=true; btn.textContent="\u23F3 Queuing..."; btn.style.background="#78716C"; }
 
-  const todayRev    = todayOrders.reduce((s,o)=>s+o.total,0);
-  const todayPaynow = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+o.total,0);
-  const todayCash   = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+o.total,0);
-  const dineIn      = todayOrders.filter(o=>o.dining==="dinein").length;
-  const takeAway    = todayOrders.filter(o=>o.dining==="takeaway").length;
+  // Daily summary — keyed by date so it is sent ONCE per day (kills the duplicate rows)
+  enqueueSync("daily-"+todayStr, computeDailyPayload());
+  // Today's payouts — keyed by id so each is sent ONCE (and from whichever tablet entered it)
+  ls("payouts_w06",[]).filter(p=>p.createdAt && new Date(p.createdAt).toDateString()===todayStr)
+    .forEach(p=>enqueueSync("payout-"+p.id, {type:"payout", date:p.date, supplier:p.supplier, item:p.item, amount:p.amount, notes:p.notes||""}));
 
-  const itemMap = {};
-  todayOrders.forEach(o=>o.items.forEach(i=>{
-    if(!itemMap[i.name]) itemMap[i.name]=0;
-    itemMap[i.name]+=i.qty;
-  }));
-  const topItems = Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,q])=>n+" x"+q);
-
-  const float2 = parseFloat(ls("float_w06",0))||0;
-  const payouts2 = ls("payouts_w06",[]);
-  const payoutTotal2 = payouts2.reduce((s,p)=>s+p.amount,0);
-  const cashInBox2 = float2 + todayCash - payoutTotal2;
-
-  const data = {
-    type:"daily",
-    date: new Date().toLocaleDateString("en-SG"),
-    totalRevenue: todayRev,
-    paynow: todayPaynow,
-    cash: todayCash,
-    orders: todayOrders.length,
-    dineIn, takeAway,
-    float: float2,
-    payoutTotal: payoutTotal2,
-    cashInBox: cashInBox2,
-    top1:topItems[0]||"", top2:topItems[1]||"", top3:topItems[2]||"",
-    top4:topItems[3]||"", top5:topItems[4]||""
-  };
-
-  // Save daily sales first, then save all payouts
-  fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(data)})
-    .then(()=>{
-      // Now save all payouts
-      const payouts = ls("payouts_w06",[]);
-      if(payouts.length){
-        const payoutPromises = payouts.map(p=>{
-          const pd={type:"payout",date:p.date,supplier:p.supplier,item:p.item,amount:p.amount,notes:p.notes||""};
-          return fetch(SHEETS_URL,{method:"POST",body:JSON.stringify(pd)}).then(()=>({ok:true})).catch(()=>({ok:false}));
-        });
-        return Promise.all(payoutPromises);
-      }
-    })
-    .then((results)=>{
-      const failed=results?results.filter(r=>r&&!r.ok).length:0;
-      if(failed>0){
-        toast("⚠️ Sales saved. "+failed+" payout(s) failed to sync.","#CA8A04");
-        if(btn){btn.disabled=false;btn.textContent="⚠️ Partial";btn.style.background="#CA8A04";}
-      } else {
-        toast("✅ Sales & Payouts saved to Google Sheets!");
-        if(btn){btn.disabled=false;btn.textContent="✅ Saved!";btn.style.background="#16A34A";}
-      }
-    })
-    .catch(()=>{
-      toast("❌ Failed to connect. Check internet.","#DC2626");
-      if(btn){ btn.disabled=false; btn.textContent="📊 Save to Sheets"; btn.style.background="#0F9D58"; }
-    });
+  snapshotToday();
+  flushSync();
+  setTimeout(()=>{
+    if(!btn) return;
+    btn.disabled=false;
+    const n=pendingSyncCount();
+    if(n>0 && !navigator.onLine){ btn.textContent="\uD83D\uDCF4 Queued (offline)"; btn.style.background="#CA8A04"; }
+    else if(n>0){ btn.textContent="\u23F3 Syncing\u2026"; btn.style.background="#2563EB"; }
+    else { btn.textContent="\u2705 Saved!"; btn.style.background="#16A34A"; }
+    setTimeout(()=>{ if(btn){ btn.textContent="\uD83D\uDCCA Save to Sheets"; btn.style.background="#0F9D58"; } }, 4000);
+  }, 1200);
 }
 
 function savePayoutToSheets(p){
@@ -2389,6 +2345,8 @@ function addPayout(){
   payouts.push(payout);
   lss("payouts_w06", payouts);
   db.ref("payouts").child(payout.id).set(payout);
+  // OFFLINE-SAFE: queue this payout so it auto-syncs to Sheets when online (no dup, all tablets)
+  enqueueSync("payout-"+payout.id, {type:"payout", date:payout.date, supplier:payout.supplier, item:payout.item, amount:payout.amount, notes:payout.notes||""});
   document.getElementById("pay-supplier").value="";
   document.getElementById("pay-item").value="";
   document.getElementById("pay-amount").value="";
@@ -3120,6 +3078,108 @@ db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs).on("value", sn
 
 renderMenu();
 updateKitchenBadge();
+
+/* ============================================================
+   OFFLINE-FIRST SYNC ENGINE (W06)  — added 2026-06-30
+   Captures sales & payouts locally (works with NO wifi), then
+   auto-pushes to Google Sheets the moment the tablet comes online.
+   Each record is sent EXACTLY ONCE (no duplicates) and every
+   tablet flushes its own records (fixes the missing-payout bug).
+   ============================================================ */
+function _syncQueue(){ return ls("syncQueue_w06", []); }
+function _saveQueue(q){ lss("syncQueue_w06", q); }
+function pendingSyncCount(){ return _syncQueue().filter(it=>!it.synced).length; }
+
+function enqueueSync(key, payload){
+  const q=_syncQueue();
+  const existing=q.find(it=>it.key===key);
+  if(existing){ if(existing.synced) return; existing.payload=payload; _saveQueue(q); }
+  else { q.push({key, payload, synced:false, queuedAt:Date.now()}); _saveQueue(q); }
+  updateSyncBadge();
+  flushSync();
+}
+
+let _flushing=false;
+async function flushSync(){
+  if(_flushing) return;
+  if(!navigator.onLine){ updateSyncBadge(); return; }
+  _flushing=true;
+  try{
+    const q=_syncQueue();
+    for(const it of q){
+      if(it.synced) continue;
+      try{
+        await fetch(SHEETS_URL, {method:"POST", body:JSON.stringify(it.payload)});
+        it.synced=true; it.syncedAt=Date.now();
+        _saveQueue(q);                 // persist after each success (survives a mid-flush drop)
+      }catch(e){ break; }              // likely offline again — stop, retry later
+    }
+    // prune: keep all unsynced + last 300 synced (for safety/audit)
+    const all=_syncQueue();
+    _saveQueue(all.filter(it=>!it.synced).concat(all.filter(it=>it.synced).slice(-300)));
+  } finally { _flushing=false; updateSyncBadge(); }
+}
+
+function computeDailyPayload(){
+  const todayStr=today();
+  const tOrders=(orders||[]).filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const rev=tOrders.reduce((s,o)=>s+(o.total||0),0);
+  const paynow=tOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
+  const cash=tOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
+  const dineIn=tOrders.filter(o=>o.dining==="dinein").length;
+  const takeAway=tOrders.filter(o=>o.dining==="takeaway").length;
+  const itemMap={};
+  tOrders.forEach(o=>(o.items||[]).forEach(i=>{ itemMap[i.name]=(itemMap[i.name]||0)+i.qty; }));
+  const topItems=Object.entries(itemMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,q])=>n+" x"+q);
+  const float=parseFloat(ls("float_w06",0))||0;
+  // payouts scoped to TODAY (by createdAt) — also fixes the old cash-in-box drift
+  const tPay=ls("payouts_w06",[]).filter(p=>p.createdAt && new Date(p.createdAt).toDateString()===todayStr);
+  const payoutTotal=tPay.reduce((s,p)=>s+(p.amount||0),0);
+  return { type:"daily", date:new Date().toLocaleDateString("en-SG"), dateKey:todayStr,
+    totalRevenue:rev, paynow, cash, orders:tOrders.length, dineIn, takeAway,
+    float, payoutTotal, cashInBox:float+cash-payoutTotal,
+    top1:topItems[0]||"", top2:topItems[1]||"", top3:topItems[2]||"", top4:topItems[3]||"", top5:topItems[4]||"" };
+}
+
+// Keep a live snapshot of today's numbers in localStorage so the daily row can be
+// finalised even if the app is offline/closed when the day rolls over.
+function snapshotToday(){
+  const p=computeDailyPayload();
+  lss("dailySnap_w06", p);
+  lss("dailySnapDay_w06", p.dateKey);
+}
+// If a new day has begun and the previous day was never posted, queue it now (once).
+function finalizePreviousDayIfNeeded(){
+  const lastDay=ls("dailySnapDay_w06", null);
+  const snap=ls("dailySnap_w06", null);
+  if(lastDay && snap && lastDay!==today() && (snap.orders>0)){
+    enqueueSync("daily-"+lastDay, snap);
+    lss("dailySnap_w06", null); lss("dailySnapDay_w06", null);
+  }
+}
+
+// Floating status badge — tells you at a glance if anything is waiting to sync.
+function updateSyncBadge(){
+  let b=document.getElementById("sync-badge");
+  if(!b){
+    b=document.createElement("div"); b.id="sync-badge";
+    b.style.cssText="position:fixed;bottom:14px;right:14px;z-index:99999;padding:9px 14px;border-radius:22px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);font-family:sans-serif;-webkit-user-select:none;user-select:none";
+    b.title="Tap to sync now";
+    b.onclick=flushSync;
+    document.body.appendChild(b);
+  }
+  const n=pendingSyncCount();
+  if(n>0 && !navigator.onLine){ b.textContent="\uD83D\uDCF4 "+n+" waiting \u2014 connect hotspot"; b.style.background="#CA8A04"; b.style.color="#fff"; b.style.display="block"; }
+  else if(n>0){ b.textContent="\u23F3 Syncing "+n+"\u2026"; b.style.background="#2563EB"; b.style.color="#fff"; b.style.display="block"; }
+  else { b.textContent="\u2705 All synced"; b.style.background="#16A34A"; b.style.color="#fff"; b.style.display="block"; setTimeout(()=>{ if(pendingSyncCount()===0){ const x=document.getElementById("sync-badge"); if(x) x.style.display="none"; } }, 4000); }
+}
+
+// Triggers: come-online, go-offline, periodic retry, and on load.
+window.addEventListener("online",  ()=>{ updateSyncBadge(); finalizePreviousDayIfNeeded(); flushSync(); });
+window.addEventListener("offline", updateSyncBadge);
+setInterval(()=>{ snapshotToday(); finalizePreviousDayIfNeeded(); if(navigator.onLine && pendingSyncCount()>0) flushSync(); }, 120000); // every 2 min
+setTimeout(()=>{ snapshotToday(); finalizePreviousDayIfNeeded(); updateSyncBadge(); flushSync(); }, 2500); // shortly after load
+/* ============= END OFFLINE-FIRST SYNC ENGINE ============= */
 </script>
 <!-- Password Modal -->
 <div id="pwd-modal" class="hidden" style="position:fixed;inset:0;z-index:99999;background:rgba(28,25,23,0.7);display:flex;align-items:center;justify-content:center;padding:24px">
