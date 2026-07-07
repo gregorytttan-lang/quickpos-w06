@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-02-v11"; // tweak: larger Today special ribbon text
+const APP_VERSION = "2026-07-02-v12"; // feat: add Spicy Chicken Nuggets
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -526,6 +526,7 @@ const DEFAULT_MENU = [
     {id:"sn15",name:"Crispy Chicken Stick",price:3.50,desc:"Tender chicken strips with a super crispy coating — Ready immediately!"},
     {id:"sn18",name:"New Fish Pop — Crispy",price:3.50,desc:"Bite-sized crispy fish pops — golden, crunchy and packed with flavour. Ready immediately!"},
     {id:"sn99",name:"Chicken Kebab",price:4.50,desc:"🔥 NEW! Tender marinated chicken kebab grilled to perfection • Served with garden salad • Ready immediately!"},
+    {id:"sn20",name:"Spicy Chicken Nuggets",price:3.50,desc:"Crispy golden chicken nuggets with a spicy kick • Ready immediately!"},
   ]},
   {id:"c5",name:"Add-ons",emoji:"➕",items:[
     {id:"ss1",name:"Cream of Mushroom Soup",price:2.50,desc:"Warm & comforting creamy mushroom soup — Perfect with any main!"},
@@ -542,7 +543,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v11", DEFAULT_MENU);
+let menu    = ls("menu_w06_v12", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -551,7 +552,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v11", menu); }
+function saveMenu()  { lss("menu_w06_v12", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
