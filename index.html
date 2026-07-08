@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-02-v12"; // feat: add Spicy Chicken Nuggets
+const APP_VERSION = "2026-07-03-v14"; // feat: show voided-today line in report
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -1880,13 +1880,15 @@ function renderReports(){
     return;
   }
   const todayStr = today();
-  const todayOrders = orders.filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const todayOrders = orders.filter(o=>o && o.createdAt && o.status!=="cancelled" && new Date(o.createdAt).toDateString()===todayStr);
   const todayRev      = todayOrders.reduce((s,o)=>s+(o.total||0),0);
   const todayPaynow   = todayOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
   const todayCash     = todayOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
-  const allRev        = orders.reduce((s,o)=>s+((o && o.total)||0),0);
-  const allPaynow     = orders.filter(o=>o && o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
-  const allCash       = orders.filter(o=>o && o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
+  const todayVoided   = orders.filter(o=>o && o.createdAt && o.status==="cancelled" && new Date(o.createdAt).toDateString()===todayStr);
+  const voidedTotal   = todayVoided.reduce((s,o)=>s+(o.total||0),0);
+  const allRev        = orders.filter(o=>o && o.status!=="cancelled").reduce((s,o)=>s+((o && o.total)||0),0);
+  const allPaynow     = orders.filter(o=>o && o.paymentMethod!=="cash" && o.status!=="cancelled").reduce((s,o)=>s+(o.total||0),0);
+  const allCash       = orders.filter(o=>o && o.paymentMethod==="cash" && o.status!=="cancelled").reduce((s,o)=>s+(o.total||0),0);
 
   // Float and payouts
   const float = parseFloat(ls("float_w06", 0)) || 0;
@@ -1898,6 +1900,7 @@ function renderReports(){
   const dailyMap = {};
   orders.forEach(o=>{
     if(!o || !o.createdAt) return;
+    if(o.status==="cancelled") return;
     const d = new Date(o.createdAt).toDateString();
     if(!dailyMap[d]) dailyMap[d]={rev:0,cash:0,paynow:0,count:0,items:{}};
     dailyMap[d].rev+=(o.total||0);
@@ -2031,6 +2034,11 @@ function renderReports(){
             <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#2563EB">${fmtS(todayCash)}</div>
           </div>
         </div>
+
+        ${todayVoided.length?`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;color:#991B1B;font-weight:600">🚫 Voided today: ${todayVoided.length} order${todayVoided.length>1?"s":""}</span>
+          <span style="font-size:12px;color:#991B1B;font-weight:700">${fmtS(voidedTotal)} <span style="font-weight:500;color:#B91C1C;font-size:10px">(not counted)</span></span>
+        </div>`:""}
 
         <!-- Float & Cash in Box -->
         <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px;padding:14px;margin-bottom:14px">
@@ -2270,7 +2278,7 @@ function saveFloat(val){
 function saveDailyToSheets(){
   // OFFLINE-FIRST: queue today's summary + today's payouts; they sync now if online, else on reconnect.
   const todayStr = today();
-  const todayOrders = orders.filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const todayOrders = orders.filter(o=>o && o.createdAt && o.status!=="cancelled" && new Date(o.createdAt).toDateString()===todayStr);
   if(!todayOrders.length){ toast("No orders today to save.","#78716C"); return; }
   const btn = document.querySelector("button[onclick='saveDailyToSheets()']");
   if(btn){ btn.disabled=true; btn.textContent="\u23F3 Queuing..."; btn.style.background="#78716C"; }
@@ -2303,7 +2311,7 @@ function savePayoutToSheets(p){
 
 function sendWhatsApp(){
   const todayStr = today();
-  const todayOrders = orders.filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const todayOrders = orders.filter(o=>o && o.createdAt && o.status!=="cancelled" && new Date(o.createdAt).toDateString()===todayStr);
   const todayRev = todayOrders.reduce((s,o)=>s+(o.total||0),0);
   const itemMap = {};
   todayOrders.forEach(o=>(o.items||[]).forEach(i=>{
@@ -2437,6 +2445,7 @@ function archiveMonth(){
   if(!orders.length){ alert("No orders to archive."); return; }
 
   const monthOrders = orders.filter(o=>{
+    if(!o || o.status==="cancelled") return false;
     const d = new Date(o.createdAt);
     return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
   });
@@ -3141,7 +3150,7 @@ async function flushSync(){
 
 function computeDailyPayload(){
   const todayStr=today();
-  const tOrders=(orders||[]).filter(o=>o && o.createdAt && new Date(o.createdAt).toDateString()===todayStr);
+  const tOrders=(orders||[]).filter(o=>o && o.createdAt && o.status!=="cancelled" && new Date(o.createdAt).toDateString()===todayStr);
   const rev=tOrders.reduce((s,o)=>s+(o.total||0),0);
   const paynow=tOrders.filter(o=>o.paymentMethod!=="cash").reduce((s,o)=>s+(o.total||0),0);
   const cash=tOrders.filter(o=>o.paymentMethod==="cash").reduce((s,o)=>s+(o.total||0),0);
