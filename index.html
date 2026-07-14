@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-13-v15"; // feat: show voided-today line in report
+const APP_VERSION = "2026-07-14-v16"; // feat: show voided-today line in report
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -508,6 +508,7 @@ const DEFAULT_MENU = [
     {id:"f8",name:"Flame-Grilled Sambal Fish",price:6.50,desc:"🌶️ Local Favourite • Flaky white fish fillet grilled to perfection and coated in a spicy, savory sambal paste • Served with steamed rice and a crisp seasonal salad",modifiers:[SIDE,SOUP]},
     {id:"f9",name:"Sweet & Sour Cocktail Fish Set",price:5.50,desc:"Crunchy breadcrumb-fried fish • Our special sweet & sour cocktail sauce • Served with hot crispy fries & fresh garden salad",modifiers:[SIDE,SOUP]},
     {id:"f10",name:"Mushroom Fish Set (with Egg)",price:6.00,img:"./mushroom-fish.jpg",desc:"Grilled fish in creamy mushroom sauce with fragrant rice and a sunny-side-up egg • Egg included — save 20¢! • Fresh garden salad",modifiers:[SIDE,SOUP]},
+    {id:"f11",name:"Golden Fried Dory with Spaghetti",price:6.00,img:"./dory-spaghetti.jpg",desc:"Crispy golden-fried dory fillet with al dente spaghetti & fresh garden salad • Choose your sauce!",modifiers:[{id:"sauce",label:"Choose your spaghetti sauce",required:true,options:[{name:"Mushroom Cream",price:0},{name:"Chicken Bolognese",price:0}]},SIDE,SOUP]},
   ]},
   {id:"c3",name:"French Tacos & Spaghetti",emoji:"🌮",items:[
     {id:"t1",name:"Taco — Chicken",price:6.80,desc:"Soft flour tortilla filled with seasoned chicken • Melted cheese • Served with crispy fries",modifiers:[CHEESE_FRIES]},
@@ -544,7 +545,7 @@ const DEFAULT_MENU = [
   ]},
 ];
 // ── STATE ───────────────────────────────────────────────────────────────────
-let menu    = ls("menu_w06_v13", DEFAULT_MENU);
+let menu    = ls("menu_w06_v14", DEFAULT_MENU);
 let orders  = [];
 let cart    = [];
 let curCat  = 0;
@@ -553,7 +554,7 @@ let modChoices = {};
 let pendingOrder = null;
 let diningOption = null; // null = not yet selected
 
-function saveMenu()  { lss("menu_w06_v13", menu); }
+function saveMenu()  { lss("menu_w06_v14", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
