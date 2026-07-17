@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-17-v18"; // feat: show voided-today line in report
+const APP_VERSION = "2026-07-17-v19"; // feat: show voided-today line in report
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -646,7 +646,7 @@ function renderMenu(){
             : `<div style="display:flex;align-items:center;gap:8px;background:#F5F3F0;border-radius:24px;padding:4px 6px;border:1px solid #E5E0D8">
                 <button onclick="removeFromCart('${inCart[inCart.length-1]?.cartKey}')" style="width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #E5E0D8;color:#1C1917;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:300">−</button>
                 <span style="font-weight:700;color:#1C1917;font-size:16px;min-width:20px;text-align:center">${qty}</span>
-                <button onclick="handleAdd('${item.id}')" style="width:30px;height:30px;border-radius:50%;background:#C4572A;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:300">+</button>
+                <button onclick="bumpQty('${inCart[inCart.length-1]?.cartKey}')" style="width:30px;height:30px;border-radius:50%;background:#C4572A;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;font-weight:300">+</button>
               </div>`
           }
         </div>
@@ -911,6 +911,16 @@ function addToCart(item, choices){
   maybeUpsell(item);
 }
 
+// Stepper "+" — add another of the SAME item with the SAME options the customer
+// already picked. Without this, items that have modifiers re-open the options
+// popup on every "+" tap, which looks like the button is broken.
+function bumpQty(cartKey){
+  const line = cart.find(x=>x.cartKey===cartKey);
+  if(!line){ return; }
+  line.qty++;
+  renderMenu();
+}
+
 function removeFromCart(cartKey){
   const i = cart.findIndex(x=>x.cartKey===cartKey);
   if(i===-1) return;
@@ -1100,7 +1110,7 @@ function renderCartModal(){
       <div style="display:flex;align-items:center;gap:8px">
         <button onclick="removeFromCart('${item.cartKey}');renderCartModal();updateCartFab()" style="width:30px;height:30px;border-radius:50%;background:#F5F3F0;border:1px solid #E5E0D8;color:#1C1917;font-size:16px;display:flex;align-items:center;justify-content:center">−</button>
         <span style="font-weight:700;font-size:15px;min-width:20px;text-align:center">${item.qty}</span>
-        <button onclick="handleAdd('${item.id}');renderCartModal()" style="width:30px;height:30px;border-radius:50%;background:#C4572A;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="bumpQty('${item.cartKey}');renderCartModal()" style="width:30px;height:30px;border-radius:50%;background:#C4572A;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center">+</button>
         <span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:14px;min-width:52px;text-align:right">${fmtS(unit*item.qty)}</span>
       </div>
     </div>`;
