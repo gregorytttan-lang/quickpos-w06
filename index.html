@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-17-v19"; // feat: show voided-today line in report
+const APP_VERSION = "2026-07-17-v20"; // feat: show voided-today line in report
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -1662,6 +1662,76 @@ function adminTab(t){
 function renderAdmin(){ adminTab("menu-mgmt"); renderStallStatus(); }
 
 // ── 🔥 ADMIN: Today's Special management ───────────────────────────────────
+
+// Photos that live in the repo but aren't attached to a menu item.
+// Add a line here if you upload a standalone promo photo.
+const EXTRA_PHOTOS = [
+  {url:"./kebab-special.jpg", label:"Chicken Kebab"},
+];
+
+// Builds the list of pickable photos: every photo used by a menu item,
+// plus the extras above. No typing needed.
+function photoLibrary(){
+  const seen = {};
+  const list = [];
+  menu.forEach(cat=>cat.items.forEach(i=>{
+    if(i.img && !seen[i.img]){ seen[i.img]=1; list.push({url:i.img, label:i.name}); }
+  }));
+  EXTRA_PHOTOS.forEach(p=>{
+    if(!seen[p.url]){ seen[p.url]=1; list.push(p); }
+  });
+  return list;
+}
+
+// True when the saved photo isn't one of the known ones (so we show the text box)
+function isCustomPhoto(url){
+  if(!url) return false;
+  return !photoLibrary().some(p=>p.url===url);
+}
+
+function photoPickerOptions(current){
+  const lib = photoLibrary();
+  const custom = isCustomPhoto(current);
+  let html = `<option value="" ${!current?"selected":""}>— No photo (show 🔥 emoji) —</option>`;
+  html += lib.map(p=>{
+    const sel = (p.url===current) ? "selected" : "";
+    const file = p.url.replace(/^\.\//,"");
+    return `<option value="${p.url}" ${sel}>📷 ${p.label} (${file})</option>`;
+  }).join("");
+  html += `<option value="__custom__" ${custom?"selected":""}>✏️ Type my own filename…</option>`;
+  return html;
+}
+
+// Runs when the photo dropdown changes
+function onSpImgPick(){
+  const pick   = document.getElementById("sp-imgpick").value;
+  const urlIn  = document.getElementById("sp-imgurl");
+  const wrap   = document.getElementById("sp-custom-wrap");
+  if(!urlIn || !wrap) return;
+  if(pick === "__custom__"){
+    wrap.style.display = "block";
+    urlIn.focus();
+  } else {
+    wrap.style.display = "none";
+    urlIn.value = pick;
+  }
+  previewSpecialImg();
+}
+
+// When the item changes, auto-pick that item's own photo if it has one
+function onSpItemPick(){
+  const itemId = document.getElementById("sp-item").value;
+  const item = getItem(itemId);
+  if(!item || !item.img) return;
+  const pickEl = document.getElementById("sp-imgpick");
+  if(!pickEl) return;
+  const hasOption = [...pickEl.options].some(o=>o.value===item.img);
+  if(hasOption){
+    pickEl.value = item.img;
+    onSpImgPick();
+  }
+}
+
 function renderSpecialAdmin(){
   const panel = document.getElementById("admin-special");
   if(!panel) return;
@@ -1710,7 +1780,7 @@ function renderSpecialAdmin(){
       <div class="serif" style="font-size:15px;font-weight:700;margin-bottom:14px">📝 Set Today's Special</div>
 
       <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Pick an item</label>
-      <select id="sp-item" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;background:#fff;margin-bottom:14px">
+      <select id="sp-item" onchange="onSpItemPick()" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;background:#fff;margin-bottom:14px">
         ${itemOpts}
       </select>
 
@@ -1723,16 +1793,21 @@ function renderSpecialAdmin(){
       <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Tagline (optional)</label>
       <input id="sp-tagline" type="text" maxlength="60" value="${(s.tagline||'').replace(/"/g,'&quot;')}" placeholder="e.g. Chef's pick — limited stock!" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;margin-bottom:14px">
 
-      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Photo URL (optional)</label>
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px">
-        <input id="sp-imgurl" type="text" value="${(s.imageUrl||'').replace(/"/g,'&quot;')}" placeholder="e.g. ./kebab-special.jpg" oninput="previewSpecialImg()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:13px">
+      <label style="display:block;font-size:12px;font-weight:600;color:#1C1917;margin-bottom:6px">Photo</label>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">
+        <select id="sp-imgpick" onchange="onSpImgPick()" style="flex:1;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:14px;background:#fff">
+          ${photoPickerOptions(s.imageUrl||"")}
+        </select>
         <div style="flex-shrink:0;width:58px;height:58px;border-radius:10px;background:#F5F3F0;border:1px solid #E5E0D8;overflow:hidden;display:flex;align-items:center;justify-content:center">
           <img id="sp-img-preview" src="${s.imageUrl||''}" alt="" style="width:100%;height:100%;object-fit:cover;display:${s.imageUrl?'block':'none'}">
           <span id="sp-img-fallback" style="font-size:22px;color:#D4CFC8;display:${s.imageUrl?'none':'block'}">📷</span>
         </div>
       </div>
+      <div id="sp-custom-wrap" style="display:${isCustomPhoto(s.imageUrl||"")?'block':'none'};margin-bottom:8px">
+        <input id="sp-imgurl" type="text" value="${(s.imageUrl||'').replace(/"/g,'&quot;')}" placeholder="e.g. ./my-photo.jpg" oninput="previewSpecialImg()" style="width:100%;padding:11px;border:1px solid #E5E0D8;border-radius:9px;font-size:13px">
+      </div>
       <div style="font-size:10px;color:#78716C;margin-bottom:18px;line-height:1.5">
-        Upload <code style="background:#F5F3F0;padding:1px 4px;border-radius:3px">kebab-special.jpg</code> to your repo, then type <code style="background:#F5F3F0;padding:1px 4px;border-radius:3px">./kebab-special.jpg</code> here. Leave blank for emoji.
+        Pick a photo already in your repo. To add a new one, upload the .jpg to GitHub — it appears here automatically once it's used on a menu item.
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
