@@ -353,7 +353,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-17-v20"; // feat: show voided-today line in report
+const APP_VERSION = "2026-07-22-v21"; // feat: show voided-today line in report
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -598,6 +598,12 @@ function showView(v){
     btn.style.borderBottom = x===v ? "2px solid #C4572A" : "2px solid transparent";
     btn.style.fontWeight = x===v ? "600" : "400";
   });
+  // Staff views need the full order list — load it on demand, not on every
+  // customer's phone. (See BANDWIDTH note near the Firebase listeners.)
+  if(v==="kitchen" || v==="admin"){
+    startOrdersListener();
+    startPayoutsListener();
+  }
   if(v==="kitchen") renderKitchen();
   if(v==="admin")   renderAdmin();
 }
@@ -906,7 +912,22 @@ function quickAddSoup(baseItem){
 function addToCart(item, choices){
   const cartKey = item.id + Object.values(choices).map(c=>Array.isArray(c)?c.map(x=>x.name||x).join("+"):(c.name||c)).join("|");
   const ex = cart.find(x=>x.cartKey===cartKey);
-  if(ex){ ex.qty++; } else { cart.push({...item,qty:1,cartKey,choices}); }
+  if(ex){
+    ex.qty++;
+  } else {
+    // Store ONLY what the cart, kitchen ticket and receipt actually need.
+    // Previously this spread the whole menu item, so every saved order carried
+    // the dish description AND the full modifier definitions (~485 bytes of
+    // dead weight per line) — re-synced to every device on every change.
+    cart.push({
+      id:      item.id,
+      name:    item.name,
+      price:   item.price,
+      qty:     1,
+      cartKey: cartKey,
+      choices: choices
+    });
+  }
   renderMenu();
   maybeUpsell(item);
 }
@@ -1344,6 +1365,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
     const active = ls("active_orders_w06", []);
     active.push({orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining});
     lss("active_orders_w06", active);
+    syncMyOrderListeners();   // start watching just this customer's own order
   }
   cart = []; pendingOrder = null;
   closePayment();
@@ -1358,7 +1380,11 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
 
   document.getElementById("queue-number").textContent = fmtQ(queueNo);
   document.getElementById("queue-dining").textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
-  const _pc=orders.filter(x=>x.status==="paid"||x.status==="preparing").length;
+  // Staff devices have the full order list; customer phones don't (to save
+  // bandwidth) so they use the small queueDepth number published by the kitchen.
+  const _pc = _ordersQuery
+    ? orders.filter(x=>x && (x.status==="paid"||x.status==="preparing")).length
+    : queueDepth;
   const _wm=Math.max(5,_pc*2);
   const _we=document.getElementById("queue-wait-est");
   if(_we) _we.textContent="⏱️ Est. wait: ~"+_wm+" min"+(_wm!==1?"s":"");
@@ -2926,17 +2952,24 @@ firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 const ordersRef = db.ref("orders");
 
-// ── PAYOUTS: load from Firebase (source of truth) so clearing the tablet cache
-//    never hides records. Merges cloud payouts into local storage, then re-renders.
-db.ref("payouts").on("value", snap=>{
-  const fb = snap.val() || {};
-  const byId = {};
-  ls("payouts_w06", []).forEach(p=>{ if(p && p.id) byId[p.id]=p; });   // keep any local/offline ones
-  Object.values(fb).forEach(p=>{ if(p && p.id) byId[p.id]=p; });        // cloud copy wins/restores
-  lss("payouts_w06", Object.values(byId));
-  const listEl = document.getElementById("payout-list");
-  if(listEl) renderPayouts();
-});
+// ── PAYOUTS: staff-only. Loaded when Kitchen/Admin opens.
+//    This used to run on every customer phone, which downloaded your entire
+//    supplier payment history to strangers' devices — a privacy problem as
+//    well as a bandwidth one.
+let _payoutsListenerOn = false;
+function startPayoutsListener(){
+  if(_payoutsListenerOn) return;
+  _payoutsListenerOn = true;
+  db.ref("payouts").on("value", snap=>{
+    const fb = snap.val() || {};
+    const byId = {};
+    ls("payouts_w06", []).forEach(p=>{ if(p && p.id) byId[p.id]=p; });   // keep any local/offline ones
+    Object.values(fb).forEach(p=>{ if(p && p.id) byId[p.id]=p; });        // cloud copy wins/restores
+    lss("payouts_w06", Object.values(byId));
+    const listEl = document.getElementById("payout-list");
+    if(listEl) renderPayouts();
+  });
+}
 
 // Listen for stall status changes — syncs open/close to all devices
 db.ref("stall_status").on("value", snap=>{
@@ -2982,18 +3015,56 @@ db.ref("settings").on("value", snap=>{
   if(!data) return;
   if(data.hasOwnProperty("mod_soup")) lss("mod_soup_w06", data.mod_soup);
   if(data.hasOwnProperty("mod_side")) lss("mod_side_w06", data.mod_side);
-  // Auto-reload only if Firebase has a STRICTLY NEWER version string
-  if(data.app_version){
-    const fbV=String(data.app_version), locV=String(APP_VERSION);
-    if(fbV!==locV && fbV>locV){ setTimeout(()=>location.reload(true),1000); return; }
-  }
+  if(data.app_version) maybeReloadForVersion(String(data.app_version));
   renderMenu();
 });
+
+// Compares version strings like "2026-07-17-v20" NUMERICALLY.
+// Plain string compare got this wrong: "v9" > "v20" alphabetically.
+function isNewerVersion(a, b){
+  const norm = s => String(s).split(/[^0-9]+/).filter(x=>x!=="").map(x=>parseInt(x,10)||0);
+  const A = norm(a), B = norm(b);
+  for(let i=0; i<Math.max(A.length,B.length); i++){
+    const x = A[i]||0, y = B[i]||0;
+    if(x > y) return true;
+    if(x < y) return false;
+  }
+  return false;
+}
+
+// Auto-reload when a newer version is published — but NEVER in a loop.
+// Previously: a device serving a cached index.html would reload, get the same
+// cached file, still look outdated, and reload again forever — re-downloading
+// the whole database every cycle. That was the main cause of runaway usage.
+function maybeReloadForVersion(fbV){
+  const locV = String(APP_VERSION);
+  if(fbV === locV) return;
+  if(!isNewerVersion(fbV, locV)) return;
+  let already = null;
+  try{
+    already = sessionStorage.getItem("qp_reloaded_for");
+    if(already === fbV){
+      console.warn("[Version] Already reloaded for " + fbV + " but still running " + locV +
+                   " — browser is serving a cached file. Not reloading again.");
+      return;                       // <- the loop-breaker
+    }
+    sessionStorage.setItem("qp_reloaded_for", fbV);
+  }catch(e){
+    return;                          // no sessionStorage -> never auto-reload
+  }
+  setTimeout(()=>{
+    try{
+      const u = new URL(location.href);
+      u.searchParams.set("v", fbV);  // cache-bust so we really get a fresh file
+      location.replace(u.toString());
+    }catch(e){ location.reload(); }
+  }, 1000);
+}
 
 // Push current version to Firebase on load (so others know this is the latest)
 db.ref("settings/app_version").once("value", snap=>{
   const fbVer = snap.val();
-  if(!fbVer || fbVer < APP_VERSION){
+  if(!fbVer || isNewerVersion(APP_VERSION, fbVer)){
     db.ref("settings/app_version").set(APP_VERSION);
   }
 });
@@ -3166,35 +3237,104 @@ setInterval(()=>{
   }
 }, 5000);
 
+/* ============================================================
+   BANDWIDTH: who downloads what
+   ------------------------------------------------------------
+   Previously EVERY device — including every customer phone that
+   scanned the QR — subscribed to the whole day's order list and
+   to all supplier payouts. That is staff data, and re-syncing it
+   to dozens of phones was burning gigabytes a day.
+
+   Now:
+     • Staff (Kitchen / Admin) load the full orders list on demand.
+     • Customer phones listen ONLY to their own order(s).
+   ============================================================ */
+
 const _todayStartMs=(()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime();})();
-db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs).on("value", snap=>{
-  const data = snap.val();
-  orders = data ? Object.values(data) : [];
+let _ordersQuery = null;
 
-  // Detect new orders
-  if(!isFirstLoad){
-    orders.forEach(o=>{
-      if(!knownOrderIds.has(o.id)){
-        playBeep();
-        const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
-        if(kitchenVisible){ speakOrder(o); flashNewOrder(); }
-      }
+// Called when staff opens Kitchen or Admin. Safe to call repeatedly.
+function startOrdersListener(){
+  if(_ordersQuery) return;
+  _ordersQuery = db.ref("orders").orderByChild("createdAt").startAt(_todayStartMs);
+  _ordersQuery.on("value", snap=>{
+    const data = snap.val();
+    orders = data ? Object.values(data) : [];
+
+    // Detect new orders
+    if(!isFirstLoad){
+      orders.forEach(o=>{
+        if(!knownOrderIds.has(o.id)){
+          playBeep();
+          const kitchenVisible = !document.getElementById("view-kitchen").classList.contains("hidden");
+          if(kitchenVisible){ speakOrder(o); flashNewOrder(); }
+        }
+      });
+    }
+
+    // Update known order IDs
+    orders.forEach(o=>knownOrderIds.add(o.id));
+    isFirstLoad = false;
+
+    publishQueueDepth();
+    renderMenu();
+    renderKitchen();
+    updateKitchenBadge();
+    // Only re-render reports if the tab is currently visible
+    const reportsEl = document.getElementById("admin-reports");
+    if(reportsEl && !reportsEl.classList.contains("hidden")) renderReports();
+  });
+}
+
+// Kitchen publishes a single number so customer phones can still show a wait
+// estimate without downloading the whole order list. Costs ~20 bytes instead
+// of ~200 KB per sync.
+function publishQueueDepth(){
+  try{
+    const n = orders.filter(x=>x && (x.status==="paid"||x.status==="preparing")).length;
+    if(n !== _lastPublishedDepth){
+      _lastPublishedDepth = n;
+      db.ref("stats/queueDepth").set(n);
+    }
+  }catch(e){}
+}
+let _lastPublishedDepth = -1;
+
+// ── CUSTOMER SIDE: listen only to this customer's own order(s) ───────────────
+let _myOrderListeners = {};
+function syncMyOrderListeners(){
+  if(_ordersQuery) return;            // staff device already has the full list
+  const active = ls("active_orders_w06", []);
+  const wanted = {};
+  active.forEach(o=>{ if(o && o.orderId) wanted[o.orderId] = 1; });
+
+  // Detach listeners for orders that are no longer active
+  Object.keys(_myOrderListeners).forEach(id=>{
+    if(!wanted[id]){
+      try{ ordersRef.child(id).off("value", _myOrderListeners[id]); }catch(e){}
+      delete _myOrderListeners[id];
+    }
+  });
+
+  // Attach a listener for each of my active orders
+  Object.keys(wanted).forEach(id=>{
+    if(_myOrderListeners[id]) return;
+    _myOrderListeners[id] = ordersRef.child(id).on("value", snap=>{
+      const o = snap.val();
+      if(!o) return;
+      const i = orders.findIndex(x=>x && x.id===o.id);
+      if(i >= 0) orders[i] = o; else orders.push(o);
+      renderRecoveryBanner();
     });
-  }
+  });
+}
 
-  // Update known order IDs
-  orders.forEach(o=>knownOrderIds.add(o.id));
-  isFirstLoad = false;
-
-  renderMenu();
-  renderKitchen();
-  updateKitchenBadge();
-  // Only re-render reports if the tab is currently visible
-  const reportsEl = document.getElementById("admin-reports");
-  if(reportsEl && !reportsEl.classList.contains("hidden")) renderReports();
-});
+// Queue depth for the customer wait estimate (tiny payload)
+let queueDepth = 0;
+db.ref("stats/queueDepth").on("value", snap=>{ queueDepth = snap.val() || 0; });
 
 renderMenu();
+syncMyOrderListeners();
 updateKitchenBadge();
 
 /* ============================================================
