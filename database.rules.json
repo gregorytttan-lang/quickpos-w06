@@ -1,0 +1,57 @@
+{
+  "rules": {
+    // Staff (logged in with the staff account) can read and change everything.
+    // The email here must match STAFF_EMAIL in index.html.
+    ".read":  "auth != null && auth.token.email === 'staff@quickpos-w06.firebaseapp.com'",
+    ".write": "auth != null && auth.token.email === 'staff@quickpos-w06.firebaseapp.com'",
+
+    // ── What customers (not logged in) are allowed to do ──────────────────
+
+    // See the menu settings, sold-out items, open/closed, and wait estimate.
+    "settings":     { ".read": true },
+    "availability": { ".read": true },
+    "stall_status": { ".read": true },
+    "stats":        { ".read": true },
+
+    // See today's special, and reduce its stock by buying it.
+    "today_special": {
+      ".read": true,
+      "qtyRemaining": {
+        ".write": "data.exists() && newData.isNumber() && newData.val() >= 0 && newData.val() < data.val()"
+      },
+      "active": {
+        ".write": "newData.val() === false && root.child('today_special/qtyRemaining').val() === 0"
+      }
+    },
+
+    // Take the next queue number (can only go up by exactly 1).
+    "queue": {
+      "$day": {
+        ".read": true,
+        ".write": "$day.length < 30 && newData.isNumber() && ((!data.exists() && newData.val() === 1) || (data.exists() && newData.val() === data.val() + 1))"
+      }
+    },
+
+    // Queue TV screen: anyone can watch it. The TV may only move a called
+    // number to "missed", and later clear a missed number.
+    "queue_display": {
+      ".read": true,
+      "$id": {
+        ".write": "(data.child('status').val() === 'serving' && newData.child('status').val() === 'missed' && newData.child('queueNo').val() === data.child('queueNo').val() && newData.child('calledAt').val() === data.child('calledAt').val()) || (!newData.exists() && data.child('status').val() === 'missed')"
+      }
+    },
+
+    // Orders: a customer can place a NEW order and watch that one order.
+    // They cannot list, change or delete orders.
+    "orders": {
+      ".indexOn": ["createdAt"],
+      "$id": {
+        ".read": true,
+        ".write": "!data.exists() && newData.exists() && $id.matches(/^ORD-[A-Z0-9]{1,8}$/) && newData.child('id').val() === $id && newData.child('total').isNumber() && newData.child('total').val() >= 0 && newData.child('createdAt').isNumber() && (newData.child('status').val() === 'paid' || newData.child('status').val() === 'unpaid' || newData.child('status').val() === 'collected')",
+        "remarks": { ".validate": "newData.isString() && newData.val().length <= 300" }
+      }
+    }
+
+    // Everything else (payouts, archives, ...) is staff only.
+  }
+}
