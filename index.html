@@ -355,7 +355,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-07-22-v21"; // feat: show voided-today line in report
+const APP_VERSION = "2026-10-12-v22"; // fix: show the real reason a staff login fails
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -584,6 +584,10 @@ function checkPwd(){
   const val = document.getElementById("pwd-input").value;
   const errEl = document.getElementById("pwd-error");
   if(!val) return;
+  if(typeof firebase.auth !== "function"){
+    errEl.textContent = "Login system did not load. Clear browser cache and reload.";
+    return;
+  }
   errEl.textContent = "Checking...";
   firebase.auth().signInWithEmailAndPassword(STAFF_EMAIL, val).then(()=>{
     errEl.textContent = "";
@@ -591,11 +595,18 @@ function checkPwd(){
     closePwd();
     if(v) showView(v);
   }).catch(e=>{
-    errEl.textContent = (e && e.code === "auth/network-request-failed")
-      ? "No internet. Try again."
-      : (e && e.code === "auth/too-many-requests")
-        ? "Too many tries. Wait a few minutes."
-        : "Incorrect password. Try again.";
+    const code = (e && e.code) || "unknown";
+    const msg = {
+      "auth/network-request-failed": "No internet. Try again.",
+      "auth/too-many-requests":      "Too many tries. Wait a few minutes.",
+      "auth/invalid-credential":     "Incorrect password. Try again.",
+      "auth/wrong-password":         "Incorrect password. Try again.",
+      "auth/invalid-login-credentials": "Incorrect password. Try again.",
+      "auth/user-not-found":         "Staff account not found in Firebase.",
+      "auth/operation-not-allowed":  "Email/Password login is turned off in Firebase."
+    }[code] || "Login failed.";
+    // Show the code too, so the problem can be diagnosed from a screenshot.
+    errEl.textContent = msg + " (" + code + ")";
     document.getElementById("pwd-input").value = "";
     document.getElementById("pwd-input").focus();
   });
@@ -3472,6 +3483,7 @@ setTimeout(()=>{ snapshotToday(); finalizePreviousDayIfNeeded(); updateSyncBadge
     <div style="font-size:32px;margin-bottom:12px">🔒</div>
     <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#1C1917;margin-bottom:6px">Staff Access Only</div>
     <div style="font-size:13px;color:#78716C;margin-bottom:24px">Enter password to continue</div>
+    <div style="font-size:10px;color:#D4CFC8;margin:-20px 0 16px">App version <script>document.write(APP_VERSION)</script></div>
     <input id="pwd-input" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPwd()"
       style="width:100%;padding:14px 16px;font-size:16px;border:2px solid #E5E0D8;border-radius:12px;margin-bottom:8px;text-align:center;letter-spacing:0.2em;outline:none">
     <div id="pwd-error" style="font-size:12px;color:#DC2626;margin-bottom:12px;min-height:18px"></div>
