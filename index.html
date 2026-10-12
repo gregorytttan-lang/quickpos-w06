@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-database-compat.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -126,6 +127,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <button onclick="adminTab('reports')" id="atab-reports" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:400">📊 Reports</button>
     <button onclick="adminTab('printer')" id="atab-printer" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:400">🖨️ Printer</button>
     <button onclick="if(confirm('Reset menu?'))resetMenu()" style="margin-left:auto;background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 12px;font-size:12px">Reset</button>
+    <button onclick="staffLogout()" style="background:transparent;color:#78716C;border:1px solid #E5E0D8;border-radius:8px;padding:9px 12px;font-size:12px">🔓 Log out</button>
   </div>
   <div id="admin-menu-mgmt"></div>
   <div id="admin-special" class="hidden"></div>
@@ -558,12 +560,19 @@ function saveMenu()  { lss("menu_w06_v15", menu); }
 function saveOrders(){ /* orders saved to Firebase */ }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-const STAFF_PWD = "Olivye2009";
+// Staff log in with a real Firebase account. The password is NOT stored in
+// this file — it lives in Firebase (Console → Authentication → Users).
+// This email must match the one in database.rules.json.
+const STAFF_EMAIL = "staff@quickpos-w06.firebaseapp.com";
 let _pendingView = null;
-let _authed = false;
+
+function isStaff(){
+  const u = firebase.auth().currentUser;
+  return !!(u && u.email === STAFF_EMAIL);
+}
 
 function authView(v){
-  if(_authed){ showView(v); return; }
+  if(isStaff()){ showView(v); return; }
   _pendingView = v;
   document.getElementById("pwd-input").value = "";
   document.getElementById("pwd-error").textContent = "";
@@ -573,15 +582,27 @@ function authView(v){
 
 function checkPwd(){
   const val = document.getElementById("pwd-input").value;
-  if(val === STAFF_PWD){
-    _authed = true;
+  const errEl = document.getElementById("pwd-error");
+  if(!val) return;
+  errEl.textContent = "Checking...";
+  firebase.auth().signInWithEmailAndPassword(STAFF_EMAIL, val).then(()=>{
+    errEl.textContent = "";
+    const v = _pendingView;
     closePwd();
-    if(_pendingView){ showView(_pendingView); _pendingView=null; }
-  } else {
-    document.getElementById("pwd-error").textContent = "Incorrect password. Try again.";
+    if(v) showView(v);
+  }).catch(e=>{
+    errEl.textContent = (e && e.code === "auth/network-request-failed")
+      ? "No internet. Try again."
+      : (e && e.code === "auth/too-many-requests")
+        ? "Too many tries. Wait a few minutes."
+        : "Incorrect password. Try again.";
     document.getElementById("pwd-input").value = "";
     document.getElementById("pwd-input").focus();
-  }
+  });
+}
+
+function staffLogout(){
+  firebase.auth().signOut().then(()=>{ showView("menu"); toast("Logged out","#78716C"); });
 }
 
 function closePwd(){
@@ -2950,6 +2971,8 @@ const FB_CONFIG = {
 };
 firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
+// Staff login lasts until this browser tab is closed (same as the old password).
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(()=>{});
 const ordersRef = db.ref("orders");
 
 // ── PAYOUTS: staff-only. Loaded when Kitchen/Admin opens.
@@ -3061,12 +3084,16 @@ function maybeReloadForVersion(fbV){
   }, 1000);
 }
 
-// Push current version to Firebase on load (so others know this is the latest)
-db.ref("settings/app_version").once("value", snap=>{
-  const fbVer = snap.val();
-  if(!fbVer || isNewerVersion(APP_VERSION, fbVer)){
-    db.ref("settings/app_version").set(APP_VERSION);
-  }
+// Push current version to Firebase (so others know this is the latest).
+// Only staff are allowed to write it, so this runs once staff have logged in.
+firebase.auth().onAuthStateChanged(()=>{
+  if(!isStaff()) return;
+  db.ref("settings/app_version").once("value", snap=>{
+    const fbVer = snap.val();
+    if(!fbVer || isNewerVersion(APP_VERSION, fbVer)){
+      db.ref("settings/app_version").set(APP_VERSION);
+    }
+  });
 });
 
 // Save order to Firebase
