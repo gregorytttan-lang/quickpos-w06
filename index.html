@@ -199,7 +199,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="margin-top:16px;padding:16px;background:#F5F3F0;border-radius:12px;border:1px solid #E5E0D8">
       <div style="font-size:12px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Collection Time</div>
       <select id="collect-at" style="width:100%;padding:12px;border:1px solid #E5E0D8;border-radius:10px;font-size:15px;background:#fff;color:#1C1917;font-family:'DM Sans',sans-serif"></select>
-      <div style="font-size:12px;color:#78716C;margin-top:6px">Pre-ordering? Pick a later time and we'll have it ready for you.</div>
+      <div id="collect-hint" style="font-size:12px;color:#78716C;margin-top:6px">Pre-ordering? Pick a later time and we'll have it ready for you.</div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:2px solid #E5E0D8">
       <div>
@@ -413,7 +413,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v29"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v30"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -433,6 +433,12 @@ const COLLECT_FIRST_SLOT = "08:00";          // earliest collection time offered
 const COLLECT_LAST_SLOT  = "18:00";          // latest collection time offered
 const COLLECT_SLOT_MINS  = 30;               // gap between slots
 const COLLECT_MIN_LEAD_MINS = 30;            // earliest slot must be at least this far away
+// Peak period: these collection slots can only be booked before the cutoff time.
+const PEAK_FIRST_SLOT = "11:30";
+const PEAK_LAST_SLOT  = "13:30";
+const PEAK_CUTOFF     = "10:30";             // after this, peak slots are closed for pre-orders
+// Most main-dish plates that can be pre-ordered for one slot. Must match database.rules.json.
+const PREORDER_PLATES_PER_SLOT = 20;
 
 // ── CHAT QUICK MESSAGES ──
 const STAFF_QUICK_REPLIES = [
@@ -1262,20 +1268,105 @@ function slotToday(hhmm){
   const d = new Date(); d.setHours(h, m, 0, 0);
   return d.getTime();
 }
+function dayKey(ts){
+  const d = new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function slotRef(ts){ return db.ref("preorder_slots/" + dayKey(ts) + "/" + ts); }
+function platesIn(items){ return (items||[]).filter(i => i && isMain(i.id)).reduce((s,i) => s + (i.qty||0), 0); }
+function isPeakSlot(t){ return t >= slotToday(PEAK_FIRST_SLOT) && t <= slotToday(PEAK_LAST_SLOT); }
+function peakClosed(){ return Date.now() >= slotToday(PEAK_CUTOFF); }
+
+let _slotCounts = {};   // today's booked plates per slot, from Firebase
 // Fills the Collection Time list: "As soon as possible" plus today's remaining slots.
-function renderCollectSlots(){
+// Peak slots close at the cutoff; slots without room for this cart show as full.
+function renderCollectSlots(fetch){
   const sel = document.getElementById("collect-at");
   if(!sel) return;
   const keep = sel.value;
   const step = COLLECT_SLOT_MINS * 60000;
   const earliest = Date.now() + COLLECT_MIN_LEAD_MINS * 60000;
+  const plates = platesIn(cart);
   let t = slotToday(COLLECT_FIRST_SLOT);
   const last = slotToday(COLLECT_LAST_SLOT);
   while(t < earliest) t += step;
   let html = `<option value="">⚡ As soon as possible</option>`;
-  for(; t <= last; t += step) html += `<option value="${t}">⏰ Collect at ${tme(t)}</option>`;
+  for(; t <= last; t += step){
+    const left = PREORDER_PLATES_PER_SLOT - (_slotCounts[t] || 0);
+    if(isPeakSlot(t) && peakClosed()) html += `<option value="${t}" disabled>⏰ ${tme(t)} — pre-order closed</option>`;
+    else if(plates > left)            html += `<option value="${t}" disabled>⏰ ${tme(t)} — full</option>`;
+    else html += `<option value="${t}">⏰ Collect at ${tme(t)}${left <= 10 ? " (" + left + (left === 1 ? " plate" : " plates") + " left)" : ""}</option>`;
+  }
   sel.innerHTML = html;
-  if(keep && sel.querySelector(`option[value="${keep}"]`)) sel.value = keep;
+  const kept = keep && sel.querySelector(`option[value="${keep}"]`);
+  sel.value = kept && !kept.disabled ? keep : "";
+  const hint = document.getElementById("collect-hint");
+  if(hint){
+    hint.textContent = peakClosed()
+      ? `Lunch pre-orders (${tme(slotToday(PEAK_FIRST_SLOT))}–${tme(slotToday(PEAK_LAST_SLOT))}) close at ${tme(slotToday(PEAK_CUTOFF))}. You can still order for now or a later time.`
+      : `Pre-ordering for lunch (${tme(slotToday(PEAK_FIRST_SLOT))}–${tme(slotToday(PEAK_LAST_SLOT))})? Please order by ${tme(slotToday(PEAK_CUTOFF))}.`;
+  }
+  if(fetch !== false){
+    db.ref("preorder_slots/" + dayKey(Date.now())).once("value").then(snap => {
+      _slotCounts = snap.val() || {};
+      renderCollectSlots(false);
+    }).catch(() => {});
+  }
+}
+
+// Books this order's plates into its slot. Resolves false if the slot is full or closed.
+// If Firebase refuses for another reason (e.g. rules not published), the order goes through.
+function reserveSlot(order){
+  const plates = platesIn(order && order.items);
+  if(!order || !order.collectAt || plates === 0) return Promise.resolve(true);
+  if(isPeakSlot(order.collectAt) && peakClosed()) return Promise.resolve(false);
+  return slotRef(order.collectAt).transaction(cur => {
+    cur = cur || 0;
+    if(cur + plates > PREORDER_PLATES_PER_SLOT) return;   // abort: no room
+    return cur + plates;
+  }).then(res => {
+    if(res && res.committed){ order.preorderPlates = plates; return true; }
+    return false;
+  }).catch(e => { console.warn("[Preorder] slot booking failed, allowing order", e); return true; });
+}
+// Gives the plates back, e.g. when the customer backs out or staff void the order.
+function releaseSlot(order){
+  if(!order || !order.collectAt || !order.preorderPlates) return;
+  const n = order.preorderPlates;
+  order.preorderPlates = 0;
+  slotRef(order.collectAt).transaction(cur => Math.max(0, (cur || 0) - n)).catch(() => {});
+}
+let _reserving = false;
+async function reserveOrAbort(){
+  const ok = await reserveSlot(pendingOrder);
+  if(ok) return true;
+  const t = pendingOrder && pendingOrder.collectAt;
+  pendingOrder = null;
+  toast("Sorry, " + (t ? tme(t) : "that time") + " is full or closed. Please pick another time.", "#DC2626");
+  renderCollectSlots();
+  return false;
+}
+
+// Kitchen: what to prepare for each pre-order slot.
+function prepSummaryHtml(list){
+  const pre = list.filter(o => o && o.collectAt);
+  if(!pre.length) return "";
+  const groups = {};
+  pre.forEach(o => { (groups[o.collectAt] = groups[o.collectAt] || []).push(o); });
+  const rows = Object.keys(groups).map(Number).sort((a,b) => a - b).map(ts => {
+    const os = groups[ts];
+    const plates = os.reduce((s,o) => s + platesIn(o.items), 0);
+    const items = {};
+    os.forEach(o => (o.items||[]).forEach(i => { if(i && i.name) items[i.name] = (items[i.name]||0) + (i.qty||0); }));
+    const itemsTxt = Object.entries(items).sort((a,b) => b[1] - a[1]).map(([n,q]) => `<strong>${q}×</strong> ${escHtml(n)}`).join(" · ");
+    return `<div style="padding:8px 0;border-top:1px solid #DDD6FE">
+      <div style="font-size:17px;font-weight:800;color:#5B21B6">⏰ ${tme(ts)} <span style="font-size:13px;font-weight:600;color:#7C3AED">· ${plates}/${PREORDER_PLATES_PER_SLOT} plates · ${os.length} order${os.length!==1?"s":""}</span></div>
+      <div style="font-size:15px;color:#1C1917;margin-top:3px;line-height:1.5">${itemsTxt}</div>
+    </div>`;
+  }).join("");
+  return `<div style="grid-column:1/-1;background:#F5F3FF;border:2px solid #7C3AED;border-radius:14px;padding:12px 16px">
+    <div style="font-size:14px;font-weight:800;color:#5B21B6;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">📋 Pre-order prep list</div>${rows}
+  </div>`;
 }
 function collectBadgeHtml(order){
   if(!order || !order.collectAt) return "";
@@ -1487,12 +1578,14 @@ function renderCartModal(){
     </div>`;
   }).join("");
   document.getElementById("cart-total-display").textContent = fmtS(cartTotal());
+  renderCollectSlots(false);   // plate count may have changed which slots have room
 }
 
 // ── PAYMENT ──────────────────────────────────────────────────────────────────
 // Builds pendingOrder from the cart. Returns false if the order is not ready.
 function buildPendingOrder(){
   if(!cart.length) return false;
+  if(pendingOrder) releaseSlot(pendingOrder);   // drop any earlier booking before re-trying
   if(!diningOption){ alert("Please select Dine In or Take Away first."); return false; }
   const remarks = document.getElementById("order-remarks").value.trim();
   pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), remarks, createdAt:Date.now()};
@@ -1501,13 +1594,23 @@ function buildPendingOrder(){
   return true;
 }
 // "Cash at Counter" straight from the cart: skips the PayNow screen.
-function payCashNow(){
+async function payCashNow(){
+  if(_reserving) return;
   if(!buildPendingOrder()) return;
+  _reserving = true;
+  const ok = await reserveOrAbort();
+  _reserving = false;
+  if(!ok) return;
   closeCart();
   confirmPayment('cash');
 }
-function proceedToPayment(){
+async function proceedToPayment(){
+  if(_reserving) return;
   if(!buildPendingOrder()) return;
+  _reserving = true;
+  const ok = await reserveOrAbort();
+  _reserving = false;
+  if(!ok) return;
   closeCart();
   // Render pay modal items
   const addons = getAddons;
@@ -1583,6 +1686,8 @@ function selectBank(bank){
 }
 
 function closePayment(){
+  // Customer backed out before paying: give back any pre-order plates
+  if(pendingOrder) releaseSlot(pendingOrder);
   clearInterval(_payGateTimer);
   dismissPayConfirm();
   closeModal("pay-modal");
@@ -1905,7 +2010,11 @@ function cancelOrder(id){
   if(!confirm("Void this order? Cannot be undone.")) return;
   const o=orders.find(x=>x.id===id); if(!o) return;
   o.status="cancelled";
-  db.ref("orders").child(id).update({status:"cancelled",cancelledAt:Date.now()});
+  if(o.collectAt && o.preorderPlates){
+    releaseSlot({collectAt:o.collectAt, preorderPlates:o.preorderPlates});   // free the plates for others
+    o.preorderPlates = 0;
+  }
+  db.ref("orders").child(id).update({status:"cancelled",cancelledAt:Date.now(),preorderPlates:0});
   renderKitchen(); updateKitchenBadge();
   toast("Order voided","#78716C");
 }
@@ -2025,7 +2134,7 @@ function renderKitchen(){
     return;
   }
   const addons = getAddons;
-  document.getElementById("kitchen-orders").innerHTML = awaitingHtml + queue.map(order=>{
+  document.getElementById("kitchen-orders").innerHTML = prepSummaryHtml(queue.concat(awaiting)) + awaitingHtml + queue.map(order=>{
     const st = STATUS[order.status]||STATUS.paid;
     const age = Math.floor((Date.now()-order.createdAt)/60000);
     const ageCol = age<5?"#16A34A":age<10?"#CA8A04":"#DC2626";
@@ -3362,6 +3471,7 @@ let _idleTimer=null,_idleWarnTimer=null,_idleWarnEl=null;
 function _removeIdleWarning(){if(_idleWarnEl){try{_idleWarnEl.remove();}catch(e){}}_idleWarnEl=null;}
 function _doSessionReset(){
   _removeIdleWarning();
+  if(pendingOrder) releaseSlot(pendingOrder);
   cart=[];pendingOrder=null;resetOrderForm();curCat=0;
   stopCustomerChatWatch(); detachChatModal(); _chatOrderId=null;
   ["mod-modal","cart-modal","pay-modal","queue-modal","thankyou-modal","recovery-list-modal","chat-modal"].forEach(id=>closeModal(id));

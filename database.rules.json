@@ -49,7 +49,20 @@
         ".read": true,
         ".write": "!data.exists() && newData.exists() && $id.matches(/^ORD-[A-Z0-9]{1,8}$/) && newData.child('id').val() === $id && newData.child('total').isNumber() && newData.child('total').val() >= 0 && newData.child('createdAt').isNumber() && (newData.child('status').val() === 'paid' || newData.child('status').val() === 'unpaid' || newData.child('status').val() === 'collected')",
         "remarks": { ".validate": "newData.isString() && newData.val().length <= 300" },
-        "collectAt": { ".validate": "newData.isNumber()" }
+        "collectAt": { ".validate": "newData.isNumber()" },
+        "preorderPlates": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" }
+      }
+    },
+
+    // Pre-order plates booked per collection slot, per day. The 20 here must
+    // match PREORDER_PLATES_PER_SLOT in index.html.
+    "preorder_slots": {
+      "$day": {
+        ".read": true,
+        "$slot": {
+          ".write": "$day.length <= 10 && $slot.matches(/^[0-9]{13}$/)",
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20"
+        }
       }
     },
 
