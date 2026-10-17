@@ -196,6 +196,11 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         </button>
       </div>
     </div>
+    <div style="margin-top:16px;padding:16px;background:#F5F3F0;border-radius:12px;border:1px solid #E5E0D8">
+      <div style="font-size:12px;color:#78716C;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Collection Time</div>
+      <select id="collect-at" style="width:100%;padding:12px;border:1px solid #E5E0D8;border-radius:10px;font-size:15px;background:#fff;color:#1C1917;font-family:'DM Sans',sans-serif"></select>
+      <div style="font-size:12px;color:#78716C;margin-top:6px">Pre-ordering? Pick a later time and we'll have it ready for you.</div>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:2px solid #E5E0D8">
       <div>
         <div style="font-size:12px;color:#78716C">Total</div>
@@ -385,12 +390,30 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#1C1917;font-weight:600;text-align:center;line-height:1.4">
     📸 Screenshot this screen as a backup. You can also scan our QR code again to see your order.
   </div>
+  <button onclick="openCustomerChat()" style="background:#fff;color:#C4572A;border:2px solid #C4572A;border-radius:12px;padding:12px;font-size:15px;font-weight:700;width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px">💬 Message the stall <span id="chat-unread-badge" class="hidden" style="background:#DC2626;color:#fff;border-radius:20px;padding:1px 8px;font-size:12px;font-weight:800"></span></button>
   <button onclick="closeQueue()" style="background:#C4572A;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;width:100%">➕ New Order (Next Customer)</button>
+</div>
+
+<!-- Chat (customer ↔ stall), one conversation per order -->
+<div id="chat-modal" class="hidden overlay" style="background:rgba(28,25,23,0.5);display:flex;align-items:flex-end">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;margin:0 auto;max-height:92vh;display:flex;flex-direction:column;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div id="chat-title" class="serif" style="font-size:18px;font-weight:700">Message the stall</div>
+      <button onclick="closeChat()" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:8px;padding:6px 14px;font-size:13px;color:#78716C">Close</button>
+    </div>
+    <div id="chat-thread" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:140px;max-height:42vh;background:#FAF9F7;border:1px solid #E5E0D8;border-radius:12px;padding:10px"></div>
+    <div style="font-size:11px;color:#78716C;margin:8px 0 6px">Quick messages</div>
+    <div id="chat-quick" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;max-height:26vh;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px">
+      <input id="chat-input" maxlength="200" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendChatFromInput()" style="flex:1;padding:12px;border:1px solid #E5E0D8;border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif">
+      <button onclick="sendChatFromInput()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:700">Send</button>
+    </div>
+  </div>
 </div>
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v28"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v29"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -402,6 +425,35 @@ const PAYMENT_SAFETY_TIMEOUT_MS = 20000;     // overall payment unlock fallback
 const PAY_GATE_LOCK_SECS       = 20;          // seconds PayNow button stays locked
 const PAY_FLAG_THRESHOLD_SECS  = 20;          // confirm under this → flag UNVERIFIED (must match PAY_GATE_LOCK_SECS)
 const OCBC_PAYNOW_DOWN = true;                // true = OCBC PayNow is not working; OCBC customers see the cash/counter notice. Set false once fixed.
+
+// ── PRE-ORDER COLLECTION TIMES ──
+// Customers can pick a collection slot between these times (24-hour, today only).
+// Pre-orders show on the kitchen screen as soon as they are placed.
+const COLLECT_FIRST_SLOT = "08:00";          // earliest collection time offered
+const COLLECT_LAST_SLOT  = "18:00";          // latest collection time offered
+const COLLECT_SLOT_MINS  = 30;               // gap between slots
+const COLLECT_MIN_LEAD_MINS = 30;            // earliest slot must be at least this far away
+
+// ── CHAT QUICK MESSAGES ──
+const STAFF_QUICK_REPLIES = [
+  "✅ Noted, we'll have it ready by your collection time.",
+  "👨‍🍳 Your order is being prepared now.",
+  "🔔 Your order is ready for collection.",
+  "⏰ Sorry, we're busy. Please allow about 10 more minutes.",
+  "❌ Sorry, this item is sold out. Please choose another item or collect a refund at the counter.",
+  "🕐 Sorry, we can't make that time. Can you collect 15 minutes later?",
+  "💵 Please pay at the counter before collecting.",
+  "🙏 Thank you! See you soon."
+];
+const CUSTOMER_QUICK_REPLIES = [
+  "🏃 I'm on my way.",
+  "⏰ I'll be about 10 minutes late.",
+  "🕐 Can I collect earlier?",
+  "🙅 Please no chilli / no sauce.",
+  "❓ Is my order ready?",
+  "🙏 Thank you!"
+];
+const CHAT_MAX_LEN = 200;
 let _payGateTimer = null;                      // countdown interval handle
 let _payOpenedAt  = 0;                         // timestamp when pay modal opened
 
@@ -905,6 +957,7 @@ function showSingleOrder(orderData){
   if(cashNotice) cashNotice.classList.toggle("hidden", payMethod !== "cash");
   const proofNotice = document.getElementById("paynow-proof-notice");
   if(proofNotice) proofNotice.style.display = payMethod === "cash" ? "none" : "";
+  setQueueTimeLine({collectAt: orderData.collectAt || (fbOrder && fbOrder.collectAt) || null}, null);
   openModal("queue-modal");
 }
 
@@ -1199,7 +1252,207 @@ function confirmMod(){
 // ── CART ─────────────────────────────────────────────────────────────────────
 function openCart(){
   renderCartModal();
+  renderCollectSlots();
   openModal("cart-modal");
+}
+
+// ── COLLECTION TIME ──────────────────────────────────────────────────────────
+function slotToday(hhmm){
+  const [h, m] = String(hhmm).split(":").map(n => parseInt(n, 10) || 0);
+  const d = new Date(); d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+// Fills the Collection Time list: "As soon as possible" plus today's remaining slots.
+function renderCollectSlots(){
+  const sel = document.getElementById("collect-at");
+  if(!sel) return;
+  const keep = sel.value;
+  const step = COLLECT_SLOT_MINS * 60000;
+  const earliest = Date.now() + COLLECT_MIN_LEAD_MINS * 60000;
+  let t = slotToday(COLLECT_FIRST_SLOT);
+  const last = slotToday(COLLECT_LAST_SLOT);
+  while(t < earliest) t += step;
+  let html = `<option value="">⚡ As soon as possible</option>`;
+  for(; t <= last; t += step) html += `<option value="${t}">⏰ Collect at ${tme(t)}</option>`;
+  sel.innerHTML = html;
+  if(keep && sel.querySelector(`option[value="${keep}"]`)) sel.value = keep;
+}
+function collectBadgeHtml(order){
+  if(!order || !order.collectAt) return "";
+  return `<div style="margin-top:6px;display:inline-block;background:#7C3AED;color:#fff;border-radius:10px;padding:6px 14px;font-size:16px;font-weight:800">⏰ PRE-ORDER · COLLECT ${tme(order.collectAt)}</div>`;
+}
+// Queue-screen line: collection time for pre-orders, otherwise the wait estimate.
+function setQueueTimeLine(o, waitMins){
+  const el = document.getElementById("queue-wait-est");
+  if(!el) return;
+  if(o && o.collectAt) el.textContent = "⏰ Pre-order: please collect at " + tme(o.collectAt);
+  else if(waitMins) el.textContent = "⏱️ Est. wait: ~" + waitMins + " min" + (waitMins !== 1 ? "s" : "");
+  else el.textContent = "";
+}
+
+// ── CHAT (one conversation per order, stored at messages/<orderId>) ──────────
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function chatSeenMap(){ return ls("chat_seen_w06", {}); }
+function markChatSeen(orderId){
+  if(!orderId) return;
+  const m = chatSeenMap(); m[orderId] = Date.now(); lss("chat_seen_w06", m);
+}
+function chatUnread(orderId, msgs, fromWho){
+  const seen = chatSeenMap()[orderId] || 0;
+  return (msgs || []).filter(x => x && x.from === fromWho && (x.at || 0) > seen).length;
+}
+
+let _chatOrderId = null, _chatRole = null, _chatRef = null, _chatListener = null, _chatMsgs = [];
+function openChat(orderId, role){
+  if(!orderId) return;
+  detachChatModal();
+  _chatOrderId = orderId; _chatRole = role; _chatMsgs = [];
+  const o = orders.find(x => x && x.id === orderId);
+  const qn = o && o.queueNo ? fmtQ(o.queueNo) : "";
+  document.getElementById("chat-title").textContent = role === "staff" ? ("💬 Chat with " + (qn || "customer")) : "💬 Message the stall";
+  const quick = role === "staff" ? STAFF_QUICK_REPLIES : CUSTOMER_QUICK_REPLIES;
+  document.getElementById("chat-quick").innerHTML = quick.map((q, i) =>
+    `<button onclick="sendChatQuick(${i})" style="background:#FFF7ED;color:#9A3412;border:1px solid #FED7AA;border-radius:16px;padding:7px 12px;font-size:13px;text-align:left">${escHtml(q)}</button>`).join("");
+  document.getElementById("chat-input").value = "";
+  renderChatThread();
+  _chatRef = db.ref("messages/" + orderId);
+  _chatListener = _chatRef.on("child_added", snap => {
+    const m = snap.val(); if(!m) return;
+    _chatMsgs.push(m);
+    renderChatThread();
+    markChatSeen(orderId);
+  }, () => {
+    document.getElementById("chat-thread").innerHTML = `<div style="color:#DC2626;font-size:13px;text-align:center;padding:20px">Chat isn't available right now. Please ask at the counter.</div>`;
+  });
+  markChatSeen(orderId);
+  openModal("chat-modal");
+}
+function detachChatModal(){
+  if(_chatRef && _chatListener){ try{ _chatRef.off("child_added", _chatListener); }catch(e){} }
+  _chatRef = null; _chatListener = null;
+}
+function closeChat(){
+  markChatSeen(_chatOrderId);
+  detachChatModal();
+  closeModal("chat-modal");
+  _chatOrderId = null;
+  updateCustomerChatBadge();
+  if(_chatRole === "staff") scheduleKitchenRender();
+}
+function renderChatThread(){
+  const el = document.getElementById("chat-thread");
+  if(!el) return;
+  if(!_chatMsgs.length){
+    el.innerHTML = `<div style="color:#78716C;font-size:13px;text-align:center;padding:20px">No messages yet. Tap a quick message or type your own.</div>`;
+    return;
+  }
+  el.innerHTML = _chatMsgs.map(m => {
+    const mine = m.from === _chatRole;
+    const who = m.from === "staff" ? "Stall" : "Customer";
+    return `<div style="display:flex;justify-content:${mine ? "flex-end" : "flex-start"};margin-bottom:8px">
+      <div style="max-width:80%;background:${mine ? "#C4572A" : "#fff"};color:${mine ? "#fff" : "#1C1917"};border:${mine ? "none" : "1px solid #E5E0D8"};border-radius:14px;padding:8px 12px">
+        <div style="font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word">${escHtml(m.text || "")}</div>
+        <div style="font-size:10px;opacity:0.75;margin-top:3px;text-align:right">${who} · ${m.at ? tme(m.at) : ""}</div>
+      </div>
+    </div>`;
+  }).join("");
+  el.scrollTop = el.scrollHeight;
+}
+function sendChat(text){
+  text = String(text || "").trim().slice(0, CHAT_MAX_LEN);
+  if(!text || !_chatOrderId || !_chatRole) return;
+  db.ref("messages/" + _chatOrderId).push({from: _chatRole, text, at: Date.now()})
+    .catch(() => toast("❌ Couldn't send. Please ask at the counter.", "#DC2626"));
+}
+function sendChatQuick(i){
+  const list = _chatRole === "staff" ? STAFF_QUICK_REPLIES : CUSTOMER_QUICK_REPLIES;
+  sendChat(list[i]);
+}
+function sendChatFromInput(){
+  const inp = document.getElementById("chat-input");
+  if(!inp) return;
+  sendChat(inp.value);
+  inp.value = "";
+}
+
+// Customer side: watch the order's chat while the queue screen is showing,
+// so a reply from the stall shows a badge and plays a beep.
+let _custChatRef = null, _custChatListener = null, _custChatMsgs = [], _custChatOrderId = null;
+function startCustomerChatWatch(orderId){
+  stopCustomerChatWatch();
+  if(!orderId) return;
+  _custChatOrderId = orderId; _custChatMsgs = [];
+  const startedAt = Date.now();
+  _custChatRef = db.ref("messages/" + orderId);
+  _custChatListener = _custChatRef.on("child_added", snap => {
+    const m = snap.val(); if(!m) return;
+    _custChatMsgs.push(m);
+    if(m.from === "staff" && (m.at || 0) > startedAt - 2000 && _chatOrderId !== orderId){
+      playBeep();
+      toast("💬 New message from the stall");
+    }
+    updateCustomerChatBadge();
+  }, () => {});
+  updateCustomerChatBadge();
+}
+function stopCustomerChatWatch(){
+  if(_custChatRef && _custChatListener){ try{ _custChatRef.off("child_added", _custChatListener); }catch(e){} }
+  _custChatRef = null; _custChatListener = null; _custChatMsgs = []; _custChatOrderId = null;
+  updateCustomerChatBadge();
+}
+function updateCustomerChatBadge(){
+  const b = document.getElementById("chat-unread-badge");
+  if(!b) return;
+  const n = _custChatOrderId ? chatUnread(_custChatOrderId, _custChatMsgs, "staff") : 0;
+  if(n > 0){ b.textContent = n; b.classList.remove("hidden"); } else b.classList.add("hidden");
+}
+function openCustomerChat(){
+  if(!trackingOrderId){ toast("Chat opens once your order is placed", "#78716C"); return; }
+  openChat(trackingOrderId, "customer");
+}
+
+// Staff side: one listener per order on the kitchen screen; new customer
+// messages beep and show a red 💬 badge on that order's card.
+let _staffChat = {};  // orderId -> {ref, listener, msgs}
+let _kitchenRenderTimer = null;
+function scheduleKitchenRender(){
+  clearTimeout(_kitchenRenderTimer);
+  _kitchenRenderTimer = setTimeout(() => { try{ renderKitchen(); }catch(e){} }, 60);
+}
+function syncStaffChatListeners(orderIds){
+  if(!isStaff()) return;
+  const wanted = {};
+  orderIds.forEach(id => { if(id) wanted[id] = 1; });
+  Object.keys(_staffChat).forEach(id => {
+    if(wanted[id]) return;
+    try{ _staffChat[id].ref.off("child_added", _staffChat[id].listener); }catch(e){}
+    delete _staffChat[id];
+  });
+  Object.keys(wanted).forEach(id => {
+    if(_staffChat[id]) return;
+    const entry = {ref: db.ref("messages/" + id), listener: null, msgs: []};
+    _staffChat[id] = entry;
+    const startedAt = Date.now();
+    entry.listener = entry.ref.on("child_added", snap => {
+      const m = snap.val(); if(!m) return;
+      entry.msgs.push(m);
+      if(m.from === "customer" && (m.at || 0) > startedAt - 2000 && _chatOrderId !== id){
+        const o = orders.find(x => x && x.id === id);
+        playBeep();
+        toast("💬 New message from " + (o && o.queueNo ? fmtQ(o.queueNo) : "a customer"));
+      }
+      scheduleKitchenRender();
+    }, () => {});
+  });
+}
+function staffChatButtonHtml(order){
+  const entry = _staffChat[order.id];
+  const unread = entry ? chatUnread(order.id, entry.msgs, "customer") : 0;
+  const has = entry && entry.msgs.length;
+  const style = unread
+    ? "background:#DC2626;color:#fff;border:none"
+    : has ? "background:#FFF7ED;color:#C4572A;border:1px solid #FED7AA" : "background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8";
+  return `<button onclick="openChat('${order.id}','staff')" title="Chat with customer" style="padding:11px 14px;font-size:18px;border-radius:9px;${style}">💬${unread ? ` <span style="font-size:13px;font-weight:800">${unread}</span>` : ""}</button>`;
 }
 function closeCart(){
   closeModal("cart-modal");
@@ -1243,6 +1496,8 @@ function buildPendingOrder(){
   if(!diningOption){ alert("Please select Dine In or Take Away first."); return false; }
   const remarks = document.getElementById("order-remarks").value.trim();
   pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), remarks, createdAt:Date.now()};
+  const ca = parseInt((document.getElementById("collect-at")||{}).value, 10);
+  if(ca && ca > Date.now()) pendingOrder.collectAt = ca;   // pre-order: collection time chosen
   return true;
 }
 // "Cash at Counter" straight from the cart: skips the PayNow screen.
@@ -1502,7 +1757,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
   // Save to active orders for recovery (only kitchen orders need recovery)
   if(needsKitchen){
     const active = ls("active_orders_w06", []);
-    active.push({orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining, paymentMethod:o.paymentMethod});
+    active.push({orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining, paymentMethod:o.paymentMethod, collectAt:o.collectAt||null});
     lss("active_orders_w06", active);
     syncMyOrderListeners();   // start watching just this customer's own order
   }
@@ -1526,8 +1781,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
     ? orders.filter(x=>x && (x.status==="paid"||x.status==="preparing")).length
     : queueDepth;
   const _wm=Math.max(5,_pc*2);
-  const _we=document.getElementById("queue-wait-est");
-  if(_we) _we.textContent="⏱️ Est. wait: ~"+_wm+" min"+(_wm!==1?"s":"");
+  setQueueTimeLine(o, _wm);
 
   // Show different status for snacks-only vs kitchen orders
   const statusBar = document.getElementById("order-status-bar");
@@ -1609,6 +1863,8 @@ function closeThankyou(){
 function resetOrderForm(){
   const r = document.getElementById("order-remarks");
   if(r) r.value = "";
+  const ca = document.getElementById("collect-at");
+  if(ca) ca.value = "";
   diningOption = null;
   ["opt-dinein","opt-takeaway"].forEach(id=>{
     const b = document.getElementById(id);
@@ -1626,6 +1882,7 @@ function resetOrderForm(){
 function closeQueue(){
   closeModal("queue-modal");
   stopTrackingOrder();
+  stopCustomerChatWatch();
   // Full reset for next customer
   cart = [];
   pendingOrder = null;
@@ -1715,6 +1972,7 @@ function renderKitchen(){
   };
   const queue = orders.filter(o=>o && o.status!=="collected" && o.status!=="cancelled" && o.status!=="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const awaiting = orders.filter(o=>o && o.status==="unpaid" && needsKitchenCheck(o)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  syncStaffChatListeners(queue.concat(awaiting).map(o=>o.id));   // watch chats for orders on screen
   const tags  = document.getElementById("kitchen-tags");
   const n0 = awaiting.length;
   const n1 = orders.filter(o=>o.status==="paid").length;
@@ -1746,6 +2004,7 @@ function renderKitchen(){
           </div>
           <div style="font-size:11px;color:#78716C;margin-top:4px">${tme(order.createdAt)}</div>
           <div style="margin-top:6px;display:inline-block;background:${isTakeAway?"#D97706":"#16A34A"};color:#fff;border-radius:10px;padding:4px 12px;font-size:13px;font-weight:700">${isTakeAway?"🥡 TAKE AWAY":"🍽️ DINE IN"}</div>
+          ${collectBadgeHtml(order)}
         </div>
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:700;color:#DC2626">${age}m ago</div>
@@ -1755,6 +2014,7 @@ function renderKitchen(){
       <div style="padding:10px 16px">${itemsHtml}</div>
       <div style="padding:0 14px 14px;display:flex;gap:8px">
         <button onclick="markPaid('${order.id}')" style="flex:1;padding:14px;font-size:16px;font-weight:700;background:#16A34A;color:#fff;border:none;border-radius:10px">✓ Mark Paid — Collected $${(order.total||0).toFixed(2)}</button>
+        ${staffChatButtonHtml(order)}
         <button onclick="cancelOrder('${order.id}')" style="padding:14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:10px">✕ Void</button>
       </div>
     </div>`;
@@ -1787,6 +2047,7 @@ function renderKitchen(){
             ? `<div style="margin-top:6px;display:inline-block;background:#D97706;color:#fff;border-radius:10px;padding:6px 16px;font-size:16px;font-weight:800;letter-spacing:0.05em">🥡 TAKE AWAY</div>`
             : `<div style="margin-top:6px;display:inline-block;background:#F0FDF4;color:#166534;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">🍽️ Dine In</div>`
           }
+          ${collectBadgeHtml(order)}
         </div>
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:700;color:${ageCol}">${age}m ago</div>
@@ -1820,6 +2081,7 @@ function renderKitchen(){
         ${order.status!=="ready"&&order.status!=="collected"?`<button onclick="markReady('${order.id}',${order.queueNo})" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#16A34A;color:#fff;border-radius:9px">🔔 Call Customer</button>`:""}
         ${order.status==="ready"?`<button onclick="updOrder('${order.id}','collected')" style="flex:1;padding:11px;font-size:14px;font-weight:600;background:#78716C;color:#fff;border-radius:9px">✓ Collected</button>`:""}
         ${order.status==="ready"?`<button onclick="recallOrder('${order.id}',${order.queueNo})" title="Re-call missed customer" style="padding:11px 14px;font-size:18px;background:#FFF7ED;color:#C4572A;border:1px solid #FED7AA;border-radius:9px">🔁</button>`:""}
+        ${staffChatButtonHtml(order)}
         <button onclick="printTicket(orders.find(x=>x.id==='${order.id}'))" style="padding:11px 20px;font-size:22px;background:#F5F3F0;color:#1C1917;border:1px solid #E5E0D8;border-radius:9px">🖨️</button>
         <button onclick="cancelOrder('${order.id}')" style="padding:11px 14px;font-size:13px;font-weight:600;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:9px">✕ Void</button>
       </div>
@@ -2541,6 +2803,7 @@ function startTrackingOrder(orderId){
     if(dEl) dEl.textContent = o.dining==="takeaway" ? "🥡 Take Away" : "🍽️ Dine In";
     updateStatusUI(o.status);
   });
+  startCustomerChatWatch(orderId);
 }
 
 function stopTrackingOrder(){
@@ -2898,6 +3161,10 @@ function thermerPrint(o){
     // Dining
     items.push({type:0, content:dining, bold:1, align:1, format:1});
     items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+    if(o.collectAt){
+      items.push({type:0, content:"PRE-ORDER: COLLECT " + tme(o.collectAt), bold:1, align:1, format:1});
+      items.push({type:0, content:"--------------------------------", bold:0, align:0, format:0});
+    }
 
     // Remarks
     if(o.remarks){
@@ -3003,6 +3270,14 @@ function buildTicketText(o){
   t += NORMAL + BOLD_OFF;
   t += "------------------------------------------------" + LF;
 
+  // Pre-order collection time
+  if(o.collectAt){
+    t += ALIGN_C + DOUBLE_H + BOLD_ON;
+    t += "PRE-ORDER: COLLECT " + tme(o.collectAt) + LF;
+    t += NORMAL + BOLD_OFF;
+    t += "------------------------------------------------" + LF;
+  }
+
   // Remarks
   if(o.remarks){
     t += ALIGN_L + BOLD_ON + "!! " + o.remarks + " !!" + BOLD_OFF + LF;
@@ -3088,7 +3363,8 @@ function _removeIdleWarning(){if(_idleWarnEl){try{_idleWarnEl.remove();}catch(e)
 function _doSessionReset(){
   _removeIdleWarning();
   cart=[];pendingOrder=null;resetOrderForm();curCat=0;
-  ["mod-modal","cart-modal","pay-modal","queue-modal","thankyou-modal","recovery-list-modal"].forEach(id=>closeModal(id));
+  stopCustomerChatWatch(); detachChatModal(); _chatOrderId=null;
+  ["mod-modal","cart-modal","pay-modal","queue-modal","thankyou-modal","recovery-list-modal","chat-modal"].forEach(id=>closeModal(id));
   renderMenu();updateCartFab();
   toast("Session reset — ready for next customer","#78716C");
 }

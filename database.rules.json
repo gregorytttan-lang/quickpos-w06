@@ -48,7 +48,21 @@
       "$id": {
         ".read": true,
         ".write": "!data.exists() && newData.exists() && $id.matches(/^ORD-[A-Z0-9]{1,8}$/) && newData.child('id').val() === $id && newData.child('total').isNumber() && newData.child('total').val() >= 0 && newData.child('createdAt').isNumber() && (newData.child('status').val() === 'paid' || newData.child('status').val() === 'unpaid' || newData.child('status').val() === 'collected')",
-        "remarks": { ".validate": "newData.isString() && newData.val().length <= 300" }
+        "remarks": { ".validate": "newData.isString() && newData.val().length <= 300" },
+        "collectAt": { ".validate": "newData.isNumber()" }
+      }
+    },
+
+    // Chat: one conversation per order. Anyone with the order ID can read it
+    // (same as the order itself). Customers can only add new messages marked
+    // "customer" to an order that exists; they cannot edit or delete messages.
+    "messages": {
+      "$orderId": {
+        ".read": true,
+        "$msgId": {
+          ".write": "!data.exists() && root.child('orders').child($orderId).exists() && newData.child('from').val() === 'customer'",
+          ".validate": "newData.hasChildren(['from', 'text', 'at']) && (newData.child('from').val() === 'customer' || newData.child('from').val() === 'staff') && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 200 && newData.child('at').isNumber()"
+        }
       }
     }
 
