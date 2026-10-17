@@ -378,17 +378,19 @@ input{font-family:'DM Sans',sans-serif;outline:none}
   <div id="cash-notice" class="hidden" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:12px;color:#1E40AF;font-weight:600">
     💵 Please pay cash at the counter and show this queue number.
   </div>
-  <div style="background:#FEF2F2;border:3px solid #DC2626;border-radius:16px;padding:16px;margin-bottom:10px;text-align:center">
+  <div id="paynow-proof-notice" style="background:#FEF2F2;border:3px solid #DC2626;border-radius:16px;padding:16px;margin-bottom:10px;text-align:center">
     <div style="font-size:32px;margin-bottom:6px">📸</div>
     <div style="font-size:22px;color:#DC2626;font-weight:800;line-height:1.4">Screenshot your bank payment confirmation as proof of payment!</div>
   </div>
-  <div style="font-size:12px;color:#78716C;text-align:center;margin-bottom:6px">Keep your queue number above. Tap below only when you are done with this order.</div>
+  <div style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#1C1917;font-weight:600;text-align:center;line-height:1.4">
+    📸 Screenshot this screen as a backup. You can also scan our QR code again to see your order.
+  </div>
   <button onclick="closeQueue()" style="background:#C4572A;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;width:100%">➕ New Order (Next Customer)</button>
 </div>
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v27"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v28"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -897,6 +899,12 @@ function showSingleOrder(orderData){
   const summaryEl = document.getElementById("queue-items-summary");
   if(summaryEl) summaryEl.innerHTML = itemsHtml + `<div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;border-top:2px solid #E5E0D8"><span style="font-weight:700">Total</span><span style="font-family:'Playfair Display',serif;font-weight:700;color:#C4572A;font-size:18px">${fmtS(orderData.total)}</span></div>`;
   updateStatusUI(status);
+  // Same notice rules as a new order: cash shows the cash notice, PayNow shows the bank-proof box
+  const payMethod = orderData.paymentMethod || (fbOrder && fbOrder.paymentMethod) || "paynow";
+  const cashNotice = document.getElementById("cash-notice");
+  if(cashNotice) cashNotice.classList.toggle("hidden", payMethod !== "cash");
+  const proofNotice = document.getElementById("paynow-proof-notice");
+  if(proofNotice) proofNotice.style.display = payMethod === "cash" ? "none" : "";
   openModal("queue-modal");
 }
 
@@ -1494,7 +1502,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
   // Save to active orders for recovery (only kitchen orders need recovery)
   if(needsKitchen){
     const active = ls("active_orders_w06", []);
-    active.push({orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining});
+    active.push({orderId:o.id, queueNo:o.queueNo, total:o.total, items:o.items, paidAt:o.paidAt, dining:o.dining, paymentMethod:o.paymentMethod});
     lss("active_orders_w06", active);
     syncMyOrderListeners();   // start watching just this customer's own order
   }
@@ -1560,6 +1568,9 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
   const cashNotice = document.getElementById("cash-notice");
   if(paymentMethod==="cash"){ cashNotice.classList.remove("hidden"); }
   else { cashNotice.classList.add("hidden"); }
+  // Bank-confirmation screenshot only applies to PayNow orders
+  const proofNotice = document.getElementById("paynow-proof-notice");
+  if(proofNotice) proofNotice.style.display = paymentMethod==="cash" ? "none" : "";
   openModal("queue-modal");
   renderMenu();
   updateKitchenBadge();
