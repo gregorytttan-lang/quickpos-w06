@@ -201,7 +201,10 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         <div style="font-size:12px;color:#78716C">Total</div>
         <div class="serif" id="cart-total-display" style="font-size:24px;font-weight:700;color:#C4572A"></div>
       </div>
-      <button onclick="proceedToPayment()" id="pay-now-btn" style="background:#D4CFC8;color:#fff;border-radius:14px;padding:16px 28px;font-size:15px;font-weight:600;cursor:not-allowed;opacity:0.6" disabled>Pay Now →</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button onclick="payCashNow()" id="pay-cash-btn" style="background:#D4CFC8;color:#fff;border-radius:14px;padding:16px 16px;font-size:14px;font-weight:600;cursor:not-allowed;opacity:0.6" disabled>💵 Cash at Counter</button>
+        <button onclick="proceedToPayment()" id="pay-now-btn" style="background:#D4CFC8;color:#fff;border-radius:14px;padding:16px 22px;font-size:15px;font-weight:600;cursor:not-allowed;opacity:0.6" disabled>💳 Pay Now →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -384,7 +387,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v24"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v25"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -1076,10 +1079,13 @@ function setDining(opt){
     ta.style.background="#C4572A"; ta.style.color="#fff"; ta.style.border="2px solid #C4572A"; ta.style.fontWeight="600";
     di.style.background="#fff"; di.style.color="#78716C"; di.style.border="2px solid #E5E0D8"; di.style.fontWeight="400";
   }
-  // Enable Pay Now button
-  const btn = document.getElementById("pay-now-btn");
-  btn.disabled = false;
-  btn.style.background="#C4572A"; btn.style.cursor="pointer"; btn.style.opacity="1";
+  // Enable Pay Now and Cash at Counter buttons
+  ["pay-now-btn","pay-cash-btn"].forEach(id=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.disabled = false;
+    b.style.background="#C4572A"; b.style.cursor="pointer"; b.style.opacity="1";
+  });
   // Update total display
   document.getElementById("cart-total-display").textContent = fmtS(cartTotal());
 }
@@ -1222,11 +1228,22 @@ function renderCartModal(){
 }
 
 // ── PAYMENT ──────────────────────────────────────────────────────────────────
-function proceedToPayment(){
-  if(!cart.length) return;
-  if(!diningOption){ alert("Please select Dine In or Take Away first."); return; }
+// Builds pendingOrder from the cart. Returns false if the order is not ready.
+function buildPendingOrder(){
+  if(!cart.length) return false;
+  if(!diningOption){ alert("Please select Dine In or Take Away first."); return false; }
   const remarks = document.getElementById("order-remarks").value.trim();
   pendingOrder = {id:uid(), items:[...cart.map(i=>({...i}))], total:cartTotal(), dining:diningOption, takeawayCharge:takeawayCharge(), remarks, createdAt:Date.now()};
+  return true;
+}
+// "Cash at Counter" straight from the cart: skips the PayNow screen.
+function payCashNow(){
+  if(!buildPendingOrder()) return;
+  closeCart();
+  confirmPayment('cash');
+}
+function proceedToPayment(){
+  if(!buildPendingOrder()) return;
   closeCart();
   // Render pay modal items
   const addons = getAddons;
