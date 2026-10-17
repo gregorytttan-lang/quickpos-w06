@@ -188,10 +188,6 @@ input{font-family:'DM Sans',sans-serif;outline:none}
         </button>
       </div>
     </div>
-    <div class="ocbc-notice" style="margin-top:16px;padding:14px 16px;background:#FFFBEB;border:2px solid #D97706;border-radius:12px">
-      <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px">⚠️ Paying with OCBC?</div>
-      <div style="font-size:13px;color:#78350F;line-height:1.5">PayNow isn't working for OCBC right now. Please pay by cash at the counter, or come to the front and we'll scan the QR code for you. Sorry for the inconvenience!</div>
-    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:2px solid #E5E0D8">
       <div>
         <div style="font-size:12px;color:#78716C">Total</div>
@@ -213,11 +209,28 @@ input{font-family:'DM Sans',sans-serif;outline:none}
       <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(196,87,42,0.15)"></div>
       <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:4px">Amount to Pay</div>
       <div id="pay-amount-big" style="font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1"></div>
-      <div class="ocbc-notice" style="background:#FFFBEB;border:2px solid #D97706;border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:left">
-        <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px">⚠️ Paying with OCBC?</div>
-        <div style="font-size:13px;color:#78350F;line-height:1.5">PayNow isn't working for OCBC right now. Please pay by cash at the counter, or come to the front and we'll scan the QR code for you. Sorry for the inconvenience!</div>
+      <!-- Step 1: bank selection -->
+      <div id="bank-pick" style="margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px;text-align:center">Which bank are you paying from?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="selectBank('DBS')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">DBS</button>
+          <button onclick="selectBank('UOB')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">UOB</button>
+          <button onclick="selectBank('POSB')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">POSB</button>
+          <button onclick="selectBank('OCBC')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">OCBC</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      <!-- OCBC notice (shown only after OCBC is picked, while OCBC_PAYNOW_DOWN is true) -->
+      <div id="ocbc-panel" style="display:none;background:#FFFBEB;border:2px solid #D97706;border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:left">
+        <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px">⚠️ Paying with OCBC?</div>
+        <div style="font-size:13px;color:#78350F;line-height:1.5;margin-bottom:10px">PayNow isn't working for OCBC right now. Please pay by cash at the counter, or come to the front and we'll scan the QR code for you. Sorry for the inconvenience!</div>
+        <button onclick="showBankPicker()" style="background:#fff;color:#92400E;border:1px solid #D97706;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">← Choose another bank</button>
+      </div>
+      <!-- Shown after a non-OCBC bank is picked -->
+      <div id="bank-chosen" style="display:none;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;font-size:12px;color:rgba(255,255,255,0.85)">
+        <span>Paying from <strong id="bank-chosen-name" style="color:#fff"></strong></span>
+        <button onclick="showBankPicker()" style="background:rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Change bank</button>
+      </div>
+      <div id="paynow-qr-row" style="display:none;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
         <div style="background:#fff;border-radius:14px;padding:12px;display:inline-block;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
           <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">PayNow</div>
           <div style="font-size:9px;color:#78716C;margin-bottom:8px">UEN: 53155285C</div>
@@ -374,8 +387,7 @@ const QUEUE_TIMEOUT_MS = 15000;              // give Firebase time on slow 4G
 const PAYMENT_SAFETY_TIMEOUT_MS = 20000;     // overall payment unlock fallback
 const PAY_GATE_LOCK_SECS       = 20;          // seconds PayNow button stays locked
 const PAY_FLAG_THRESHOLD_SECS  = 20;          // confirm under this → flag UNVERIFIED (must match PAY_GATE_LOCK_SECS)
-const OCBC_NOTICE_ON = true;                  // show "OCBC: pay cash / come to counter" notice; set false once PayNow works for OCBC
-document.querySelectorAll(".ocbc-notice").forEach(el => { if(!OCBC_NOTICE_ON) el.style.display = "none"; });
+const OCBC_PAYNOW_DOWN = true;                // true = OCBC PayNow is not working; OCBC customers see the cash/counter notice. Set false once fixed.
 let _payGateTimer = null;                      // countdown interval handle
 let _payOpenedAt  = 0;                         // timestamp when pay modal opened
 
@@ -1225,7 +1237,38 @@ function proceedToPayment(){
   const qrString = buildPayNowQR(pendingOrder.total);
   new QRCode(qrWrap, {text: qrString, width: 180, height: 180, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M});
   openModal("pay-modal", "block");
-  // Start the payment gate countdown
+  showBankPicker(); // QR and payment countdown start once the customer picks a bank
+}
+
+// ── BANK SELECTION (PayNow) ──────────────────────────────────────────────────
+function setPayDisplay(id, show, mode){
+  const el = document.getElementById(id);
+  if(el) el.style.display = show ? (mode || "") : "none";
+}
+function showBankPicker(){
+  clearInterval(_payGateTimer);
+  setPayDisplay("bank-pick", true, "block");
+  setPayDisplay("ocbc-panel", false);
+  setPayDisplay("bank-chosen", false);
+  setPayDisplay("paynow-qr-row", false);
+  setPayDisplay("pay-gate-wrap", false);
+  setPayDisplay("btn-paid-paynow", false);
+}
+function selectBank(bank){
+  if(pendingOrder) pendingOrder.paynowBank = bank;
+  if(bank === "OCBC" && OCBC_PAYNOW_DOWN){
+    setPayDisplay("bank-pick", false);
+    setPayDisplay("ocbc-panel", true, "block");
+    return;
+  }
+  setPayDisplay("bank-pick", false);
+  setPayDisplay("ocbc-panel", false);
+  const nm = document.getElementById("bank-chosen-name");
+  if(nm) nm.textContent = bank;
+  setPayDisplay("bank-chosen", true, "flex");
+  setPayDisplay("paynow-qr-row", true, "flex");
+  setPayDisplay("pay-gate-wrap", true, "block");
+  setPayDisplay("btn-paid-paynow", true, "");
   _payOpenedAt = Date.now();
   startPayGate();
 }
