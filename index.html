@@ -382,12 +382,13 @@ input{font-family:'DM Sans',sans-serif;outline:none}
     <div style="font-size:32px;margin-bottom:6px">📸</div>
     <div style="font-size:22px;color:#DC2626;font-weight:800;line-height:1.4">Screenshot your bank payment confirmation as proof of payment!</div>
   </div>
-  <button onclick="closeQueue()" style="background:#F5F3F0;color:#78716C;border:1px solid #E5E0D8;border-radius:10px;padding:12px;font-size:13px;font-weight:600;width:100%">Close & New Order</button>
+  <div style="font-size:12px;color:#78716C;text-align:center;margin-bottom:6px">Keep your queue number above. Tap below only when you are done with this order.</div>
+  <button onclick="closeQueue()" style="background:#C4572A;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;width:100%">➕ New Order (Next Customer)</button>
 </div>
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v26"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v27"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
