@@ -387,7 +387,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v25"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-17-v26"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -1498,6 +1498,7 @@ async function confirmPayment(paymentMethod='paynow', _suspicious=false, _elapse
     syncMyOrderListeners();   // start watching just this customer's own order
   }
   cart = []; pendingOrder = null;
+  resetOrderForm();
   closePayment();
 
   // Snack-only — show Thank You screen, no queue modal
@@ -1585,7 +1586,29 @@ function showThankYou(o){
 
 function closeThankyou(){
   closeModal("thankyou-modal");
+  cart = [];
+  pendingOrder = null;
+  resetOrderForm();
   renderMenu();
+}
+
+// Clears the order form so the next customer starts fresh:
+// remarks, dining choice, dining button highlight, and the Pay buttons.
+function resetOrderForm(){
+  const r = document.getElementById("order-remarks");
+  if(r) r.value = "";
+  diningOption = null;
+  ["opt-dinein","opt-takeaway"].forEach(id=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.style.background="#fff"; b.style.color="#78716C"; b.style.border="2px solid #E5E0D8"; b.style.fontWeight="400";
+  });
+  ["pay-now-btn","pay-cash-btn"].forEach(id=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.disabled = true;
+    b.style.background="#D4CFC8"; b.style.cursor="not-allowed"; b.style.opacity="0.6";
+  });
 }
 
 function closeQueue(){
@@ -1594,7 +1617,7 @@ function closeQueue(){
   // Full reset for next customer
   cart = [];
   pendingOrder = null;
-  diningOption = null;
+  resetOrderForm();
   curCat = 0;
   renderMenu();
   updateCartFab();
@@ -3052,7 +3075,7 @@ let _idleTimer=null,_idleWarnTimer=null,_idleWarnEl=null;
 function _removeIdleWarning(){if(_idleWarnEl){try{_idleWarnEl.remove();}catch(e){}}_idleWarnEl=null;}
 function _doSessionReset(){
   _removeIdleWarning();
-  cart=[];pendingOrder=null;diningOption=null;curCat=0;
+  cart=[];pendingOrder=null;resetOrderForm();curCat=0;
   ["mod-modal","cart-modal","pay-modal","queue-modal","thankyou-modal","recovery-list-modal"].forEach(id=>closeModal(id));
   renderMenu();updateCartFab();
   toast("Session reset — ready for next customer","#78716C");
