@@ -120,6 +120,14 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 <!-- ADMIN VIEW -->
 <div id="view-admin" class="hidden" style="padding:16px">
   <!-- Open/Close toggle -->
+  <!-- System health (checked when admin opens and every minute) -->
+  <div id="health-panel" style="background:#fff;border:1px solid #E5E0D8;border-radius:12px;padding:12px 14px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700">System health</div>
+      <button onclick="runHealthCheck()" style="background:#F5F3F0;border:1px solid #E5E0D8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">Refresh</button>
+    </div>
+    <div id="health-rows" style="font-size:13px;line-height:1.9;color:#1C1917"></div>
+  </div>
   <div id="stall-status-bar" style="border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px"></div>
   <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
     <button onclick="adminTab('menu-mgmt')" id="atab-menu-mgmt" style="background:#C4572A;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600">📋 Menu</button>
@@ -2813,6 +2821,7 @@ function updatePrinterStatus(connected){
 }
 
 function thermerPrint(o){
+  _lastPrintAt = Date.now();
   try{
     // Build JSON print data for Thermer Browser Print API
     const addons = getAddonNames;
@@ -2884,6 +2893,7 @@ function thermerPrint(o){
 
 function rawbtPrint(text){
   // Fallback to RawBT if Thermer not available
+  _lastPrintAt = Date.now();
   try{
     const intentUrl = "intent://rawbt/api/print?text=" + encodeURIComponent(text) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end";
     const a = document.createElement("a");
@@ -3057,6 +3067,39 @@ firebase.initializeApp(FB_CONFIG);
 const db = firebase.database();
 // Staff login lasts until this browser tab is closed (same as the old password).
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(()=>{});
+// ── SYSTEM HEALTH CHECK ──────────────────────────────────────────────────────
+// Shows what the browser can verify: Firebase connection, unsynced orders,
+// PayNow setup, and the last print sent. A browser cannot see whether the
+// printer actually printed, so the printer row says so and points to Test Print.
+let _lastPrintAt = null;   // set whenever a print is sent
+let _fbConnected = null;   // null = still checking, true/false from Firebase
+function healthRow(label, state, detail){
+  const icon = state === "ok" ? "🟢" : state === "warn" ? "🟡" : "🔴";
+  return `<div>${icon} <strong>${label}</strong> — ${detail}</div>`;
+}
+function runHealthCheck(){
+  const el = document.getElementById("health-rows");
+  if(!el) return;
+  const rows = [];
+  if(_fbConnected === null) rows.push(healthRow("Internet / Firebase", "warn", "checking…"));
+  else if(_fbConnected)     rows.push(healthRow("Internet / Firebase", "ok", "connected"));
+  else                      rows.push(healthRow("Internet / Firebase", "bad", "offline — new orders may not reach the kitchen"));
+  const pending = pendingSyncCount();
+  rows.push(pending === 0
+    ? healthRow("Sync", "ok", "all orders synced")
+    : healthRow("Sync", "warn", pending + " order(s) waiting to sync"));
+  const qrReady = typeof QRCode !== "undefined";
+  if(!qrReady)              rows.push(healthRow("PayNow QR", "bad", "QR library did not load — PayNow QR will not show"));
+  else if(OCBC_PAYNOW_DOWN) rows.push(healthRow("PayNow QR", "warn", "working for DBS / UOB / POSB — OCBC is on the cash notice"));
+  else                      rows.push(healthRow("PayNow QR", "ok", "working for all banks"));
+  rows.push(_lastPrintAt
+    ? healthRow("Printer", "warn", "last print sent at " + new Date(_lastPrintAt).toLocaleTimeString("en-SG", {hour: "2-digit", minute: "2-digit"}) + " — not confirmed; use Test Print to check")
+    : healthRow("Printer", "warn", "no print sent since this page opened — use Test Print to check"));
+  el.innerHTML = rows.join("");
+}
+db.ref(".info/connected").on("value", snap => { _fbConnected = snap.val() === true; runHealthCheck(); });
+setInterval(runHealthCheck, 60000);
+
 const ordersRef = db.ref("orders");
 
 // ── PAYOUTS: staff-only. Loaded when Kitchen/Admin opens.
