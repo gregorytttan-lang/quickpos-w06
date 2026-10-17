@@ -364,8 +364,8 @@ const TAKEAWAY_FEE = 0.30;                   // per-main takeaway box charge
 const QUEUE_DIGITS = 3;                      // queue number padding (e.g. #045)
 const QUEUE_TIMEOUT_MS = 15000;              // give Firebase time on slow 4G
 const PAYMENT_SAFETY_TIMEOUT_MS = 20000;     // overall payment unlock fallback
-const PAY_GATE_LOCK_SECS       = 30;          // seconds PayNow button stays locked
-const PAY_FLAG_THRESHOLD_SECS  = 30;          // confirm under this → flag UNVERIFIED (must match PAY_GATE_LOCK_SECS)
+const PAY_GATE_LOCK_SECS       = 20;          // seconds PayNow button stays locked
+const PAY_FLAG_THRESHOLD_SECS  = 20;          // confirm under this → flag UNVERIFIED (must match PAY_GATE_LOCK_SECS)
 let _payGateTimer = null;                      // countdown interval handle
 let _payOpenedAt  = 0;                         // timestamp when pay modal opened
 
