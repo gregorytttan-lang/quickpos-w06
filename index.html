@@ -434,19 +434,39 @@ function closeModal(id){
   m.style.display = "none";
 }
 
+// Builds the QR as a PNG File synchronously, so it can be shared straight from the click.
+function qrPngFile(canvas){
+  const b64 = canvas.toDataURL('image/png').split(',')[1];
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new File([bytes], 'paynow-qr.png', {type: 'image/png'});
+}
 function screenshotQR(){
   const canvas = document.querySelector('#dynamic-qr canvas');
   if(!canvas){ toast("QR not ready, please try again","#DC2626"); return; }
-  try{
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = 'paynow-qr.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast("✅ QR saved! Open bank app → PayNow → Scan from gallery 📂");
-  } catch(e){
+  let file;
+  try{ file = qrPngFile(canvas); } catch(e){
     toast("❌ Save failed — try screenshot instead","#DC2626");
+    return;
+  }
+  // 1) iPhone/Android share sheet: the staff taps "Save Image" to put it in Photos.
+  if(navigator.canShare && navigator.canShare({files: [file]})){
+    navigator.share({files: [file], title: 'PayNow QR'})
+      .then(() => toast("✅ Tap \"Save Image\" to keep the QR"))
+      .catch(e => { if(e && e.name !== 'AbortError') openQRForSaving(file); });
+    return;
+  }
+  // 2) Otherwise open the image so it can be pressed and held to save.
+  openQRForSaving(file);
+}
+function openQRForSaving(file){
+  const url = URL.createObjectURL(file);
+  const w = window.open(url, '_blank');
+  if(w){
+    toast("Press and hold the QR, then tap Save Image 📂");
+  } else {
+    toast("❌ Pop-up blocked — allow pop-ups or screenshot the QR","#DC2626");
   }
 }
 function fallbackDownload(canvas){
