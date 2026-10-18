@@ -413,7 +413,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-17-v30"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-18-v31"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -3556,7 +3556,7 @@ function startPayoutsListener(){
     lss("payouts_w06", Object.values(byId));
     const listEl = document.getElementById("payout-list");
     if(listEl) renderPayouts();
-  });
+  }, ()=>{ _payoutsListenerOn = false; });   // refused (e.g. logged out): allow a fresh start after next login
 }
 
 // Listen for stall status changes — syncs open/close to all devices
@@ -3875,7 +3875,7 @@ function startOrdersListener(){
     // Only re-render reports if the tab is currently visible
     const reportsEl = document.getElementById("admin-reports");
     if(reportsEl && !reportsEl.classList.contains("hidden")) renderReports();
-  });
+  }, ()=>{ _ordersQuery = null; });   // refused (e.g. logged out): allow a fresh start after next login
 }
 
 // Kitchen publishes a single number so customer phones can still show a wait
