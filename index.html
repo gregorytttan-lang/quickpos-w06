@@ -225,43 +225,25 @@ input{font-family:'DM Sans',sans-serif;outline:none}
       <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(196,87,42,0.15)"></div>
       <div style="font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:4px">Amount to Pay</div>
       <div id="pay-amount-big" style="font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1"></div>
-      <!-- Step 1: bank selection -->
-      <div id="bank-pick" style="margin-bottom:12px">
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px;text-align:center">Which bank are you paying from?</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button onclick="selectBank('DBS')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">DBS</button>
-          <button onclick="selectBank('UOB')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">UOB</button>
-          <button onclick="selectBank('POSB')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">POSB</button>
-          <button onclick="selectBank('OCBC')" style="background:#fff;color:#1C1917;border-radius:10px;padding:14px 8px;font-size:15px;font-weight:700">OCBC</button>
-        </div>
-      </div>
-      <!-- OCBC notice (shown only after OCBC is picked, while OCBC_PAYNOW_DOWN is true) -->
-      <div id="ocbc-panel" style="display:none;background:#FFFBEB;border:2px solid #D97706;border-radius:12px;padding:12px 14px;margin-bottom:12px;text-align:left">
-        <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px">⚠️ Paying with OCBC?</div>
-        <div style="font-size:13px;color:#78350F;line-height:1.5;margin-bottom:10px">PayNow isn't working for OCBC right now. Please pay by cash at the counter, or come to the front and we'll scan the QR code for you. Sorry for the inconvenience!</div>
-        <button onclick="showBankPicker()" style="background:#fff;color:#92400E;border:1px solid #D97706;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">← Choose another bank</button>
-      </div>
-      <!-- Shown after a non-OCBC bank is picked -->
-      <div id="bank-chosen" style="display:none;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;font-size:12px;color:rgba(255,255,255,0.85)">
-        <span>Paying from <strong id="bank-chosen-name" style="color:#fff"></strong></span>
-        <button onclick="showBankPicker()" style="background:rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Change bank</button>
-      </div>
-      <div id="paynow-qr-row" style="display:none;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
-        <div style="background:#fff;border-radius:14px;padding:12px;display:inline-block;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+      <div id="paynow-qr-row" style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="background:#fff;border-radius:14px;padding:16px;display:inline-block;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
           <div style="font-size:10px;font-weight:700;color:#C4572A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">PayNow</div>
           <div style="font-size:9px;color:#78716C;margin-bottom:8px">UEN: 53155285C</div>
-          <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:160px;height:160px;display:flex;align-items:center;justify-content:center"></div></div>
+          <div id="pay-qr-wrap"><div id="dynamic-qr" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center"></div></div>
           <div style="font-size:9px;color:#78716C;margin-top:8px;font-weight:500">Amount pre-filled — confirm & pay</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;max-width:200px">
-          <button onclick="screenshotQR()" style="background:#C4572A;color:#fff;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;width:100%">📸 Save QR</button>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:160px;max-width:210px">
+          <div style="background:#C4572A;color:#fff;border-radius:10px;padding:10px 12px;text-align:left">
+            <div style="font-size:15px;font-weight:800">📸 Screenshot this QR</div>
+            <div style="font-size:11px;opacity:0.9;margin-top:3px;line-height:1.4">iPhone: Side + Volume Up<br>Android: Power + Volume Down</div>
+          </div>
           <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
             <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">1</span>
-            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">Save QR to phone</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4;text-align:left">Take a screenshot of this screen</span>
           </div>
           <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
             <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">2</span>
-            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">Bank app → PayNow → Scan gallery</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4;text-align:left">Bank app → PayNow → Scan → pick the screenshot from your gallery</span>
           </div>
           <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.07);border-radius:8px;padding:8px 10px">
             <span style="background:#C4572A;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">3</span>
@@ -413,7 +395,7 @@ input{font-family:'DM Sans',sans-serif;outline:none}
 
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────────
-const APP_VERSION = "2026-10-18-v31"; // bump on every deploy: lets devices auto-refresh to the latest version
+const APP_VERSION = "2026-10-18-v32"; // bump on every deploy: lets devices auto-refresh to the latest version
 const PAYNOW_UEN = "53155285C";
 const STALL_KEY_PREFIX = "w06";              // localStorage namespace
 const RECOVERY_HOURS = 2;                    // active orders disappear after this
@@ -424,7 +406,6 @@ const QUEUE_TIMEOUT_MS = 15000;              // give Firebase time on slow 4G
 const PAYMENT_SAFETY_TIMEOUT_MS = 20000;     // overall payment unlock fallback
 const PAY_GATE_LOCK_SECS       = 20;          // seconds PayNow button stays locked
 const PAY_FLAG_THRESHOLD_SECS  = 20;          // confirm under this → flag UNVERIFIED (must match PAY_GATE_LOCK_SECS)
-const OCBC_PAYNOW_DOWN = true;                // true = OCBC PayNow is not working; OCBC customers see the cash/counter notice. Set false once fixed.
 
 // ── PRE-ORDER COLLECTION TIMES ──
 // Customers can pick a collection slot between these times (24-hour, today only).
@@ -506,48 +487,6 @@ function closeModal(id){
   m.style.display = "none";
 }
 
-// Builds the QR as a PNG File synchronously, so it can be shared straight from the click.
-function qrPngFile(canvas){
-  const b64 = canvas.toDataURL('image/png').split(',')[1];
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new File([bytes], 'paynow-qr.png', {type: 'image/png'});
-}
-function screenshotQR(){
-  const canvas = document.querySelector('#dynamic-qr canvas');
-  if(!canvas){ toast("QR not ready, please try again","#DC2626"); return; }
-  let file;
-  try{ file = qrPngFile(canvas); } catch(e){
-    toast("❌ Save failed — try screenshot instead","#DC2626");
-    return;
-  }
-  // 1) iPhone/Android share sheet: the staff taps "Save Image" to put it in Photos.
-  if(navigator.canShare && navigator.canShare({files: [file]})){
-    navigator.share({files: [file], title: 'PayNow QR'})
-      .then(() => toast("✅ Tap \"Save Image\" to keep the QR"))
-      .catch(e => { if(e && e.name !== 'AbortError') openQRForSaving(file); });
-    return;
-  }
-  // 2) Otherwise open the image so it can be pressed and held to save.
-  openQRForSaving(file);
-}
-function openQRForSaving(file){
-  const url = URL.createObjectURL(file);
-  const w = window.open(url, '_blank');
-  if(w){
-    toast("Press and hold the QR, then tap Save Image 📂");
-  } else {
-    toast("❌ Pop-up blocked — allow pop-ups or screenshot the QR","#DC2626");
-  }
-}
-function fallbackDownload(canvas){
-  const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'paynow-qr.png';
-  a.click();
-  toast("QR saved! Open bank app and scan from gallery 📂");
-}
 function toast(msg, color){
   color = color || "#16A34A";
   const t = document.createElement("div");
@@ -1649,38 +1588,7 @@ async function proceedToPayment(){
   const qrString = buildPayNowQR(pendingOrder.total);
   new QRCode(qrWrap, {text: qrString, width: 180, height: 180, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M});
   openModal("pay-modal", "block");
-  showBankPicker(); // QR and payment countdown start once the customer picks a bank
-}
-
-// ── BANK SELECTION (PayNow) ──────────────────────────────────────────────────
-function setPayDisplay(id, show, mode){
-  const el = document.getElementById(id);
-  if(el) el.style.display = show ? (mode || "") : "none";
-}
-function showBankPicker(){
-  clearInterval(_payGateTimer);
-  setPayDisplay("bank-pick", true, "block");
-  setPayDisplay("ocbc-panel", false);
-  setPayDisplay("bank-chosen", false);
-  setPayDisplay("paynow-qr-row", false);
-  setPayDisplay("pay-gate-wrap", false);
-  setPayDisplay("btn-paid-paynow", false);
-}
-function selectBank(bank){
-  if(pendingOrder) pendingOrder.paynowBank = bank;
-  if(bank === "OCBC" && OCBC_PAYNOW_DOWN){
-    setPayDisplay("bank-pick", false);
-    setPayDisplay("ocbc-panel", true, "block");
-    return;
-  }
-  setPayDisplay("bank-pick", false);
-  setPayDisplay("ocbc-panel", false);
-  const nm = document.getElementById("bank-chosen-name");
-  if(nm) nm.textContent = bank;
-  setPayDisplay("bank-chosen", true, "flex");
-  setPayDisplay("paynow-qr-row", true, "flex");
-  setPayDisplay("pay-gate-wrap", true, "block");
-  setPayDisplay("btn-paid-paynow", true, "");
+  // Start the payment gate countdown
   _payOpenedAt = Date.now();
   startPayGate();
 }
@@ -3528,7 +3436,6 @@ function runHealthCheck(){
     : healthRow("Sync", "warn", pending + " order(s) waiting to sync"));
   const qrReady = typeof QRCode !== "undefined";
   if(!qrReady)              rows.push(healthRow("PayNow QR", "bad", "QR library did not load — PayNow QR will not show"));
-  else if(OCBC_PAYNOW_DOWN) rows.push(healthRow("PayNow QR", "warn", "working for DBS / UOB / POSB — OCBC is on the cash notice"));
   else                      rows.push(healthRow("PayNow QR", "ok", "working for all banks"));
   rows.push(_lastPrintAt
     ? healthRow("Printer", "warn", "last print sent at " + new Date(_lastPrintAt).toLocaleTimeString("en-SG", {hour: "2-digit", minute: "2-digit"}) + " — not confirmed; use Test Print to check")
